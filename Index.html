@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Медитации</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    --accent: #a463f2;
+    --accent-glow: rgba(164, 99, 242, 0.45);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #08080f;
+    color: #fffffe;
+    min-height: 100vh;
+    padding: 20px 16px 100px;
+    user-select: none;
+  }
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .tabs-bottom {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10, 10, 22, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid #1c1c38;
+    display: flex;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    z-index: 60;
+  }
+  .bottom-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #666a80;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    transition: color .2s;
+    letter-spacing: .2px;
+    text-transform: uppercase;
+  }
+  .bottom-tab svg { fill: currentColor; transition: transform .2s; }
+  .bottom-tab:active svg { transform: scale(.9); }
+  .bottom-tab.active { color: var(--accent); }
+  .bottom-tab.active svg { filter: drop-shadow(0 0 8px var(--accent)); }
+
+  .streak-card {
+    background: linear-gradient(135deg, #ff8906 0%, #e53170 100%);
+    border-radius: 20px; padding: 20px; text-align: center;
+    margin-bottom: 12px; box-shadow: 0 8px 24px rgba(229, 49, 112, 0.25);
+  }
+  .streak-num { font-size: 48px; font-weight: 700; line-height: 1; }
+  .streak-label { font-size: 13px; opacity: .9; margin-top: 4px; }
+
+  .stats-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: #131324; border-radius: 14px;
+    padding: 12px 14px; margin-bottom: 14px;
+  }
+  .level-badge {
+    font-size: 11px; color: #a7a9be; font-weight: 600;
+    flex-shrink: 0; letter-spacing: .3px; text-transform: uppercase;
+  }
+  .level-badge b { color: var(--accent); font-size: 15px; margin-left: 4px; }
+  .xp-bar {
+    flex: 1; height: 6px; background: rgba(255,255,255,.06);
+    border-radius: 3px; overflow: hidden; min-width: 40px;
+  }
+  .xp-fill {
+    height: 100%; background: var(--accent); border-radius: 3px;
+    transition: width .6s cubic-bezier(.22,.9,.27,1);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .xp-text { font-size: 11px; color: #a7a9be; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+  .profile-tabs {
+    display: flex; gap: 4px;
+    background: #131324;
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 14px;
+  }
+  .profile-tab {
+    flex: 1;
+    background: none; border: none;
+    color: #a7a9be;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: .2s;
+    white-space: nowrap;
+  }
+  .profile-tab.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(164,99,242,.3);
+  }
+
+  .daily-tasks {
+    background: #131324; border-radius: 14px;
+    padding: 12px 14px; margin-bottom: 12px;
+  }
+  .daily-header {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: #a7a9be; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600;
+  }
+  .daily-header .count { color: var(--accent); font-weight: 700; }
+  .daily-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 5px 0; font-size: 13px;
+  }
+  .daily-check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid #2a2a4a; display: flex;
+    align-items: center; justify-content: center;
+    flex-shrink: 0; transition: .2s; color: transparent;
+  }
+  .daily-item.done .daily-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .daily-text { flex: 1; color: #d0d2e0; transition: .2s; }
+  .daily-item.done .daily-text { color: #666a80; text-decoration: line-through; }
+  .daily-progress { font-size: 11px; color: #a7a9be; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  .chakra-picker {
+    display: flex; gap: 10px; overflow-x: auto;
+    padding: 6px 2px 14px; margin-bottom: 4px;
+    scrollbar-width: none; scroll-snap-type: x proximity;
+  }
+  .chakra-picker::-webkit-scrollbar { display: none; }
+  .chakra-chip {
+    flex-shrink: 0; scroll-snap-align: center;
+    background: #131324; border: 1.5px solid transparent;
+    color: #a7a9be; padding: 10px 14px; border-radius: 22px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: .25s; font-family: inherit;
+  }
+  .chakra-chip .dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--c); box-shadow: 0 0 10px var(--c); transition: .25s;
+  }
+  .chakra-chip.active {
+    color: #fff; border-color: var(--c); background: #191932;
+    box-shadow: 0 0 18px -4px var(--c);
+  }
+  .chakra-chip.locked { opacity: 0.45; filter: saturate(0.4); }
+  .chakra-chip.locked .dot { background: #555770; box-shadow: none; }
+  .chakra-chip .lock { font-size: 11px; margin-left: 2px; opacity: .8; }
+  .chakra-info { text-align: center; margin-bottom: 12px; }
+  .chakra-name {
+    font-size: 20px; font-weight: 600; letter-spacing: .5px;
+    transition: color .4s; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 8px; border-radius: 8px;
+  }
+  .chakra-name:active { background: rgba(255,255,255,.05); }
+  .chakra-name .info-ic {
+    width: 14px; height: 14px; fill: #a7a9be; opacity: .6;
+  }
+  .chakra-desc { font-size: 13px; color: #a7a9be; margin-top: 4px; line-height: 1.4; }
+  .chakra-intent {
+    margin-top: 14px; padding: 12px 14px;
+    background: rgba(255,255,255,.04);
+    border-left: 3px solid var(--accent); border-radius: 10px;
+    font-size: 14px; color: #fffffe; text-align: left; line-height: 1.5;
+    transition: border-color .3s;
+  }
+  .chakra-intent b {
+    display: block; font-size: 11px; color: #a7a9be;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    font-weight: 600; margin-bottom: 6px;
+  }
+
+  .chakra-progress {
+    display: flex; gap: 6px; justify-content: center;
+    align-items: flex-end; height: 60px; margin: 8px 0 6px;
+  }
+  .chakra-bar {
+    width: 26px; height: 100%;
+    background: rgba(255,255,255,.05);
+    border-radius: 6px; position: relative; overflow: hidden;
+  }
+  .chakra-bar-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--c); border-radius: 6px;
+    transition: height .6s cubic-bezier(.22,.9,.27,1);
+    box-shadow: 0 0 10px var(--c);
+  }
+  .chakra-total {
+    text-align: center; font-size: 12px; color: #a7a9be;
+    margin-bottom: 4px; letter-spacing: .3px;
+  }
+  .chakra-total b { color: var(--accent); font-weight: 600; font-size: 13px; }
+
+  .profile-section-title {
+    font-size: 11px;
+    color: #a7a9be;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    margin: 18px 0 10px;
+  }
+  .stat-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-card {
+    background: #131324;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: #a7a9be;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .stat-value span {
+    font-size: 12px;
+    color: #a7a9be;
+    font-weight: 500;
+    margin-left: 2px;
+  }
+
+  .profile-subtabs {
+    display: flex; gap: 6px;
+    margin-bottom: 12px;
+  }
+  .profile-subtab {
+    flex: 1;
+    background: #131324;
+    border: 1px solid transparent;
+    color: #a7a9be;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: .2s;
+  }
+  .profile-subtab.active {
+    background: rgba(164,99,242,.15);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .player {
+    background: #0a0a16; border-radius: 24px;
+    padding: 16px 20px 24px; margin-bottom: 16px; overflow: hidden;
+  }
+  #orb { display: block; width: 300px; height: 300px; margin: 0 auto 4px; }
+  .breath-hint {
+    text-align: center; font-size: 13px; color: #a7a9be;
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 16px; transition: color .8s ease; height: 18px;
+    font-weight: 500;
+  }
+
+  .setting-block {
+    background: #131324; border-radius: 14px;
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .setting-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; cursor: pointer; user-select: none;
+    transition: background .15s;
+  }
+  .setting-header:active { background: rgba(255,255,255,.03); }
+  .setting-label { font-size: 14px; color: #a7a9be; font-weight: 500; }
+  .setting-value {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; color: #fff; font-weight: 500;
+  }
+  .setting-value b { color: var(--accent); font-weight: 600; transition: color .3s; }
+  .setting-value .chev { width: 18px; height: 18px; fill: #a7a9be; transition: transform .25s; }
+  .setting-block.open .chev { transform: rotate(180deg); }
+  .setting-options {
+    display: none; flex-wrap: wrap; gap: 6px;
+    padding: 0 14px 14px;
+  }
+  .setting-block.open .setting-options { display: flex; }
+  .setting-options button {
+    background: transparent; border: 1px solid #24243e;
+    color: #a7a9be; padding: 8px 14px; border-radius: 12px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: .2s; font-family: inherit; white-space: nowrap;
+  }
+  .setting-options button:active { background: rgba(255,255,255,.05); }
+  .setting-options button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .setting-options button.add-btn {
+    border-style: dashed; color: var(--accent);
+  }
+  .setting-options button.custom {
+    position: relative;
+    padding-right: 24px;
+  }
+  .setting-options button.custom .del {
+    position: absolute; right: 6px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px; opacity: .6; padding: 0 2px;
+  }
+  .setting-block.hidden { display: none; }
+
+  .timer-display {
+    text-align: center; font-size: 46px; font-weight: 300;
+    font-variant-numeric: tabular-nums; letter-spacing: 1px;
+    color: #fffffe; margin: 18px 0 18px; transition: color .3s;
+  }
+  .timer-display.warn { color: #e53170; }
+  .control-bar {
+    display: flex; justify-content: center; align-items: center;
+    gap: 22px; margin-bottom: 8px; padding: 4px 0;
+  }
+  .ctrl-side {
+    background: transparent; border: none; color: #a7a9be;
+    cursor: pointer; padding: 8px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: .15s;
+  }
+  .ctrl-side:active { background: rgba(255,255,255,.08); }
+  .ctrl-side svg { width: 24px; height: 24px; fill: currentColor; }
+  .ctrl-play {
+    background: var(--accent); border: none; color: #fff;
+    cursor: pointer; width: 76px; height: 76px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 22px var(--accent-glow);
+    transition: background .3s, box-shadow .3s, transform .1s;
+  }
+  .ctrl-play svg { width: 34px; height: 34px; fill: currentColor; }
+  .ctrl-play:active { transform: scale(.94); }
+  .mark-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #2cb67d 0%, #1a9e68 100%);
+    color: #fff; border: none; border-radius: 16px;
+    padding: 16px; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 20px; transition: .2s; font-family: inherit;
+  }
+  .mark-btn:disabled { opacity: .35; cursor: default; }
+  .mark-btn:active:not(:disabled) { transform: scale(.98); }
+
+  .achievements-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  .achievement-card {
+    background: #1c1c38; border-radius: 12px;
+    padding: 12px 10px; text-align: center;
+    transition: .2s; border: 1px solid transparent;
+  }
+  .achievement-card.unlocked {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px -6px var(--accent);
+  }
+  .achievement-icon { font-size: 28px; margin-bottom: 6px; line-height: 1; }
+  .achievement-title { font-size: 12px; font-weight: 600; margin-bottom: 3px; color: #fffffe; }
+  .achievement-desc { font-size: 10px; color: #a7a9be; line-height: 1.3; }
+  .achievement-card.locked .achievement-title { color: #666a80; }
+  .achievement-card.locked .achievement-icon { opacity: .35; filter: grayscale(1); }
+
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    z-index: 100; display: none; align-items: center;
+    justify-content: center; padding: 20px;
+    backdrop-filter: blur(6px);
+  }
+  .modal.show { display: flex; animation: modalFade .2s ease; }
+  @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+  .modal-content {
+    background: #131324; border-radius: 20px;
+    width: 100%; max-width: 480px; max-height: 85vh;
+    overflow-y: auto; padding: 20px;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .modal-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 16px;
+    position: sticky; top: 0; background: #131324;
+    padding-bottom: 8px; z-index: 1;
+  }
+  .modal-header h2 { font-size: 18px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; color: #a7a9be;
+    font-size: 18px; cursor: pointer; padding: 6px 10px;
+    border-radius: 8px; transition: .15s;
+  }
+  .modal-close:active { background: rgba(255,255,255,.06); }
+
+  .guide-section {
+    margin-bottom: 14px;
+    background: #1c1c38;
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .guide-section h4 {
+    font-size: 11px; color: #a7a9be;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    font-weight: 600; margin-bottom: 6px;
+  }
+  .guide-section p { font-size: 13px; line-height: 1.55; color: #d0d2e0; }
+  .guide-chakra-name { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+
+  .my-intents { display: flex; flex-direction: column; gap: 6px; }
+  .my-intent-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,.03);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .my-intent-item span { flex: 1; }
+  .my-intent-item button {
+    background: transparent; border: none;
+    color: #e53170; cursor: pointer;
+    font-size: 16px; padding: 2px 6px;
+    border-radius: 6px; transition: .15s;
+    font-family: inherit; flex-shrink: 0;
+  }
+  .add-intent-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed #2a2a4a;
+    color: var(--accent);
+    padding: 10px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: .15s;
+    margin-top: 4px;
+  }
+  .intent-empty {
+    color: #666a80; font-size: 12px;
+    text-align: center; padding: 8px 0;
+  }
+
+  .track-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .track-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: #1c1c38;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .track-item .name {
+    flex: 1;
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+    color: #d0d2e0;
+  }
+  .track-item .size {
+    font-size: 11px; color: #666a80;
+    flex-shrink: 0;
+  }
+  .track-item .del {
+    background: transparent; border: none;
+    color: #e53170; cursor: pointer;
+    font-size: 16px; padding: 4px 6px;
+    border-radius: 6px; transition: .15s;
+    font-family: inherit; flex-shrink: 0;
+  }
+
+  .add-file-label {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: transparent;
+    border: 1px dashed #2a2a4a;
+    color: var(--accent);
+    padding: 12px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: .15s;
+    margin-bottom: 16px;
+  }
+  .add-file-label input[type="file"] { display: none; }
+
+  .custom-rhythm-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .custom-rhythm-row label {
+    font-size: 13px; color: #a7a9be;
+    min-width: 100px;
+  }
+  .custom-rhythm-row input[type="number"] {
+    flex: 1;
+    background: #0a0a16;
+    border: 1px solid #24243e;
+    color: #fffffe;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: .2s;
+    -webkit-appearance: none;
+    appearance: textfield;
+  }
+  .custom-rhythm-row input[type="number"]:focus { border-color: var(--accent); }
+  .custom-rhythm-row .hint {
+    font-size: 11px; color: #666a80;
+    flex-shrink: 0;
+  }
+  .rhythm-preview {
+    background: #1c1c38;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: #a7a9be;
+    text-align: center;
+  }
+  .rhythm-preview b {
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .modal-actions {
+    display: flex; gap: 8px;
+  }
+  .modal-actions button {
+    flex: 1; padding: 12px;
+    border-radius: 12px; border: none;
+    font-family: inherit; font-size: 14px;
+    font-weight: 600; cursor: pointer;
+    transition: .15s;
+  }
+  .modal-actions button.ghost { background: #1c1c38; color: #a7a9be; }
+  .modal-actions button.primary { background: var(--accent); color: #fff; }
+
+  .sessions-empty {
+    text-align: center; color: #666a80;
+    padding: 40px 20px; font-size: 14px;
+    line-height: 1.5;
+  }
+  .session-item {
+    background: #1c1c38; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 8px;
+    border-left: 3px solid var(--c, #a463f2);
+  }
+  .session-top {
+    display: flex; justify-content: space-between;
+    align-items: baseline; gap: 8px; margin-bottom: 6px;
+  }
+  .session-date {
+    font-size: 12px; color: #a7a9be;
+    font-variant-numeric: tabular-nums;
+  }
+  .session-mins { font-size: 12px; color: #fffffe; font-weight: 600; }
+  .session-chakra {
+    font-size: 13px; font-weight: 600; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .session-chakra .cdot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--c, #a463f2); box-shadow: 0 0 6px var(--c, #a463f2);
+  }
+  .session-intent {
+    font-size: 12px; color: #a7a9be;
+    font-style: italic; line-height: 1.4;
+    padding: 6px 8px; background: rgba(255,255,255,.03);
+    border-radius: 8px; margin-top: 6px;
+  }
+  .session-note {
+    font-size: 12px; color: #d0d2e0;
+    margin-top: 6px; padding: 6px 8px;
+    background: rgba(164,99,242,.1);
+    border-radius: 8px; line-height: 1.4;
+  }
+  .session-note::before { content: '📝 '; }
+
+  .cal-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 14px;
+  }
+  .cal-title { font-size: 15px; font-weight: 600; text-transform: capitalize; }
+  .cal-nav { display: flex; gap: 4px; }
+  .cal-nav button {
+    background: #1c1c38; border: none; color: #a7a9be;
+    width: 32px; height: 32px; border-radius: 8px;
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: .15s; font-family: inherit;
+  }
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 4px; margin-bottom: 16px;
+  }
+  .cal-dow {
+    text-align: center; font-size: 10px;
+    color: #666a80; padding: 4px 0;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .cal-day {
+    aspect-ratio: 1; background: #1c1c38;
+    border-radius: 8px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #d0d2e0; cursor: pointer;
+    transition: .15s; font-variant-numeric: tabular-nums;
+    border: 1px solid transparent;
+  }
+  .cal-day.empty { background: transparent; cursor: default; }
+  .cal-day.today { border-color: rgba(255,255,255,.2); }
+  .cal-day.selected { background: #24243e; border-color: var(--accent); }
+  .cal-day.has-data { background: #221a3a; }
+  .cal-dot {
+    position: absolute; bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 6px var(--accent);
+  }
+  .cal-day-detail { margin-top: 8px; }
+  .cal-day-detail h3 {
+    font-size: 13px; color: #a7a9be;
+    margin-bottom: 8px; font-weight: 500;
+  }
+
+  .note-textarea {
+    width: 100%; min-height: 80px;
+    background: #0a0a16; border: 1px solid #24243e;
+    border-radius: 12px; padding: 12px 14px;
+    color: #fffffe; font-family: inherit;
+    font-size: 14px; resize: none;
+    outline: none; transition: .2s;
+    line-height: 1.5;
+  }
+  .note-textarea:focus { border-color: var(--accent); }
+  .note-textarea::placeholder { color: #666a80; }
+  .note-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .note-actions button {
+    flex: 1; padding: 12px;
+    border-radius: 12px; border: none;
+    font-family: inherit; font-size: 14px;
+    font-weight: 600; cursor: pointer;
+    transition: .15s;
+  }
+  .note-actions button.ghost { background: #1c1c38; color: #a7a9be; }
+  .note-actions button.primary { background: var(--accent); color: #fff; }
+  .note-subtitle { font-size: 12px; color: #a7a9be; margin-bottom: 10px; }
+
+  .toast {
+    position: fixed; bottom: 100px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1c1c38; color: #fff;
+    padding: 12px 18px; border-radius: 14px;
+    font-size: 13px; opacity: 0;
+    transition: .35s cubic-bezier(.2,.9,.3,1.2);
+    z-index: 2000; max-width: 90vw; text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    border: 1px solid rgba(255,255,255,.08);
+    pointer-events: none; line-height: 1.4;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ==================== ЭКРАН ПРАКТИКА ==================== -->
+<div class="screen screen-practice active" id="screen-practice">
+  <div class="daily-tasks" id="dailyTasks"></div>
+  <div class="chakra-picker" id="chakraPicker"></div>
+
+  <div class="chakra-info">
+    <div class="chakra-name" id="chakraNameWrap">
+      <span id="chakraName">—</span>
+      <svg class="info-ic" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    </div>
+    <div class="chakra-desc" id="chakraDesc">—</div>
+    <div class="chakra-intent">
+      <b>Намерение дня</b>
+      <span id="chakraIntentText">—</span>
+    </div>
+  </div>
+
+  <div class="player">
+    <canvas id="orb" width="600" height="600"></canvas>
+    <div class="breath-hint" id="breathHint"></div>
+
+    <div class="setting-block" id="practiceBlock">
+      <div class="setting-header" id="practiceHeader">
+        <span class="setting-label">Практика</span>
+        <span class="setting-value">
+          <b id="practiceValue">Дыхание</b>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </span>
+      </div>
+      <div class="setting-options" id="practicePicker">
+        <button data-mode="breath">Дыхание</button>
+        <button data-mode="scan">Сканирование тела</button>
+      </div>
+    </div>
+
+    <div class="setting-block" id="rhythmBlock">
+      <div class="setting-header" id="rhythmHeader">
+        <span class="setting-label">Дыхание</span>
+        <span class="setting-value">
+          <b id="rhythmValue">4-4</b>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </span>
+      </div>
+      <div class="setting-options" id="rhythmPicker"></div>
+    </div>
+
+    <div class="setting-block" id="timeBlock">
+      <div class="setting-header" id="timeHeader">
+        <span class="setting-label">Длительность</span>
+        <span class="setting-value">
+          <b id="timeValue">10 мин</b>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </span>
+      </div>
+      <div class="setting-options" id="presets"></div>
+    </div>
+
+    <div class="timer-display" id="timerDisplay">10:00</div>
+
+    <div class="control-bar">
+      <button class="ctrl-side" id="btnTracks" title="Треки">
+        <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
+      </button>
+      <button class="ctrl-side" id="btnPrevTrack" title="Прошлый">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="ctrl-play" id="btnMain" title="Старт">
+        <svg id="mainIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="ctrl-side" id="btnNextTrack" title="Следующий">
+        <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
+      </button>
+      <button class="ctrl-side" id="btnAddTrack" title="Добавить трек">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      </button>
+    </div>
+
+    <button class="mark-btn" id="btnMark" disabled>Отметить день</button>
+  </div>
+</div>
+
+<!-- ==================== ЭКРАН ПРОФИЛЬ ==================== -->
+<div class="screen screen-profile" id="screen-profile">
+  <div class="streak-card">
+    <div class="streak-num" id="streakNum">0</div>
+    <div class="streak-label" id="streakLabel">дней подряд</div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="level-badge">Ур.<b id="levelNum">1</b></div>
+    <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+    <div class="xp-text" id="xpText">0 / 100</div>
+  </div>
+
+  <div class="profile-tabs">
+    <button class="profile-tab active" data-ptab="stats">Статистика</button>
+    <button class="profile-tab" data-ptab="achievements">Достижения</button>
+    <button class="profile-tab" data-ptab="history">История</button>
+  </div>
+
+  <div id="profileBody"></div>
+</div>
+
+<!-- ==================== НИЖНЯЯ НАВИГАЦИЯ ==================== -->
+<div class="tabs-bottom">
+  <button class="bottom-tab active" data-screen="practice">
+    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
+    <span>Практика</span>
+  </button>
+  <button class="bottom-tab" data-screen="profile">
+    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v2h16v-2c0-3-4-5-8-5z"/></svg>
+    <span>Профиль</span>
+  </button>
+</div>
+
+<!-- ==================== МОДАЛКИ ==================== -->
+<div class="modal" id="noteModal">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-header"><h2>Как прошло?</h2></div>
+    <div class="note-subtitle">Одна строка — что чувствуешь сейчас.</div>
+    <textarea class="note-textarea" id="noteInput" placeholder="Спокойно. Внимание было глубоким..." maxlength="180"></textarea>
+    <div class="note-actions">
+      <button class="ghost" id="noteSkip">Пропустить</button>
+      <button class="primary" id="noteSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="guideModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>О чакре</h2>
+      <button class="modal-close" data-close="guideModal">✕</button>
+    </div>
+    <div id="guideBody"></div>
+  </div>
+</div>
+
+<div class="modal" id="tracksModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Мои треки</h2>
+      <button class="modal-close" data-close="tracksModal">✕</button>
+    </div>
+    <label class="add-file-label">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      Добавить mp3
+      <input type="file" id="fileInput" accept="audio/*" multiple>
+    </label>
+    <div class="track-list" id="myTracksList"></div>
+  </div>
+</div>
+
+<div class="modal" id="customRhythmModal">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2>Свой ритм</h2>
+      <button class="modal-close" data-close="customRhythmModal">✕</button>
+    </div>
+    <div class="custom-rhythm-row">
+      <label>Вдох</label>
+      <input type="number" id="rIn" min="1" max="30" value="4">
+      <span class="hint">сек</span>
+    </div>
+    <div class="custom-rhythm-row">
+      <label>Задержка</label>
+      <input type="number" id="rHold" min="0" max="30" value="0">
+      <span class="hint">сек</span>
+    </div>
+    <div class="custom-rhythm-row">
+      <label>Выдох</label>
+      <input type="number" id="rOut" min="1" max="30" value="4">
+      <span class="hint">сек</span>
+    </div>
+    <div class="custom-rhythm-row">
+      <label>Пауза</label>
+      <input type="number" id="rEmpty" min="0" max="30" value="0">
+      <span class="hint">сек</span>
+    </div>
+    <div class="rhythm-preview" id="rhythmPreview">Цикл: <b>8 сек</b></div>
+    <div class="modal-actions">
+      <button class="ghost" data-close="customRhythmModal">Отмена</button>
+      <button class="primary" id="saveRhythmBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<audio id="audioEl" preload="none" loop></audio>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Telegram ---------- */
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+/* ---------- Хранилище ---------- */
+function storageGet(key, cb) {
+  if (tg?.CloudStorage) {
+    tg.CloudStorage.getItem(key, (err, val) => {
+      if (err || val === undefined || val === null || val === '') cb(null);
+      else cb(val);
+    });
+  } else cb(localStorage.getItem(key));
+}
+function storageSet(key, val) {
+  if (tg?.CloudStorage) tg.CloudStorage.setItem(key, val);
+  else localStorage.setItem(key, val);
+}
+function storageGetP(key) {
+  return new Promise(resolve => storageGet(key, resolve));
+}
+
+/* ---------- IndexedDB для треков ---------- */
+const DB_NAME = 'meditation-app';
+const DB_VERSION = 1;
+const STORE_TRACKS = 'userTracks';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_TRACKS)) {
+        db.createObjectStore(STORE_TRACKS, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbAddTrack(name, blob) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_TRACKS, 'readwrite');
+    const req = tx.objectStore(STORE_TRACKS).add({ name, blob, created: Date.now() });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbGetAllTracks() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_TRACKS, 'readonly');
+    const req = tx.objectStore(STORE_TRACKS).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbDeleteTrack(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_TRACKS, 'readwrite');
+    const req = tx.objectStore(STORE_TRACKS).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* ---------- Чакры ---------- */
+const CHAKRAS = [
+  { key:'muladhara', name:'Муладхара', desc:'Заземление · Безопасность · Выживание', color:'#E53935',
+    guide:{ location:'Основание позвоночника, область промежности.',
+      meaning:'Первая чакра. Отвечает за базовое чувство безопасности, выживание, ощущение опоры.',
+      feel:'Сядь удобно, стопы на полу. Представь тёплый красный свет в основании тела. Мягко произнеси: «Я в безопасности».' } },
+  { key:'svadhisthana', name:'Свадхистана', desc:'Эмоции · Творчество · Чувственность', color:'#FF8906',
+    guide:{ location:'Ниже пупка, в области таза.',
+      meaning:'Вторая чакра. Центр эмоций, творчества, удовольствия и потока.',
+      feel:'Положи ладонь на низ живота. Представь тёплую воду, которая мягко течёт внутри.' } },
+  { key:'manipura', name:'Манипура', desc:'Воля · Уверенность · Внутренняя сила', color:'#F0B429',
+    guide:{ location:'Солнечное сплетение, между пупком и грудиной.',
+      meaning:'Третья чакра. Центр воли, уверенности, личной силы и действия.',
+      feel:'Положи ладонь на солнечное сплетение. Почувствуй тёплый огонь. Скажи себе: «Я могу. Я выбираю».' } },
+  { key:'anahata', name:'Анахата', desc:'Любовь · Сострадание · Принятие', color:'#2CB67D',
+    guide:{ location:'Центр груди, на уровне сердца.',
+      meaning:'Четвёртая чакра — мост между земными и духовными. Центр любви и сострадания.',
+      feel:'Положи ладонь на сердце. Почувствуй, как зелёный свет расширяется из груди.' } },
+  { key:'vishuddha', name:'Вишудха', desc:'Общение · Истина · Самовыражение', color:'#3DA9FC',
+    guide:{ location:'Область горла, у основания шеи.',
+      meaning:'Пятая чакра. Центр голоса, самовыражения, честности и истины.',
+      feel:'Мягко направь внимание в горло. Почувствуй вибрацию — как будто внутри течёт голубой ручей.' } },
+  { key:'ajna', name:'Аджна', desc:'Интуиция · Ясность · Мудрость', color:'#5B5BFF',
+    guide:{ location:'Между бровями, чуть выше переносицы.',
+      meaning:'Шестая чакра — «третий глаз». Центр интуиции, внутреннего зрения, ясности ума.',
+      feel:'Направь внимание в точку между бровями. Представь индиговый свет, который раскрывается изнутри.' } },
+  { key:'sahasrara', name:'Сахасрара', desc:'Духовность · Единство · Связь с высшим', color:'#A463F2',
+    guide:{ location:'На макушке, чуть выше головы.',
+      meaning:'Седьмая чакра. Центр единства, связи с чем-то большим, чистого сознания.',
+      feel:'Почувствуй пространство над головой. Представь фиолетовый свет, раскрывающийся как тысячелепестковый лотос.' } }
+];
+const UNLOCK_THRESHOLD_MIN = 15;
+let currentChakra = 'muladhara';
+
+/* ---------- Треки (только пользовательские) ---------- */
+let userTracks = [];
+let allTracks = [];
+let trackIndex = 0;
+
+function rebuildAllTracks() {
+  allTracks = userTracks.map(t => ({
+    title: t.name,
+    src: URL.createObjectURL(t.blob),
+    _user: true,
+    _id: t.id
+  }));
+}
+
+/* ---------- Ритмы ---------- */
+const BUILTIN_RHYTHMS = [
+  { key:'4-4',   label:'4-4',   phases:[{name:'inhale',dur:4},{name:'exhale',dur:4}] },
+  { key:'4-7-8', label:'4-7-8', phases:[{name:'inhale',dur:4},{name:'hold',dur:7},{name:'exhale',dur:8}] },
+  { key:'6-6',   label:'6-6',   phases:[{name:'inhale',dur:6},{name:'exhale',dur:6}] },
+  { key:'box',   label:'Квадрат', phases:[{name:'inhale',dur:4},{name:'hold',dur:4},{name:'exhale',dur:4},{name:'holdEmpty',dur:4}] }
+];
+let userRhythms = [];
+let allRhythms = [];
+let currentRhythm = BUILTIN_RHYTHMS[0];
+
+function rebuildAllRhythms() {
+  allRhythms = [...BUILTIN_RHYTHMS, ...userRhythms];
+}
+
+/* ---------- Скан тела ---------- */
+const SCAN_PARTS = ['Стопы','Голени','Колени','Бёдра','Живот','Грудь','Кисти рук','Плечи','Шея','Лицо','Макушка','Всё тело'];
+const SCAN_PART_DUR = 25;
+let practiceMode = 'breath';
+
+function rhythmTotal(r) { return r.phases.reduce((s,p)=>s+p.dur,0); }
+function easeInOut(x) { return x*x*(3-2*x); }
+function breathing(secondsInCycle) {
+  if (practiceMode === 'scan') {
+    const totalDur = SCAN_PARTS.length * SCAN_PART_DUR;
+    const time = ((secondsInCycle % totalDur) + totalDur) % totalDur;
+    const partIdx = Math.floor(time / SCAN_PART_DUR);
+    const local = (time % SCAN_PART_DUR) / SCAN_PART_DUR;
+    const breathePhase = (time / 8) * Math.PI * 2;
+    const level = (1 - Math.cos(breathePhase)) / 2;
+    return { level, phaseName: 'scan', scanPart: SCAN_PARTS[partIdx], scanIdx: partIdx, scanLocal: local };
+  }
+  const total = rhythmTotal(currentRhythm);
+  const time = ((secondsInCycle % total) + total) % total;
+  let acc = 0;
+  for (const p of currentRhythm.phases) {
+    if (time < acc + p.dur) {
+      const local = (time - acc) / p.dur;
+      let level;
+      if (p.name === 'inhale') level = easeInOut(local);
+      else if (p.name === 'exhale') level = 1 - easeInOut(local);
+      else if (p.name === 'hold') level = 1;
+      else level = 0;
+      return { level, phaseName: p.name };
+    }
+    acc += p.dur;
+  }
+  return { level: 0, phaseName: 'inhale' };
+}
+
+/* ---------- Намерения ---------- */
+const BASE_INTENTIONS = {
+  muladhara: ["Сегодня я выбираю твёрдо стоять на земле — что бы ни происходило.","Я в безопасности. Моё тело — мой дом.","Один медленный вдох — и я снова здесь.","Сегодня я замедляюсь, чтобы чувствовать опору под ногами.","Мне не нужно торопиться, чтобы быть в порядке.","Я позволяю себе занимать своё место в мире.","Каждый шаг — заземление. Каждое дыхание — покой.","Сегодня я выбираю простоту и надёжность.","Моё тело — союзник, а не противник.","Я доверяю жизни вести меня.","Сегодня я возвращаю себя в настоящий момент.","Я стою на своём — спокойно и без усилия.","Мне хватает того, что есть прямо сейчас.","Земля держит меня. Я могу выдохнуть.","Сегодня я забочусь о своём теле как о святыне.","Я выбираю покой вместо спешки.","Мой дом — внутри меня.","Я позволяю себе быть там, где я есть.","Каждое утро — новая точка отсчёта.","Я — часть большого, живого мира.","Я здесь. Я дома. Я в порядке.","Сегодня я выбираю устойчивость, а не скорость.","Моё дыхание — якорь в этом моменте.","Я доверяю своему телу — оно знает.","Покой — это не бездействие, а сила.","Я выбираю ритм, в котором мне хорошо.","Каждое движение — это возвращение к себе.","Я стою крепко — и могу расслабиться.","Сегодня я выбираю мягкую, но твёрдую опору.","Земля под ногами — моя тихая поддержка."],
+  svadhisthana: ["Сегодня я разрешаю себе чувствовать.","Мои эмоции — это река, а не стена.","Я выбираю мягкость к себе.","Творчество — это моё естественное состояние.","Сегодня я делаю что-то просто ради удовольствия.","Я позволяю себе радоваться без причины.","Мои чувства имеют право быть.","Я — источник, а не только русло.","Сегодня я выбираю чувственность и присутствие.","Я разрешаю себе быть несовершенным и живым.","Удовольствие — это тоже практика.","Мои желания заслуживают внимания.","Сегодня я двигаюсь в такт своему телу.","Я позволяю творчеству течь через меня.","Я выбираю живое вместо правильного.","Моя чувствительность — это сила.","Сегодня я танцую с жизнью, а не борюсь с ней.","Я разрешаю себе наслаждаться.","Каждое чувство — приглашение к глубине.","Я — вода: гибкая, живая, настоящая.","Я разрешаю себе жить в своём темпе.","Вода внутри меня течёт свободно.","Я выбираю быть в контакте с чувствами, а не бежать от них.","Творчество — это моё дыхание.","Мои эмоции — моя сила, а не слабость.","Сегодня я делаю что-то новое, просто так.","Я разрешаю себе не знать — и чувствовать.","Мягкость — это форма смелости.","Всё, что я чувствую, имеет право быть.","Я выбираю живое тепло вместо холодной правильности."],
+  manipura: ["Сегодня я выбираю свою силу — спокойно и без давления.","Я могу. Я делаю. Я выбираю.","Мой внутренний огонь согревает, а не сжигает.","Сегодня я действую из ясности, а не из страха.","Я доверяю своему решению.","Мне не нужно разрешение, чтобы жить по-своему.","Я выбираю смелость вместо удобства.","Моя воля — это компас, а не кнут.","Сегодня я делаю одно важное дело до конца.","Я держу слово перед собой.","Я разрешаю себе быть сильным.","Огонь внутри меня — источник, а не опасность.","Сегодня я выбираю действие вместо сомнений.","Я знаю, чего хочу, и иду к этому.","Моя сила — в моей ясности.","Я выбираю себя — снова и снова.","Дисциплина — это моя форма любви к себе.","Сегодня я зажигаю свой внутренний огонь.","Я могу начать с малого — прямо сейчас.","Я не жду разрешения на свою жизнь.","Я выбираю свою жизнь, а не чужой сценарий.","Сегодня я сделаю одно дело, которым буду горд.","Моя сила растёт, когда я замедляюсь.","Я выбираю ясность, а не контроль.","Огонь внутри — это энергия, а не гнев.","Я доверяю своему решению и иду.","Сегодня я выбираю быть твёрдым в главном.","Дисциплина — это форма заботы о себе.","Я не обязан быть идеальным, чтобы действовать.","Мой внутренний компас знает путь."],
+  anahata: ["Сегодня я выбираю мягкость — к себе и к другим.","Любовь — моё естественное состояние.","Я открываю сердце без страха.","Я позволяю себе быть любимым.","Сегодня я выбираю сострадание вместо осуждения.","Моё сердце умеет прощать — начну с себя.","Я выбираю видеть в людях свет.","Каждое живое существо заслуживает нежности.","Сегодня я дышу сердцем.","Я разрешаю себе принимать любовь.","Доброта — это не слабость, а сила.","Я выбираю близость вместо защиты.","Моё сердце — дом для многих.","Сегодня я скажу кому-то доброе слово.","Я выбираю любить без условий.","Я прощаю себя за прошлое.","Всё живое связано со мной.","Я выбираю быть теплее, чем вчера.","Моё сердце раскрыто — я в безопасности.","Любовь — это практика, и я её выбираю.","Я выбираю любить, даже когда это неудобно.","Моё сердце — не крепость, а сад.","Сегодня я позволяю себе принять доброту.","Я выбираю видеть душу в каждом человеке.","Простить — не значит забыть. Это выбор освободиться.","Каждое существо хочет быть счастливым.","Я выбираю соединение, а не отдельность.","Любовь начинается с честности перед собой.","Сегодня я дам кому-то почувствовать, что его видят.","Моё сердце открыто — и я в безопасности."],
+  vishuddha: ["Сегодня я говорю свою правду — мягко и ясно.","Мой голос имеет значение.","Я выбираю говорить, а не молчать из страха.","Слова — это энергия. Я выбираю её с умом.","Сегодня я слушаю больше, чем говорю.","Я разрешаю себе выражать себя.","Мой голос — инструмент, а не оружие.","Я говорю с собой так же мягко, как с другом.","Сегодня я честен с собой.","Я выбираю ясность вместо тумана.","Молчание — тоже речь.","Я разрешаю себе быть услышанным.","Моя правда важна — даже если она неудобна.","Сегодня я говорю то, что чувствую.","Я выбираю слова, которые лечат.","Моё самовыражение — не эго, а дыхание.","Я говорю с миром уважительно и твёрдо.","Сегодня я слушаю тишину между словами.","Мой голос — продолжение моей души.","Я выбираю быть настоящим в каждом слове.","Я говорю то, что помогает, а не то, что ранит.","Мой голос — это моя правда.","Сегодня я слушаю так, будто от этого зависит жизнь.","Я разрешаю себе говорить медленно и точно.","Молчание — тоже форма ясности.","Я выбираю быть честным — с собой и с другими.","Мои слова могут лечить — я выбираю их с любовью.","Сегодня я скажу то, что давно держал в себе.","Я дышу в горло и позволяю звуку течь.","Говорить истину — это не атака, а подарок."],
+  ajna: ["Сегодня я доверяю своему внутреннему знанию.","Я вижу ясно — умом и сердцем.","Моя интуиция — компас.","Сегодня я выбираю наблюдать, а не судить.","Внутри меня есть тихий голос, который знает.","Я разрешаю себе смотреть глубже поверхности.","Ясность приходит, когда я замедляюсь.","Сегодня я выбираю понимание вместо мнения.","Я вижу в темноте, потому что у меня есть свет внутри.","Моя мудрость растёт в тишине.","Сегодня я доверяю своим ощущениям.","Я выбираю видение, а не иллюзию.","Моё внутреннее зрение открыто — для правды.","Я разрешаю себе не знать — и не бояться этого.","Сегодня я вижу знаки на своём пути.","Моя ясность — это мой покой.","Я наблюдаю свои мысли, не отождествляясь с ними.","Внутреннее зрение ведёт меня.","Сегодня я замечаю то, что раньше пропускал.","Я доверяю мудрости, которая старше меня.","Я вижу суть, а не только форму.","Сегодня я выбираю наблюдать без комментариев.","Моя интуиция ведёт меня тихо, но точно.","Я разрешаю себе видеть то, что видят немногие.","Между мыслями есть пространство — и я могу туда зайти.","Я выбираю смотреть глазами, а не памятью.","Сегодня я замечаю то, что раньше было невидимо.","В темноте я вижу звёзды.","Внутренний свет — мой путеводитель.","Я доверяю тому, что знаю без слов."],
+  sahasrara: ["Сегодня я выбираю тишину, в которой всё соединяется.","Я часть чего-то большего, чем я.","Моя душа знает дорогу домой.","Сегодня я дышу единством.","Я соединяю небо и землю в себе.","Всё, что я ищу, уже во мне.","Я выбираю присутствие в каждом мгновении.","Моё сознание — океан, а мысли — волны.","Сегодня я отпускаю то, что не моё.","Я — не только тело и ум.","Я выбираю доверие к большому замыслу.","Единство — моя истинная природа.","Сегодня я возвращаюсь к своей сути.","Я — свет, проходящий через форму.","Моя душа свободна — здесь и сейчас.","Я выбираю жить из глубины, а не из поверхности.","Каждый вдох — молитва без слов.","Я связан со всей жизнью.","Сегодня я позволяю себе просто быть.","Я возвращаюсь к себе, откуда бы ни ушёл.","Я дома в каждой клетке своего существа.","Тишина — мой храм.","Сегодня я позволю себе раствориться в мгновении.","Ничто не отдельно от меня.","Я — продолжение неба, земли и тишины.","Моя суть — покой за пределами мыслей.","Каждая форма — приглашение к глубине.","Я выбираю благодарность за сам факт бытия.","Всё приходит и уходит. Я остаюсь.","Я возвращаюсь домой — к себе настоящему."]
+};
+
+let userIntentions = {};
+
+function getCombinedIntentions(chakraKey) {
+  const base = BASE_INTENTIONS[chakraKey] || [];
+  const mine = userIntentions[chakraKey] || [];
+  return [...mine, ...base];
+}
+
+const sessionIntentions = {};
+function pickRandom(pool) {
+  if (!pool || !pool.length) return '—';
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+function getSessionIntention(key) {
+  if (!sessionIntentions[key]) sessionIntentions[key] = pickRandom(getCombinedIntentions(key));
+  return sessionIntentions[key];
+}
+function resetSessionIntention(key) { delete sessionIntentions[key]; }
+function hashString(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h >>> 0);
+}
+
+/* ---------- Утилиты ---------- */
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function lighten([r,g,b], amt) {
+  return [Math.round(r+(255-r)*amt), Math.round(g+(255-g)*amt), Math.round(b+(255-b)*amt)];
+}
+function rgba([r,g,b], a) { return `rgba(${r},${g},${b},${a})`; }
+function applyAccent(hex) {
+  const rgb = hexToRgb(hex);
+  document.body.style.setProperty('--accent', hex);
+  document.body.style.setProperty('--accent-glow', rgba(rgb, 0.45));
+}
+function currentColor() {
+  const c = CHAKRAS.find(x => x.key === currentChakra);
+  return c ? c.color : CHAKRAS[6].color;
+}
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+}
+function yesterdayStr() {
+  const d = new Date();
+  d.setDate(d.getDate()-1);
+  return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' Б';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' КБ';
+  return (bytes/(1024*1024)).toFixed(1) + ' МБ';
+}
+
+/* ---------- Toast ---------- */
+let toastTimer = null;
+function showToast(text, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = text;
+  el.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ---------- Состояние ---------- */
+let chakraProgress = {};
+let streak = { count: 0, lastDate: null };
+let sessionsCount = 0;
+let unlockedAchievements = [];
+let dailyState = null;
+let currentPresetMin = 10;
+let sessionLog = [];
+let lastSessionId = null;
+
+function isChakraUnlocked(idx, progress) {
+  if (idx === 0) return true;
+  return (progress[CHAKRAS[idx-1].key] || 0) >= UNLOCK_THRESHOLD_MIN;
+}
+function findCurrentUnlocked(savedKey, progress) {
+  if (savedKey) {
+    const idx = CHAKRAS.findIndex(c => c.key === savedKey);
+    if (idx >= 0 && isChakraUnlocked(idx, progress)) return savedKey;
+  }
+  for (let i = CHAKRAS.length - 1; i >= 0; i--) {
+    if (isChakraUnlocked(i, progress)) return CHAKRAS[i].key;
+  }
+  return CHAKRAS[0].key;
+}
+
+/* ---------- Уровни ---------- */
+function getTotalXP() {
+  return Object.values(chakraProgress).reduce((s, v) => s + (v || 0), 0);
+}
+function renderLevel() {
+  const xp = getTotalXP();
+  const level = Math.floor(xp / 100) + 1;
+  const inLevel = xp % 100;
+  document.getElementById('levelNum').textContent = level;
+  document.getElementById('xpText').textContent = `${inLevel} / 100`;
+  document.getElementById('xpFill').style.width = inLevel + '%';
+}
+
+/* ---------- Достижения ---------- */
+const ACHIEVEMENTS = [
+  { id:'first',      icon:'🌱', title:'Первая практика',  desc:'Заверши первую медитацию', check:s=>s.sessions>=1 },
+  { id:'sessions10', icon:'🔥', title:'10 практик',        desc:'Заверши 10 сессий',        check:s=>s.sessions>=10 },
+  { id:'sessions50', icon:'💫', title:'50 практик',        desc:'Заверши 50 сессий',        check:s=>s.sessions>=50 },
+  { id:'streak7',    icon:'📅', title:'Неделя подряд',     desc:'7 дней стрика',            check:s=>s.streak>=7 },
+  { id:'streak30',   icon:'🏆', title:'Месяц подряд',      desc:'30 дней стрика',           check:s=>s.streak>=30 },
+  { id:'streak100',  icon:'👑', title:'100 дней',          desc:'100 дней стрика',          check:s=>s.streak>=100 },
+  { id:'xp60',       icon:'⏱', title:'Час практики',      desc:'60 минут всего',           check:s=>s.xp>=60 },
+  { id:'xp300',      icon:'⏳', title:'5 часов',           desc:'300 минут всего',          check:s=>s.xp>=300 },
+  { id:'xp1000',     icon:'🌟', title:'1000 минут',        desc:'16 часов практики',        check:s=>s.xp>=1000 },
+  { id:'allChakras', icon:'💎', title:'Все чакры',         desc:'По 10 мин на каждой',      check:s=>CHAKRAS.every(c=>(s.chakraProgress[c.key]||0)>=10) },
+  { id:'level5',     icon:'⚡', title:'Уровень 5',         desc:'500 XP',                   check:s=>s.level>=5 },
+  { id:'level10',    icon:'🔮', title:'Уровень 10',        desc:'1000 XP',                  check:s=>s.level>=10 }
+];
+function checkAchievements(showToasts) {
+  const xp = getTotalXP();
+  const level = Math.floor(xp / 100) + 1;
+  const state = { xp, level, sessions: sessionsCount, streak: streak.count, chakraProgress };
+  const newOnes = [];
+  ACHIEVEMENTS.forEach(a => {
+    if (unlockedAchievements.includes(a.id)) return;
+    if (a.check(state)) { unlockedAchievements.push(a.id); newOnes.push(a); }
+  });
+  if (newOnes.length > 0) {
+    storageSet('achievements', JSON.stringify(unlockedAchievements));
+    if (showToasts) newOnes.forEach((a,i) => setTimeout(()=>showToast(`${a.icon} ${a.title}`,'success'), i*900));
+  }
+}
+
+/* ---------- Ежедневные задания ---------- */
+function generateDailyTasks(dateStr) {
+  const h = hashString('daily:' + dateStr);
+  const t1 = [5,7,10][h % 3];
+  const chakraIdx = Math.floor(h / 8) % CHAKRAS.length;
+  const chakraMins = [3,5][Math.floor(h / 256) % 2];
+  const rhythmIdx = Math.floor(h / 4096) % allRhythms.length;
+  return [
+    { id:'min',    type:'minutes', target:t1,         progress:0, done:false },
+    { id:'chakra', type:'chakra',  target:chakraMins, progress:0, done:false, chakraKey: CHAKRAS[chakraIdx].key },
+    { id:'rhythm', type:'rhythm',  target:1,          progress:0, done:false, rhythmKey: allRhythms[rhythmIdx].key }
+  ];
+}
+function ensureDailyState() {
+  const today = todayStr();
+  if (!dailyState || dailyState.date !== today) {
+    dailyState = { date: today, tasks: generateDailyTasks(today) };
+    storageSet('dailyProgress', JSON.stringify(dailyState));
+  }
+}
+function renderDailyTasks() {
+  ensureDailyState();
+  const el = document.getElementById('dailyTasks');
+  const chakraMap = Object.fromEntries(CHAKRAS.map(c => [c.key, c.name]));
+  const rhythmMap = Object.fromEntries(allRhythms.map(r => [r.key, r.label]));
+  const done = dailyState.tasks.filter(t => t.done).length;
+  el.innerHTML = `
+    <div class="daily-header"><span>Задания дня</span><span class="count">${done} / ${dailyState.tasks.length}</span></div>
+    ${dailyState.tasks.map(t => {
+      let text = '', prog = '';
+      if (t.type === 'minutes') { text = `Помедитируй ${t.target} минут`; prog = `${t.progress} / ${t.target}`; }
+      else if (t.type === 'chakra') { text = `Сессия на ${chakraMap[t.chakraKey] || '—'}`; prog = `${t.progress} / ${t.target} мин`; }
+      else if (t.type === 'rhythm') { text = `Дыхание ${rhythmMap[t.rhythmKey] || '—'}`; prog = t.progress >= 1 ? '✓' : '—'; }
+      return `<div class="daily-item ${t.done?'done':''}">
+        <div class="daily-check">${t.done?'<svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>':''}</div>
+        <div class="daily-text">${text}</div>
+        <div class="daily-progress">${prog}</div>
+      </div>`;
+    }).join('')}
+  `;
+}
+function updateDailyProgress(mins, chakraKey, rhythmKey) {
+  ensureDailyState();
+  dailyState.tasks.forEach(t => {
+    if (t.done) return;
+    if (t.type === 'minutes') t.progress = Math.min(t.target, t.progress + mins);
+    else if (t.type === 'chakra' && t.chakraKey === chakraKey) t.progress = Math.min(t.target, t.progress + mins);
+    else if (t.type === 'rhythm' && t.rhythmKey === rhythmKey) t.progress = 1;
+    if (t.progress >= t.target) t.done = true;
+  });
+  storageSet('dailyProgress', JSON.stringify(dailyState));
+  renderDailyTasks();
+}
+
+/* ---------- Вселенная ---------- */
+const orb = document.getElementById('orb');
+const octx = orb.getContext('2d');
+const breathHint = document.getElementById('breathHint');
+let lastTime = performance.now();
+
+const STARS = (() => {
+  const arr = [];
+  for (let i = 0; i < 220; i++) {
+    arr.push({
+      angle: Math.random()*Math.PI*2,
+      radius: 0.05 + Math.random()*0.95,
+      size: 0.4 + Math.random()*1.3,
+      baseA: 0.15 + Math.random()*0.55,
+      spd: (0.008 + Math.random()*0.035) * (Math.random()<0.5?1:-1),
+      twinkleSpd: 0.4 + Math.random()*1.8,
+      twinklePhase: Math.random()*Math.PI*2
+    });
+  }
+  return arr;
+})();
+const SPARKS = (() => {
+  const arr = [];
+  for (let i = 0; i < 42; i++) {
+    arr.push({
+      angle: Math.random()*Math.PI*2,
+      baseR: 0.25 + Math.random()*0.65,
+      drift: (0.02 + Math.random()*0.06) * (Math.random()<0.5?1:-1),
+      size: 0.6 + Math.random()*1.5,
+      twinklePhase: Math.random()*Math.PI*2
+    });
+  }
+  return arr;
+})();
+const NEBULAS = [
+  { speed: 0.05, dist:0.32, size:0.85, alpha:0.30, light:false },
+  { speed:-0.08, dist:0.40, size:0.65, alpha:0.22, light:true  },
+  { speed: 0.03, dist:0.26, size:0.95, alpha:0.26, light:false },
+  { speed:-0.11, dist:0.44, size:0.55, alpha:0.16, light:false },
+  { speed: 0.06, dist:0.20, size:1.05, alpha:0.20, light:true  }
+];
+const nebulaPhases = NEBULAS.map(()=>Math.random()*Math.PI*2);
+
+function drawUniverse(level, progress, t) {
+  const w = orb.width, h = orb.height;
+  const cx = w/2, cy = h/2;
+  const R = w*0.42, R_MAX = R*1.18;
+  const mainHex = currentColor();
+  const mainRgb = hexToRgb(mainHex);
+  const lightRgb = lighten(mainRgb, 0.6);
+  const white = [255,255,255];
+
+  octx.clearRect(0,0,w,h);
+  octx.save();
+  octx.beginPath(); octx.arc(cx,cy,R_MAX,0,Math.PI*2); octx.clip();
+
+  const bg = octx.createRadialGradient(cx,cy,0,cx,cy,R_MAX);
+  bg.addColorStop(0,    rgba(mainRgb, 0.12 + level*0.06));
+  bg.addColorStop(0.35, rgba(mainRgb, 0.05 + level*0.03));
+  bg.addColorStop(0.65, rgba(mainRgb, 0.015));
+  bg.addColorStop(1,    rgba(mainRgb, 0));
+  octx.fillStyle = bg;
+  octx.beginPath(); octx.arc(cx,cy,R_MAX,0,Math.PI*2); octx.fill();
+
+  const starsSqueeze = 0.94 + 0.06*level;
+  for (const s of STARS) {
+    const angle = s.angle + t*s.spd;
+    const rad = R * s.radius * starsSqueeze;
+    const x = cx + Math.cos(angle)*rad;
+    const y = cy + Math.sin(angle)*rad;
+    const edgeFalloff = 1 - Math.max(0, (s.radius - 0.75)/0.25);
+    if (edgeFalloff <= 0) continue;
+    const twinkle = 0.55 + 0.45*Math.sin(t*s.twinkleSpd + s.twinklePhase);
+    const a = s.baseA * twinkle * edgeFalloff;
+    if (a <= 0.01) continue;
+    if (s.size > 1.2) {
+      const glow = octx.createRadialGradient(x,y,0,x,y,s.size*3);
+      glow.addColorStop(0, `rgba(255,255,255,${a*0.7})`);
+      glow.addColorStop(1, 'rgba(255,255,255,0)');
+      octx.fillStyle = glow;
+      octx.beginPath(); octx.arc(x,y,s.size*3,0,Math.PI*2); octx.fill();
+    }
+    octx.fillStyle = `rgba(255,255,255,${a})`;
+    octx.beginPath(); octx.arc(x,y,s.size,0,Math.PI*2); octx.fill();
+  }
+
+  octx.globalCompositeOperation = 'lighter';
+  NEBULAS.forEach((n,i) => {
+    const phase = nebulaPhases[i];
+    const angle = t*n.speed + phase;
+    const nx = cx + Math.cos(angle)*R*n.dist;
+    const ny = cy + Math.sin(angle)*R*n.dist;
+    const pulsingSize = n.size * (0.9 + 0.15*level);
+    const nr = R*pulsingSize;
+    const hue = n.light ? lightRgb : mainRgb;
+    const alphaBoost = 0.7 + 0.5*level;
+    const a0 = n.alpha*alphaBoost;
+    const g = octx.createRadialGradient(nx,ny,0,nx,ny,nr);
+    g.addColorStop(0,   rgba(hue,a0));
+    g.addColorStop(0.4, rgba(hue,a0*0.35));
+    g.addColorStop(1,   rgba(hue,0));
+    octx.fillStyle = g;
+    octx.beginPath(); octx.arc(nx,ny,nr,0,Math.PI*2); octx.fill();
+  });
+  octx.globalCompositeOperation = 'source-over';
+
+  const coreBase = R*0.035;
+  const coreSize = coreBase * (0.7 + level*1.5);
+  const halo = octx.createRadialGradient(cx,cy,0,cx,cy,coreSize*6);
+  halo.addColorStop(0,    rgba(white,0.9));
+  halo.addColorStop(0.08, rgba(lightRgb,0.8));
+  halo.addColorStop(0.25, rgba(mainRgb,0.35));
+  halo.addColorStop(0.6,  rgba(mainRgb,0.10));
+  halo.addColorStop(1,    rgba(mainRgb,0));
+  octx.fillStyle = halo;
+  octx.beginPath(); octx.arc(cx,cy,coreSize*6,0,Math.PI*2); octx.fill();
+
+  const core = octx.createRadialGradient(cx,cy,0,cx,cy,coreSize);
+  core.addColorStop(0,'rgba(255,255,255,1)');
+  core.addColorStop(0.5,rgba(lightRgb,0.9));
+  core.addColorStop(1,rgba(mainRgb,0.4));
+  octx.fillStyle = core;
+  octx.beginPath(); octx.arc(cx,cy,coreSize,0,Math.PI*2); octx.fill();
+
+  const gravity = 0.55 + 0.45*(1-level);
+  for (const s of SPARKS) {
+    const angle = s.angle + t*s.drift;
+    const rad = R * s.baseR * gravity;
+    const sx = cx + Math.cos(angle)*rad;
+    const sy = cy + Math.sin(angle)*rad;
+    const twinkle = 0.4 + 0.6*Math.sin(t*1.3 + s.twinklePhase);
+    const a = 0.25 + 0.55*twinkle*(0.6 + 0.4*level);
+    const size = s.size*(0.8 + 0.6*level);
+    const pg = octx.createRadialGradient(sx,sy,0,sx,sy,size*4);
+    pg.addColorStop(0, `rgba(255,255,255,${Math.min(1,a)})`);
+    pg.addColorStop(0.4, rgba(lightRgb, a*0.45));
+    pg.addColorStop(1, rgba(mainRgb, 0));
+    octx.fillStyle = pg;
+    octx.beginPath(); octx.arc(sx,sy,size*4,0,Math.PI*2); octx.fill();
+    octx.fillStyle = `rgba(255,255,255,${Math.min(1,a+0.25)})`;
+    octx.beginPath(); octx.arc(sx,sy,size,0,Math.PI*2); octx.fill();
+  }
+  octx.restore();
+
+  const ringR = w*0.465, ringWidth = w*0.006;
+  octx.beginPath(); octx.arc(cx,cy,ringR,0,Math.PI*2);
+  octx.strokeStyle = 'rgba(255,255,255,0.04)';
+  octx.lineWidth = ringWidth; octx.stroke();
+
+  if (progress > 0.001) {
+    const startAngle = -Math.PI/2;
+    const endAngle = startAngle + Math.PI*2*Math.min(progress,1);
+    octx.save();
+    octx.shadowColor = mainHex; octx.shadowBlur = 20;
+    octx.beginPath(); octx.arc(cx,cy,ringR,startAngle,endAngle);
+    octx.strokeStyle = rgba(mainRgb, 0.75);
+    octx.lineWidth = ringWidth*1.6; octx.lineCap='round'; octx.stroke();
+    octx.restore();
+    octx.beginPath(); octx.arc(cx,cy,ringR,startAngle,endAngle);
+    octx.strokeStyle = rgba(lightRgb, 1);
+    octx.lineWidth = ringWidth*0.6; octx.lineCap='round'; octx.stroke();
+    if (progress < 1) {
+      const tipX = cx + Math.cos(endAngle)*ringR;
+      const tipY = cy + Math.sin(endAngle)*ringR;
+      const tg = octx.createRadialGradient(tipX,tipY,0,tipX,tipY,22);
+      tg.addColorStop(0, rgba(white,0.95));
+      tg.addColorStop(0.35, rgba(mainRgb,0.6));
+      tg.addColorStop(1, rgba(mainRgb,0));
+      octx.fillStyle = tg;
+      octx.beginPath(); octx.arc(tipX,tipY,22,0,Math.PI*2); octx.fill();
+      octx.fillStyle = '#fff';
+      octx.beginPath(); octx.arc(tipX,tipY,3.4,0,Math.PI*2); octx.fill();
+    }
+  }
+}
+
+const PHASE_LABELS = {
+  inhale: { text:'Вдох', isAccent:true },
+  hold: { text:'Задержка', isAccent:false, color:'#F0B429' },
+  exhale: { text:'Выдох', isAccent:false, color:'#a7a9be' },
+  holdEmpty: { text:'Пауза', isAccent:false, color:'#a7a9be' }
+};
+let lastHintState = null;
+
+function animateOrb(now) {
+  lastTime = now;
+  const t = now/1000;
+  const secondsInCycle = currentElapsed();
+  const res = breathing(secondsInCycle);
+  const isIdle = !timerRunning && !timerDone && timerElapsed === 0;
+
+  if (isIdle) {
+    if (lastHintState !== 'idle') { lastHintState = 'idle'; breathHint.textContent = ''; }
+  } else if (res.phaseName === 'scan') {
+    const key = 'scan_' + res.scanPart + '_' + res.scanIdx;
+    if (key !== lastHintState) {
+      lastHintState = key;
+      const accentRgb = lighten(hexToRgb(currentColor()), 0.55);
+      breathHint.textContent = `${res.scanPart}  ·  ${res.scanIdx+1}/${SCAN_PARTS.length}`;
+      breathHint.style.color = rgba(accentRgb, 0.85);
+    }
+  } else if (res.phaseName !== lastHintState) {
+    lastHintState = res.phaseName;
+    const info = PHASE_LABELS[res.phaseName];
+    if (info) {
+      breathHint.textContent = info.text;
+      breathHint.style.color = info.isAccent
+        ? rgba(lighten(hexToRgb(currentColor()),0.55), 1)
+        : (info.color || '#a7a9be');
+    }
+  }
+
+  let finalLevel = isIdle ? 0 : res.level;
+  if (!isIdle && (res.phaseName === 'inhale' || res.phaseName === 'exhale')) {
+    const micro = Math.sin(t*2*Math.PI/7.3)*0.025 + Math.sin(t*2*Math.PI/4.1)*0.015;
+    finalLevel = Math.max(0, Math.min(1, res.level + micro));
+  }
+
+  const progress = timerTotalSec > 0 ? Math.min(1, currentElapsed()/timerTotalSec) : 0;
+  drawUniverse(finalLevel, progress, t);
+  requestAnimationFrame(animateOrb);
+}
+requestAnimationFrame(animateOrb);
+
+/* ---------- Таймер ---------- */
+let timerTotalSec = 600;
+let timerElapsed = 0;
+let timerStartMs = null;
+let timerRunning = false;
+let timerDone = false;
+let timerInterval = null;
+const timerDisplay = document.getElementById('timerDisplay');
+const btnMark = document.getElementById('btnMark');
+const mainIcon = document.getElementById('mainIcon');
+const ICON_PLAY = 'M8 5v14l11-7z';
+const ICON_PAUSE = 'M6 5h4v14H6zm8 0h4v14h-4z';
+
+function currentElapsed() {
+  return timerElapsed + (timerRunning ? (performance.now() - timerStartMs)/1000 : 0);
+}
+function fmt(sec) {
+  const s = Math.max(0, Math.ceil(sec));
+  const m = Math.floor(s/60), ss = s%60;
+  return `${m}:${ss.toString().padStart(2,'0')}`;
+}
+function renderTimer() {
+  const left = Math.max(0, timerTotalSec - currentElapsed());
+  timerDisplay.textContent = fmt(left);
+  timerDisplay.classList.toggle('warn', left <= 30 && left > 0);
+}
+function updateMainIcon() {
+  mainIcon.querySelector('path').setAttribute('d', timerRunning ? ICON_PAUSE : ICON_PLAY);
+}
+function startTimer() {
+  if (timerRunning || timerDone) return;
+  timerRunning = true;
+  timerStartMs = performance.now();
+  timerInterval = setInterval(() => {
+    if (currentElapsed() >= timerTotalSec) finishTimer();
+    else renderTimer();
+  }, 200);
+  updateMainIcon();
+}
+function pauseTimer() {
+  if (!timerRunning) return;
+  timerElapsed += (performance.now() - timerStartMs)/1000;
+  timerRunning = false;
+  clearInterval(timerInterval);
+  renderTimer();
+  updateMainIcon();
+}
+function finishTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerDone = true;
+  timerElapsed = timerTotalSec;
+  audioEl.pause();
+  if (tg) tg.HapticFeedback?.notificationOccurred('success');
+  btnMark.disabled = false;
+  renderTimer();
+  updateMainIcon();
+
+  const mins = Math.round(timerTotalSec/60);
+  chakraProgress[currentChakra] = (chakraProgress[currentChakra] || 0) + mins;
+  storageSet('chakraProgress', JSON.stringify(chakraProgress));
+
+  sessionsCount++;
+  storageSet('sessionsCount', String(sessionsCount));
+
+  const entry = {
+    id: Date.now(), ts: Date.now(),
+    date: todayStr(), time: new Date().toTimeString().slice(0,5),
+    chakra: currentChakra, minutes: mins,
+    intention: getSessionIntention(currentChakra),
+    note: '', mode: practiceMode
+  };
+  sessionLog.push(entry);
+  if (sessionLog.length > 200) sessionLog = sessionLog.slice(-200);
+  storageSet('sessionLog', JSON.stringify(sessionLog));
+  lastSessionId = entry.id;
+
+  updateDailyProgress(mins, currentChakra, currentRhythm.key);
+  renderChakraPicker();
+  renderLevel();
+  if (profileTab === 'stats') renderProfileStats();
+  checkAchievements(true);
+  setTimeout(() => openNoteModal(entry.id), 500);
+}
+function resetTimer(newTotalSec) {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerDone = false;
+  timerElapsed = 0;
+  timerStartMs = null;
+  timerTotalSec = newTotalSec;
+  btnMark.disabled = true;
+  renderTimer();
+  updateMainIcon();
+  lastHintState = null;
+  if (audioEl && !audioEl.paused) audioEl.pause();
+}
+
+const audioEl = document.getElementById('audioEl');
+
+document.getElementById('btnMain').addEventListener('click', () => {
+  if (timerDone) return;
+  if (timerRunning) {
+    pauseTimer();
+    if (!audioEl.paused) audioEl.pause();
+  } else {
+    startTimer();
+    if (!audioEl.src && allTracks.length) loadTrack(trackIndex, false);
+    if (audioEl.src && audioEl.paused && allTracks.length) audioEl.play().catch(()=>{});
+  }
+});
+document.getElementById('btnNextTrack').addEventListener('click', () => {
+  if (!allTracks.length) { showToast('Сначала добавь треки'); return; }
+  loadTrack(trackIndex + 1, !audioEl.paused);
+});
+document.getElementById('btnPrevTrack').addEventListener('click', () => {
+  if (!allTracks.length) { showToast('Сначала добавь треки'); return; }
+  if (audioEl.currentTime > 3) audioEl.currentTime = 0;
+  else loadTrack(trackIndex - 1, !audioEl.paused);
+});
+function loadTrack(i, autoplay) {
+  if (!allTracks.length) return;
+  trackIndex = (i + allTracks.length) % allTracks.length;
+  const t = allTracks[trackIndex];
+  audioEl.src = t.src;
+  if (autoplay) audioEl.play().catch(()=>{});
+}
+renderTimer();
+updateMainIcon();
+
+/* ---------- Заметка ---------- */
+const noteModal = document.getElementById('noteModal');
+const noteInput = document.getElementById('noteInput');
+function openNoteModal(sessionId) {
+  noteInput.value = '';
+  noteModal.classList.add('show');
+  setTimeout(() => noteInput.focus(), 250);
+  lastSessionId = sessionId;
+}
+function closeNoteModal() {
+  noteModal.classList.remove('show');
+  noteInput.blur();
+}
+document.getElementById('noteSkip').addEventListener('click', closeNoteModal);
+document.getElementById('noteSave').addEventListener('click', () => {
+  const text = noteInput.value.trim();
+  if (text && lastSessionId) {
+    const s = sessionLog.find(x => x.id === lastSessionId);
+    if (s) { s.note = text; storageSet('sessionLog', JSON.stringify(sessionLog)); showToast('📝 Заметка сохранена','success'); }
+  }
+  closeNoteModal();
+});
+noteModal.addEventListener('click', e => { if (e.target.id === 'noteModal') closeNoteModal(); });
+
+/* ---------- Модалки ---------- */
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show'));
+});
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+/* ---------- Нижняя навигация ---------- */
+document.querySelectorAll('.bottom-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.bottom-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('screen-' + btn.dataset.screen).classList.add('active');
+    if (btn.dataset.screen === 'profile') {
+      renderLevel();
+      renderStreak();
+      renderProfile();
+    }
+    if (tg) tg.HapticFeedback?.selectionChanged();
+  });
+});
+
+/* ---------- Профиль ---------- */
+let profileTab = 'stats';
+
+document.querySelectorAll('.profile-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    profileTab = tab.dataset.ptab;
+    renderProfile();
+    if (tg) tg.HapticFeedback?.selectionChanged();
+  });
+});
+
+function renderProfile() {
+  if (profileTab === 'stats') renderProfileStats();
+  else if (profileTab === 'achievements') renderProfileAchievements();
+  else if (profileTab === 'history') renderProfileHistory();
+}
+
+function renderProfileStats() {
+  const xp = getTotalXP();
+  const avgMin = sessionsCount > 0 ? Math.round(xp/sessionsCount) : 0;
+  let favChakra = CHAKRAS[0];
+  let favMins = 0;
+  CHAKRAS.forEach(c => {
+    const m = chakraProgress[c.key] || 0;
+    if (m > favMins) { favMins = m; favChakra = c; }
+  });
+  const favName = favMins > 0 ? favChakra.name : '—';
+  const favColor = favMins > 0 ? favChakra.color : '#a7a9be';
+
+  const body = document.getElementById('profileBody');
+  body.innerHTML = `
+    <div class="stat-summary">
+      <div class="stat-card">
+        <div class="stat-label">Всего практики</div>
+        <div class="stat-value">${xp}<span>мин</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Сессий</div>
+        <div class="stat-value">${sessionsCount}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Средняя сессия</div>
+        <div class="stat-value">${avgMin}<span>мин</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Любимая чакра</div>
+        <div class="stat-value" style="color:${favColor};font-size:15px;">${favName}</div>
+      </div>
+    </div>
+    <div class="profile-section-title">Прогресс по чакрам</div>
+    <div class="chakra-progress" id="chakraProgress"></div>
+    <div class="chakra-total" id="chakraTotal">Накоплено: <b>0 мин</b></div>
+  `;
+  renderProgress();
+}
+
+function renderProgress() {
+  const progressEl = document.getElementById('chakraProgress');
+  if (!progressEl) return;
+  const totalEl = document.getElementById('chakraTotal');
+
+  progressEl.innerHTML = CHAKRAS.map(c => `
+    <div class="chakra-bar" style="--c:${c.color}" title="${c.name}">
+      <div class="chakra-bar-fill" id="bar-${c.key}" style="height:0%"></div>
+    </div>
+  `).join('');
+
+  const values = CHAKRAS.map(c => chakraProgress[c.key] || 0);
+  const max = Math.max(30, ...values);
+  CHAKRAS.forEach(c => {
+    const mins = chakraProgress[c.key] || 0;
+    const pct = Math.min(100, (mins/max)*100);
+    const el = document.getElementById('bar-'+c.key);
+    if (el) el.style.height = pct + '%';
+  });
+  if (totalEl) {
+    const current = chakraProgress[currentChakra] || 0;
+    totalEl.innerHTML = `Накоплено: <b>${current} мин</b>`;
+  }
+}
+
+function renderProfileAchievements() {
+  const body = document.getElementById('profileBody');
+  body.innerHTML = `
+    <div class="achievements-grid">
+      ${ACHIEVEMENTS.map(a => {
+        const u = unlockedAchievements.includes(a.id);
+        return `<div class="achievement-card ${u?'unlocked':'locked'}">
+          <div class="achievement-icon">${u?a.icon:'🔒'}</div>
+          <div class="achievement-title">${a.title}</div>
+          <div class="achievement-desc">${a.desc}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+let historySubTab = 'sessions';
+let calYear, calMonth, calSelectedDate = null;
+
+function renderProfileHistory() {
+  const body = document.getElementById('profileBody');
+  body.innerHTML = `
+    <div class="profile-subtabs">
+      <button class="profile-subtab ${historySubTab === 'sessions' ? 'active' : ''}" data-subtab="sessions">Сессии</button>
+      <button class="profile-subtab ${historySubTab === 'calendar' ? 'active' : ''}" data-subtab="calendar">Календарь</button>
+    </div>
+    <div id="historyContent"></div>
+  `;
+  body.querySelectorAll('.profile-subtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      historySubTab = btn.dataset.subtab;
+      renderProfileHistory();
+      if (tg) tg.HapticFeedback?.selectionChanged();
+    });
+  });
+  if (historySubTab === 'sessions') renderSessionsInto(document.getElementById('historyContent'));
+  else renderCalendarInto(document.getElementById('historyContent'));
+}
+
+function formatRuDate(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  if (dateStr === todayStr()) return 'Сегодня';
+  if (dateStr === yesterdayStr()) return 'Вчера';
+  return `${d} ${months[m-1]}`;
+}
+
+function renderSessionsInto(target) {
+  if (!target) return;
+  if (!sessionLog.length) {
+    target.innerHTML = `<div class="sessions-empty">Пока нет записей.<br>Заверши первую медитацию — и она появится здесь.</div>`;
+    return;
+  }
+  const sorted = [...sessionLog].sort((a,b)=>b.ts-a.ts);
+  const chakraMap = Object.fromEntries(CHAKRAS.map(c=>[c.key,c]));
+  target.innerHTML = sorted.map(s => {
+    const c = chakraMap[s.chakra];
+    const color = c ? c.color : '#a463f2';
+    const chakraName = c ? c.name : '—';
+    return `<div class="session-item" style="--c:${color}">
+      <div class="session-top">
+        <div class="session-date">${formatRuDate(s.date)} · ${s.time}</div>
+        <div class="session-mins">${s.minutes} мин</div>
+      </div>
+      <div class="session-chakra" style="color:${color}">
+        <span class="cdot"></span>${chakraName}
+      </div>
+      ${s.intention && s.intention !== '—' ? `<div class="session-intent">«${escapeHtml(s.intention)}»</div>` : ''}
+      ${s.note ? `<div class="session-note">${escapeHtml(s.note)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderCalendarInto(target) {
+  if (!target) return;
+  if (calYear === undefined || calMonth === undefined) {
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+  }
+  const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const dow = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const firstDay = new Date(calYear, calMonth, 1);
+  let firstDow = firstDay.getDay() - 1;
+  if (firstDow < 0) firstDow = 6;
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const today = todayStr();
+  const byDate = {};
+  sessionLog.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(`<div class="cal-day empty"></div>`);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${calYear}-${(calMonth+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+    const hasData = !!byDate[ds];
+    const isToday = ds === today;
+    const isSelected = ds === calSelectedDate;
+    cells.push(`<div class="cal-day ${hasData?'has-data':''} ${isToday?'today':''} ${isSelected?'selected':''}" data-date="${ds}">
+      ${d}${hasData?'<span class="cal-dot"></span>':''}
+    </div>`);
+  }
+  let detailHtml = '';
+  if (calSelectedDate && byDate[calSelectedDate]) {
+    const chakraMap = Object.fromEntries(CHAKRAS.map(c=>[c.key,c]));
+    const items = byDate[calSelectedDate].map(s => {
+      const c = chakraMap[s.chakra];
+      const color = c ? c.color : '#a463f2';
+      const chakraName = c ? c.name : '—';
+      return `<div class="session-item" style="--c:${color}">
+        <div class="session-top">
+          <div class="session-date">${s.time}</div>
+          <div class="session-mins">${s.minutes} мин</div>
+        </div>
+        <div class="session-chakra" style="color:${color}">
+          <span class="cdot"></span>${chakraName}
+        </div>
+        ${s.note ? `<div class="session-note">${escapeHtml(s.note)}</div>` : ''}
+      </div>`;
+    }).join('');
+    detailHtml = `<div class="cal-day-detail"><h3>${formatRuDate(calSelectedDate)} — ${byDate[calSelectedDate].length} сессий</h3>${items}</div>`;
+  } else if (calSelectedDate) {
+    detailHtml = `<div class="cal-day-detail"><h3>${formatRuDate(calSelectedDate)}</h3><div class="sessions-empty" style="padding:20px;">В этот день практик не было</div></div>`;
+  }
+  target.innerHTML = `
+    <div class="cal-header">
+      <div class="cal-title">${months[calMonth]} ${calYear}</div>
+      <div class="cal-nav">
+        <button data-cal-nav="-1">‹</button>
+        <button data-cal-nav="1">›</button>
+      </div>
+    </div>
+    <div class="cal-grid">
+      ${dow.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      ${cells.join('')}
+    </div>
+    ${detailHtml}
+  `;
+  target.querySelectorAll('[data-cal-nav]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      calMonth += parseInt(btn.dataset.calNav);
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      calSelectedDate = null;
+      renderProfileHistory();
+    });
+  });
+  target.querySelectorAll('.cal-day[data-date]').forEach(cell => {
+    cell.addEventListener('click', () => {
+      calSelectedDate = cell.dataset.date;
+      renderProfileHistory();
+    });
+  });
+}
+
+/* ---------- Гайд ---------- */
+function openGuide(chakraKey) {
+  const c = CHAKRAS.find(x => x.key === chakraKey);
+  if (!c) return;
+  const g = c.guide;
+  const myIntents = userIntentions[chakraKey] || [];
+  const body = document.getElementById('guideBody');
+  body.innerHTML = `
+    <div class="guide-chakra-name" style="color:${c.color}">${c.name}</div>
+    <div class="guide-section">
+      <h4>Где находится</h4><p>${g.location}</p>
+    </div>
+    <div class="guide-section">
+      <h4>За что отвечает</h4><p>${g.meaning}</p>
+    </div>
+    <div class="guide-section">
+      <h4>Как почувствовать</h4><p>${g.feel}</p>
+    </div>
+    <div class="guide-section">
+      <h4>Мои намерения</h4>
+      <div class="my-intents" id="myIntentsList">
+        ${myIntents.length ? myIntents.map((t, i) => `
+          <div class="my-intent-item">
+            <span>${escapeHtml(t)}</span>
+            <button data-idx="${i}" title="Удалить">✕</button>
+          </div>
+        `).join('') : '<div class="intent-empty">Пока ничего. Добавь свою фразу — она попадёт в общий пул.</div>'}
+      </div>
+      <button class="add-intent-btn" id="addIntentBtn">+ Добавить свою фразу</button>
+    </div>
+  `;
+  document.getElementById('guideModal').classList.add('show');
+
+  document.getElementById('addIntentBtn').addEventListener('click', () => {
+    const text = prompt('Введи своё намерение:');
+    if (!text || !text.trim()) return;
+    if (!userIntentions[chakraKey]) userIntentions[chakraKey] = [];
+    userIntentions[chakraKey].push(text.trim());
+    storageSet('userIntentions', JSON.stringify(userIntentions));
+    resetSessionIntention(chakraKey);
+    openGuide(chakraKey);
+    if (chakraKey === currentChakra) {
+      chakraIntentText.textContent = getSessionIntention(currentChakra);
+    }
+    showToast('✨ Намерение добавлено', 'success');
+  });
+
+  body.querySelectorAll('.my-intent-item button[data-idx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      userIntentions[chakraKey].splice(idx, 1);
+      if (!userIntentions[chakraKey].length) delete userIntentions[chakraKey];
+      storageSet('userIntentions', JSON.stringify(userIntentions));
+      resetSessionIntention(chakraKey);
+      openGuide(chakraKey);
+      if (chakraKey === currentChakra) {
+        chakraIntentText.textContent = getSessionIntention(currentChakra);
+      }
+    });
+  });
+}
+
+/* ---------- Настройки практики ---------- */
+const practiceBlock = document.getElementById('practiceBlock');
+const practiceHeader = document.getElementById('practiceHeader');
+const practicePicker = document.getElementById('practicePicker');
+const practiceValue = document.getElementById('practiceValue');
+
+function renderPracticeUI() {
+  practicePicker.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === practiceMode));
+  practiceValue.textContent = practiceMode === 'scan' ? 'Скан тела' : 'Дыхание';
+  rhythmBlock.classList.toggle('hidden', practiceMode === 'scan');
+}
+practiceHeader.addEventListener('click', () => {
+  practiceBlock.classList.toggle('open');
+  if (practiceBlock.classList.contains('open')) { rhythmBlock.classList.remove('open'); timeBlock.classList.remove('open'); }
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+practicePicker.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  if (btn.dataset.mode === practiceMode) { practiceBlock.classList.remove('open'); return; }
+  practiceMode = btn.dataset.mode;
+  renderPracticeUI();
+  storageSet('practiceMode', practiceMode);
+  resetTimer(currentPresetMin * 60);
+  practiceBlock.classList.remove('open');
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+
+const rhythmBlock = document.getElementById('rhythmBlock');
+const rhythmHeader = document.getElementById('rhythmHeader');
+const rhythmPicker = document.getElementById('rhythmPicker');
+const rhythmValue = document.getElementById('rhythmValue');
+
+function renderRhythmPicker() {
+  const builtin = BUILTIN_RHYTHMS.map(r => `
+    <button data-key="${r.key}" class="${r.key === currentRhythm.key ? 'active' : ''}">${r.label}</button>
+  `).join('');
+  const custom = userRhythms.map(r => `
+    <button data-key="${r.key}" class="custom ${r.key === currentRhythm.key ? 'active' : ''}">
+      ${r.label}<span class="del" data-del-key="${r.key}">✕</span>
+    </button>
+  `).join('');
+  rhythmPicker.innerHTML = builtin + custom + `<button class="add-btn" id="addRhythmBtn">+ Свой</button>`;
+  rhythmValue.textContent = currentRhythm.label;
+}
+rhythmHeader.addEventListener('click', () => {
+  rhythmBlock.classList.toggle('open');
+  if (rhythmBlock.classList.contains('open')) { timeBlock.classList.remove('open'); practiceBlock.classList.remove('open'); }
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+rhythmPicker.addEventListener('click', e => {
+  const delBtn = e.target.closest('[data-del-key]');
+  if (delBtn) {
+    e.stopPropagation();
+    const key = delBtn.dataset.delKey;
+    userRhythms = userRhythms.filter(r => r.key !== key);
+    storageSet('userRhythms', JSON.stringify(userRhythms));
+    rebuildAllRhythms();
+    if (currentRhythm.key === key) {
+      currentRhythm = BUILTIN_RHYTHMS[0];
+      resetTimer(currentPresetMin * 60);
+      storageSet('activeRhythm', currentRhythm.key);
+    }
+    renderRhythmPicker();
+    renderDailyTasks();
+    return;
+  }
+  if (e.target.closest('#addRhythmBtn')) { openCustomRhythmModal(); return; }
+  const btn = e.target.closest('button[data-key]');
+  if (!btn) return;
+  const r = allRhythms.find(x => x.key === btn.dataset.key);
+  if (!r) return;
+  if (r.key === currentRhythm.key) { rhythmBlock.classList.remove('open'); return; }
+  currentRhythm = r;
+  renderRhythmPicker();
+  storageSet('activeRhythm', currentRhythm.key);
+  resetTimer(currentPresetMin * 60);
+  rhythmBlock.classList.remove('open');
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+
+/* ---------- Кастомный ритм ---------- */
+function openCustomRhythmModal() {
+  document.getElementById('rIn').value = 4;
+  document.getElementById('rHold').value = 0;
+  document.getElementById('rOut').value = 4;
+  document.getElementById('rEmpty').value = 0;
+  updateRhythmPreview();
+  document.getElementById('customRhythmModal').classList.add('show');
+}
+function updateRhythmPreview() {
+  const inSec = Math.max(1, parseInt(document.getElementById('rIn').value) || 4);
+  const holdSec = Math.max(0, parseInt(document.getElementById('rHold').value) || 0);
+  const outSec = Math.max(1, parseInt(document.getElementById('rOut').value) || 4);
+  const emptySec = Math.max(0, parseInt(document.getElementById('rEmpty').value) || 0);
+  const total = inSec + holdSec + outSec + emptySec;
+  const parts = [];
+  if (holdSec > 0) parts.push(`${inSec}-${holdSec}-${outSec}`); else parts.push(`${inSec}-${outSec}`);
+  if (emptySec > 0) parts[0] += `-${emptySec}`;
+  document.getElementById('rhythmPreview').innerHTML = `${parts[0]} · Цикл: <b>${total} сек</b>`;
+}
+['rIn','rHold','rOut','rEmpty'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateRhythmPreview);
+});
+document.getElementById('saveRhythmBtn').addEventListener('click', () => {
+  const inSec = Math.max(1, parseInt(document.getElementById('rIn').value) || 4);
+  const holdSec = Math.max(0, parseInt(document.getElementById('rHold').value) || 0);
+  const outSec = Math.max(1, parseInt(document.getElementById('rOut').value) || 4);
+  const emptySec = Math.max(0, parseInt(document.getElementById('rEmpty').value) || 0);
+
+  const phases = [{ name:'inhale', dur: inSec }];
+  if (holdSec > 0) phases.push({ name:'hold', dur: holdSec });
+  phases.push({ name:'exhale', dur: outSec });
+  if (emptySec > 0) phases.push({ name:'holdEmpty', dur: emptySec });
+
+  const labelParts = [inSec];
+  if (holdSec > 0) labelParts.push(holdSec);
+  labelParts.push(outSec);
+  if (emptySec > 0) labelParts.push(emptySec);
+  const label = labelParts.join('-');
+  const key = 'custom-' + Date.now();
+
+  userRhythms.push({ key, label, phases });
+  storageSet('userRhythms', JSON.stringify(userRhythms));
+  rebuildAllRhythms();
+  currentRhythm = userRhythms[userRhythms.length - 1];
+  storageSet('activeRhythm', currentRhythm.key);
+  renderRhythmPicker();
+  renderDailyTasks();
+  resetTimer(currentPresetMin * 60);
+  document.getElementById('customRhythmModal').classList.remove('show');
+  showToast(`✨ Ритм ${label} добавлен`, 'success');
+});
+
+/* ---------- Время ---------- */
+const timeBlock = document.getElementById('timeBlock');
+const timeHeader = document.getElementById('timeHeader');
+const presets = document.getElementById('presets');
+const timeValue = document.getElementById('timeValue');
+const PRESETS = [
+  { min:5,  label:'5 мин' },
+  { min:10, label:'10 мин' },
+  { min:15, label:'15 мин' },
+  { min:30, label:'30 мин' }
+];
+presets.innerHTML = PRESETS.map(p => `<button data-min="${p.min}">${p.label}</button>`).join('');
+function renderPresets() {
+  presets.querySelectorAll('button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.min) === currentPresetMin));
+  const p = PRESETS.find(x => x.min === currentPresetMin);
+  timeValue.textContent = p ? p.label : `${currentPresetMin} мин`;
+}
+timeHeader.addEventListener('click', () => {
+  timeBlock.classList.toggle('open');
+  if (timeBlock.classList.contains('open')) { rhythmBlock.classList.remove('open'); practiceBlock.classList.remove('open'); }
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+presets.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  currentPresetMin = parseInt(btn.dataset.min);
+  resetTimer(currentPresetMin * 60);
+  renderPresets();
+  storageSet('activePreset', String(currentPresetMin));
+  timeBlock.classList.remove('open');
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+document.addEventListener('click', e => {
+  if (!rhythmBlock.contains(e.target)) rhythmBlock.classList.remove('open');
+  if (!timeBlock.contains(e.target)) timeBlock.classList.remove('open');
+  if (!practiceBlock.contains(e.target)) practiceBlock.classList.remove('open');
+});
+
+/* ---------- Треки ---------- */
+const tracksModal = document.getElementById('tracksModal');
+const fileInput = document.getElementById('fileInput');
+const myTracksList = document.getElementById('myTracksList');
+
+function renderTracksModal() {
+  if (!userTracks.length) {
+    myTracksList.innerHTML = `<div class="intent-empty">Пока нет треков. Нажми «Добавить mp3» — файлы сохранятся на устройстве.</div>`;
+    return;
+  }
+  myTracksList.innerHTML = userTracks.map(t => `
+    <div class="track-item">
+      <span class="name">${escapeHtml(t.name)}</span>
+      <span class="size">${formatBytes(t.blob.size)}</span>
+      <button class="del" data-id="${t.id}" title="Удалить">✕</button>
+    </div>
+  `).join('');
+
+  myTracksList.querySelectorAll('.del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = parseInt(btn.dataset.id);
+      if (!confirm('Удалить этот трек?')) return;
+      await dbDeleteTrack(id);
+      userTracks = userTracks.filter(t => t.id !== id);
+      rebuildAllTracks();
+      if (trackIndex >= allTracks.length) trackIndex = 0;
+      if (!allTracks.length) { audioEl.pause(); audioEl.removeAttribute('src'); }
+      renderTracksModal();
+      showToast('Трек удалён');
+    });
+  });
+}
+
+document.getElementById('btnTracks').addEventListener('click', () => {
+  renderTracksModal();
+  tracksModal.classList.add('show');
+});
+document.getElementById('btnAddTrack').addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  let added = 0;
+  for (const file of files) {
+    if (!file.type.startsWith('audio/')) continue;
+    try {
+      const id = await dbAddTrack(file.name, file);
+      userTracks.push({ id, name: file.name, blob: file, created: Date.now() });
+      added++;
+    } catch (err) { console.warn('Не удалось сохранить трек', err); }
+  }
+  if (added > 0) {
+    rebuildAllTracks();
+    renderTracksModal();
+    showToast(`✨ Добавлено треков: ${added}`, 'success');
+  }
+  fileInput.value = '';
+});
+
+/* ---------- Стрик ---------- */
+function renderStreak() {
+  document.getElementById('streakNum').textContent = streak.count;
+  const isToday = streak.lastDate === todayStr();
+  btnMark.disabled = !timerDone || isToday;
+  btnMark.textContent = isToday ? 'Уже отмечено сегодня' : 'Отметить день';
+}
+btnMark.addEventListener('click', () => {
+  const today = todayStr();
+  if (streak.lastDate === today) return;
+  if (streak.lastDate === yesterdayStr()) streak.count++;
+  else streak.count = 1;
+  streak.lastDate = today;
+  storageSet('streak', JSON.stringify(streak));
+  if (tg) tg.HapticFeedback?.impactOccurred('medium');
+  renderStreak();
+  checkAchievements(true);
+});
+
+/* ---------- Пикер чакр ---------- */
+const picker = document.getElementById('chakraPicker');
+const chakraName = document.getElementById('chakraName');
+const chakraDesc = document.getElementById('chakraDesc');
+const chakraIntentText = document.getElementById('chakraIntentText');
+
+function renderChakraPicker() {
+  picker.innerHTML = CHAKRAS.map((c,i) => {
+    const unlocked = isChakraUnlocked(i, chakraProgress);
+    return `<button class="chakra-chip ${unlocked?'':'locked'} ${c.key === currentChakra ? 'active':''}"
+              data-key="${c.key}" data-idx="${i}" style="--c:${c.color}">
+      <span class="dot"></span>${c.name}${unlocked?'':'<span class="lock">🔒</span>'}
+    </button>`;
+  }).join('');
+}
+function updateChakraUI() {
+  const c = CHAKRAS.find(x=>x.key===currentChakra) || CHAKRAS[0];
+  renderChakraPicker();
+  chakraName.textContent = c.name;
+  chakraName.style.color = c.color;
+  chakraDesc.textContent = c.desc;
+  chakraIntentText.textContent = getSessionIntention(currentChakra);
+  applyAccent(c.color);
+  lastHintState = null;
+  if (profileTab === 'stats') renderProfileStats();
+}
+picker.addEventListener('click', e => {
+  const chip = e.target.closest('.chakra-chip');
+  if (!chip) return;
+  const idx = parseInt(chip.dataset.idx);
+  if (!isChakraUnlocked(idx, chakraProgress)) {
+    const prev = CHAKRAS[idx-1];
+    const prevMins = chakraProgress[prev.key] || 0;
+    showToast(`🔒 Нужно ${UNLOCK_THRESHOLD_MIN} мин на «${prev.name}» (сейчас ${prevMins})`);
+    return;
+  }
+  if (chip.dataset.key === currentChakra) return;
+  currentChakra = chip.dataset.key;
+  updateChakraUI();
+  storageSet('activeChakra', currentChakra);
+  resetTimer(currentPresetMin * 60);
+  if (tg) tg.HapticFeedback?.selectionChanged();
+  chip.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+});
+document.getElementById('chakraNameWrap').addEventListener('click', () => openGuide(currentChakra));
+
+/* ---------- Инициализация ---------- */
+(async () => {
+  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, achVal, dailyVal, logVal, pmVal, uiVal, urVal] = await Promise.all([
+    storageGetP('streak'),
+    storageGetP('chakraProgress'),
+    storageGetP('activeChakra'),
+    storageGetP('activeRhythm'),
+    storageGetP('activePreset'),
+    storageGetP('sessionsCount'),
+    storageGetP('achievements'),
+    storageGetP('dailyProgress'),
+    storageGetP('sessionLog'),
+    storageGetP('practiceMode'),
+    storageGetP('userIntentions'),
+    storageGetP('userRhythms')
+  ]);
+
+  if (streakVal) { try { streak = JSON.parse(streakVal); } catch(e){} }
+  if (cpVal) { try { chakraProgress = JSON.parse(cpVal); } catch(e){} }
+  if (sessVal) sessionsCount = parseInt(sessVal) || 0;
+  if (achVal) { try { unlockedAchievements = JSON.parse(achVal) || []; } catch(e){} }
+  if (dailyVal) { try { dailyState = JSON.parse(dailyVal); } catch(e){} }
+  if (logVal) { try { sessionLog = JSON.parse(logVal) || []; } catch(e){} }
+  if (uiVal) { try { userIntentions = JSON.parse(uiVal) || {}; } catch(e){} }
+  if (urVal) { try { userRhythms = JSON.parse(urVal) || []; } catch(e){} }
+  if (pmVal === 'scan' || pmVal === 'breath') practiceMode = pmVal;
+  if (apVal) {
+    const n = parseInt(apVal);
+    if (PRESETS.some(p => p.min === n)) currentPresetMin = n;
+  }
+
+  rebuildAllRhythms();
+  if (arVal) {
+    const r = allRhythms.find(x => x.key === arVal);
+    if (r) currentRhythm = r;
+  }
+
+  try {
+    const stored = await dbGetAllTracks();
+    userTracks = stored || [];
+  } catch (e) {
+    console.warn('IndexedDB недоступен', e);
+    userTracks = [];
+  }
+  rebuildAllTracks();
+
+  currentChakra = findCurrentUnlocked(acVal, chakraProgress);
+
+  renderRhythmPicker();
+  renderPresets();
+  renderPracticeUI();
+  resetTimer(currentPresetMin * 60);
+  renderStreak();
+  renderLevel();
+  renderChakraPicker();
+  updateChakraUI();
+  renderDailyTasks();
+  checkAchievements(false);
+  renderProfile();
+
+  if (allTracks.length) loadTrack(0, false);
+})();
+</script>
+</body>
+</html>
