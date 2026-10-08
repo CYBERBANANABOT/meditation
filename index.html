@@ -335,6 +335,7 @@
   .control-bar {
     display: flex; justify-content: center; align-items: center;
     gap: 22px; margin-bottom: 8px; padding: 4px 0;
+    flex-wrap: nowrap;       /* ← добавить */
   }
   .ctrl-side {
     background: transparent; border: none; color: #a7a9be;
@@ -350,6 +351,8 @@
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 22px var(--accent-glow);
     transition: background .3s, box-shadow .3s, transform .1s;
+    flex-shrink: 0;          /* ← добавить */
+    aspect-ratio: 1 / 1;     /* ← добавить */
   }
   .ctrl-play svg { width: 34px; height: 34px; fill: currentColor; }
   .ctrl-play:active { transform: scale(.94); }
