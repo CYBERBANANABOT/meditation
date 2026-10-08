@@ -55,7 +55,6 @@
   .bottom-tab.active { color: var(--accent); }
   .bottom-tab.active svg { filter: drop-shadow(0 0 8px var(--accent)); }
 
-  /* ============ КОТЁНОК ============ */
   .pet-wrap {
     display: flex;
     flex-direction: column;
@@ -95,6 +94,12 @@
     font-weight: 500;
     margin-top: 2px;
     transition: color .5s;
+  }
+  .pet-look {
+    font-size: 11px;
+    color: #666a80;
+    margin-top: 2px;
+    letter-spacing: .3px;
   }
   .pet-status {
     display: inline-block;
@@ -557,7 +562,6 @@
   }
   .modal-close:active { background: rgba(255,255,255,.06); }
 
-  /* Карточка инсайта */
   .insight-card {
     background: linear-gradient(160deg, #1c1c38 0%, #131324 100%);
     border-radius: 16px;
@@ -951,6 +955,7 @@
         <svg class="edit-ic" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
       </div>
       <div class="pet-stage-name" id="petStageName">Малыш</div>
+      <div class="pet-look" id="petLook">рыжий</div>
       <div class="pet-status" id="petStatus" style="display:none;"></div>
     </div>
 
@@ -961,7 +966,7 @@
     <div class="pet-progress-block">
       <div class="pet-progress-header">
         <span>Рост</span>
-        <span class="val" id="petProgressVal">0 / 30</span>
+        <span class="val" id="petProgressVal">0 / 60</span>
       </div>
       <div class="pet-progress-bar">
         <div class="pet-progress-fill" id="petProgressFill" style="width:0%"></div>
@@ -1317,6 +1322,10 @@ function hexToRgb(hex) {
 function lighten([r,g,b], amt) {
   return [Math.round(r+(255-r)*amt), Math.round(g+(255-g)*amt), Math.round(b+(255-b)*amt)];
 }
+function darkenHex(hex, amt) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgb(${Math.round(r*(1-amt))},${Math.round(g*(1-amt))},${Math.round(b*(1-amt))})`;
+}
 function rgba([r,g,b], a) { return `rgba(${r},${g},${b},${a})`; }
 function applyAccent(hex) {
   const rgb = hexToRgb(hex);
@@ -1480,16 +1489,43 @@ function updateDailyProgress(mins, chakraKey, rhythmKey) {
 /* ============================================================
    КОТЁНОК
    ============================================================ */
+
+/* 9 стадий — начинается сразу с котёнка */
 const PET_STAGES = [
-  { key:'spark',    name:'Искра',      min:0,    max:30,    scale:0.35 },
-  { key:'baby',     name:'Малыш',      min:30,   max:120,   scale:0.55 },
-  { key:'young',    name:'Юный',       min:120,  max:300,   scale:0.70 },
-  { key:'adult',    name:'Взрослый',   min:300,  max:600,   scale:0.85 },
-  { key:'wise',     name:'Мудрый',     min:600,  max:1200,  scale:1.00 },
-  { key:'guardian', name:'Хранитель',  min:1200, max:Infinity, scale:1.10 }
+  { key:'baby',     name:'Малыш',      min:0,    max:60,    scale:0.42 },
+  { key:'kitten',   name:'Котёнок',    min:60,   max:180,   scale:0.54 },
+  { key:'junior',   name:'Юный',       min:180,  max:400,   scale:0.66 },
+  { key:'teen',     name:'Подросток',  min:400,  max:800,   scale:0.76 },
+  { key:'adult',    name:'Взрослый',   min:800,  max:1400,  scale:0.86 },
+  { key:'mature',   name:'Зрелый',     min:1400, max:2200,  scale:0.93 },
+  { key:'wise',     name:'Мудрый',     min:2200, max:3500,  scale:0.98 },
+  { key:'guardian', name:'Хранитель',  min:3500, max:5000,  scale:1.04 },
+  { key:'legend',   name:'Легенда',    min:5000, max:Infinity, scale:1.10 }
 ];
 
-/* ---------- Инсайты ---------- */
+/* 12 окрасов */
+const PET_PALETTES = [
+  { key:'orange',  name:'рыжий',      body:'#e89e6b', belly:'#f5d4b8', ear:'#f5b390', nose:'#d97a8a', tailTip:'#f0b48a', outline:'#3a1e0e' },
+  { key:'gray',    name:'серый',      body:'#8a8a96', belly:'#c8c8d2', ear:'#a8a8b4', nose:'#d97a8a', tailTip:'#b8b8c2', outline:'#1a1a26' },
+  { key:'black',   name:'чёрный',     body:'#35353f', belly:'#5a5a68', ear:'#4a4a58', nose:'#e88a98', tailTip:'#4a4a58', outline:'#0a0a12' },
+  { key:'white',   name:'белый',      body:'#e4e4ea', belly:'#fafafc', ear:'#ffc0c0', nose:'#ff8a98', tailTip:'#f0f0f4', outline:'#5a4a4a' },
+  { key:'cream',   name:'кремовый',   body:'#f0cfa0', belly:'#faeacb', ear:'#e8b890', nose:'#d97a8a', tailTip:'#f0d8b8', outline:'#4a3a2e' },
+  { key:'choco',   name:'шоколадный', body:'#5a3a28', belly:'#8a5a42', ear:'#704838', nose:'#e89a9a', tailTip:'#704838', outline:'#251510' },
+  { key:'smoky',   name:'дымчатый',   body:'#6a6a7a', belly:'#9a9aaa', ear:'#828292', nose:'#d97a8a', tailTip:'#828292', outline:'#1a1a2a' },
+  { key:'siamese', name:'сиамский',   body:'#d8c8a8', belly:'#f0e0c0', ear:'#3a2a3a', nose:'#d97a8a', tailTip:'#3a2a3a', outline:'#3a2a3a' },
+  { key:'golden',  name:'золотистый', body:'#c89838', belly:'#e8c878', ear:'#d8a850', nose:'#c86a7a', tailTip:'#d8a850', outline:'#3a2810' },
+  { key:'blue',    name:'голубой',    body:'#8aa8d0', belly:'#c0d0e8', ear:'#a0b8d8', nose:'#d97a8a', tailTip:'#a8c0e0', outline:'#1a2a4a' },
+  { key:'pink',    name:'розовый',    body:'#f0b8c8', belly:'#fadce4', ear:'#f0a0b4', nose:'#d97a8a', tailTip:'#f0c8d4', outline:'#4a2a3a' },
+  { key:'mint',    name:'мятный',     body:'#a8d8c0', belly:'#d8f0e0', ear:'#8ac8a8', nose:'#d97a8a', tailTip:'#c0e0d0', outline:'#1e3a2e' }
+];
+
+/* 3 узора */
+const PET_PATTERNS = [
+  { key:'solid',   name:'' },
+  { key:'tabby',   name:'полосатый' },
+  { key:'spotted', name:'пятнистый' }
+];
+
 const INSIGHTS = [
   "Каждый вдох — это возможность начать заново.",
   "Тишина внутри не требует доказательств.",
@@ -1524,6 +1560,9 @@ const INSIGHTS = [
 ];
 
 let petName = 'Мурзик';
+let petSeed = 0;
+let petPalette = PET_PALETTES[0];
+let petPattern = PET_PATTERNS[0];
 let petAnimActive = false;
 let petCanvas, petCtx;
 let petStartTime = performance.now();
@@ -1532,6 +1571,108 @@ let petSquintUntil = 0;
 let petInsightText = '';
 let petInsightDate = '';
 let petInsightShownThisSession = false;
+
+/* ---------- PRNG для рандома ---------- */
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function generatePetAppearance(seed) {
+  const rng = mulberry32(seed);
+  const palIdx = Math.floor(rng() * PET_PALETTES.length);
+  const patIdx = Math.floor(rng() * PET_PATTERNS.length);
+  return { palette: PET_PALETTES[palIdx], pattern: PET_PATTERNS[patIdx] };
+}
+
+function initPetFromSeed(seed) {
+  petSeed = seed;
+  const app = generatePetAppearance(seed);
+  petPalette = app.palette;
+  petPattern = app.pattern;
+}
+
+/* ---------- Мурлыкание ---------- */
+let purrCtx = null;
+
+function ensurePurrCtx() {
+  if (!purrCtx) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      purrCtx = new AC();
+    } catch(e) { return null; }
+  }
+  if (purrCtx.state === 'suspended') {
+    purrCtx.resume().catch(()=>{});
+  }
+  return purrCtx;
+}
+
+function playPurr() {
+  const ctx = ensurePurrCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const dur = 1.6;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0, now);
+  master.gain.linearRampToValueAtTime(0.22, now + 0.15);
+  master.gain.setValueAtTime(0.22, now + dur - 0.45);
+  master.gain.linearRampToValueAtTime(0, now + dur);
+
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 26;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 0.13;
+  lfo.connect(lfoGain);
+  lfoGain.connect(master.gain);
+
+  const rumble = ctx.createOscillator();
+  rumble.type = 'sawtooth';
+  rumble.frequency.value = 68;
+  const bp1 = ctx.createBiquadFilter();
+  bp1.type = 'bandpass';
+  bp1.frequency.value = 150;
+  bp1.Q.value = 0.9;
+  rumble.connect(bp1);
+  bp1.connect(master);
+
+  const sub = ctx.createOscillator();
+  sub.type = 'triangle';
+  sub.frequency.value = 45;
+  const subGain = ctx.createGain();
+  subGain.gain.value = 0.4;
+  sub.connect(subGain);
+  subGain.connect(master);
+
+  const breath = ctx.createOscillator();
+  breath.type = 'sine';
+  breath.frequency.value = 220;
+  const breathGain = ctx.createGain();
+  breathGain.gain.value = 0.02;
+  breath.connect(breathGain);
+  breathGain.connect(master);
+
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 600;
+  lp.Q.value = 0.5;
+
+  master.connect(lp);
+  lp.connect(ctx.destination);
+
+  const tEnd = now + dur;
+  [lfo, rumble, sub, breath].forEach(n => {
+    n.start(now);
+    n.stop(tEnd);
+  });
+}
 
 function getPetStage(xp) {
   for (const s of PET_STAGES) {
@@ -1557,6 +1698,7 @@ function initPetCanvas() {
 
 function onPetTap() {
   petSquintUntil = performance.now() + 1500;
+  playPurr();
   if (tg) {
     try { tg.HapticFeedback?.impactOccurred('light'); } catch(e){}
   }
@@ -1585,7 +1727,12 @@ function drawKitten(now) {
   const chakraLight = lighten(chakraRgb, 0.5);
   const white = [255,255,255];
 
-  /* --- Ночной фон --- */
+  /* Палитра */
+  const P = petPalette;
+  const tailDark = darkenHex(P.body, 0.15);
+  const stripe = darkenHex(P.body, 0.32);
+  const spot = darkenHex(P.body, 0.25);
+
   if (timeOfDay === 'night') {
     petCtx.fillStyle = 'rgba(15, 20, 50, 0.35)';
     petCtx.beginPath();
@@ -1593,7 +1740,6 @@ function drawKitten(now) {
     petCtx.fill();
   }
 
-  /* --- Свечение --- */
   const glowIntensity = meditating ? 0.24 : 0.16;
   const glowR = 220 * scale;
   const glow = petCtx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
@@ -1605,12 +1751,10 @@ function drawKitten(now) {
   petCtx.arc(cx, cy, glowR, 0, Math.PI*2);
   petCtx.fill();
 
-  /* --- Дыхание: усилено если медитирует --- */
   const breathSpeed = meditating ? Math.PI / 2.5 : Math.PI / 2;
   const breathAmp = meditating ? 0.045 : 0.025;
   const breath = 1 + Math.sin(t * breathSpeed) * breathAmp;
 
-  /* --- Утреннее потягивание (периодическое) --- */
   let stretchY = 0, stretchX = 0;
   if (timeOfDay === 'morning') {
     const stretchCycle = (t * 0.3) % 1;
@@ -1622,39 +1766,12 @@ function drawKitten(now) {
     }
   }
 
-  /* --- Стадия Искра --- */
-  if (stage.key === 'spark') {
-    const coreR = 60 * (1 + Math.sin(t * 2) * 0.15) * (meditating ? 1.15 : 1);
-    const core = petCtx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
-    core.addColorStop(0, rgba(white, 0.95));
-    core.addColorStop(0.3, rgba(chakraLight, 0.8));
-    core.addColorStop(1, rgba(chakraRgb, 0));
-    petCtx.fillStyle = core;
-    petCtx.beginPath();
-    petCtx.arc(cx, cy, coreR, 0, Math.PI*2);
-    petCtx.fill();
-
-    for (let i = 0; i < 6; i++) {
-      const a = t * 0.7 + i * Math.PI/3;
-      const r = 90 + Math.sin(t*1.5 + i) * 15;
-      const px = cx + Math.cos(a) * r;
-      const py = cy + Math.sin(a) * r;
-      const size = 2 + Math.sin(t*2 + i) * 1;
-      petCtx.fillStyle = rgba(white, 0.6);
-      petCtx.beginPath();
-      petCtx.arc(px, py, size, 0, Math.PI*2);
-      petCtx.fill();
-    }
-    return;
-  }
-
   petCtx.save();
   petCtx.translate(cx + stretchX * 40, cy + stretchY);
   const finalScale = scale * breath * (1 + (stretchX > 0 ? 0.03 : 0));
   petCtx.scale(finalScale, finalScale);
 
-  /* Аура */
-  if (stage.key === 'wise' || stage.key === 'guardian' || meditating) {
+  if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend' || meditating) {
     const auraR = 180;
     const auraAlpha = meditating ? 0.30 : 0.20;
     const aura = petCtx.createRadialGradient(0, 0, 0, 0, 0, auraR);
@@ -1669,7 +1786,7 @@ function drawKitten(now) {
 
   /* Хвост */
   const tailWag = meditating ? Math.sin(t * 0.6) * 5 : Math.sin(t * 1.4) * 12;
-  petCtx.strokeStyle = '#d98555';
+  petCtx.strokeStyle = tailDark;
   petCtx.lineCap = 'round';
   petCtx.lineWidth = 22;
   petCtx.beginPath();
@@ -1677,7 +1794,7 @@ function drawKitten(now) {
   petCtx.quadraticCurveTo(140 + tailWag, 60, 120 + tailWag*1.3, -25);
   petCtx.stroke();
 
-  petCtx.strokeStyle = '#f0b48a';
+  petCtx.strokeStyle = P.tailTip;
   petCtx.lineWidth = 18;
   petCtx.beginPath();
   petCtx.moveTo(120 + tailWag*1.3 - 4, -20);
@@ -1685,18 +1802,19 @@ function drawKitten(now) {
   petCtx.stroke();
 
   /* Тело */
-  petCtx.fillStyle = '#e89e6b';
+  petCtx.fillStyle = P.body;
   petCtx.beginPath();
   petCtx.ellipse(0, 70, 75, 80, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  petCtx.fillStyle = '#f5d4b8';
+  /* Живот */
+  petCtx.fillStyle = P.belly;
   petCtx.beginPath();
   petCtx.ellipse(-5, 85, 45, 55, 0, 0, Math.PI*2);
   petCtx.fill();
 
   /* Лапки */
-  petCtx.fillStyle = '#e89e6b';
+  petCtx.fillStyle = P.body;
   petCtx.beginPath();
   petCtx.ellipse(-40, 130, 26, 18, 0, 0, Math.PI*2);
   petCtx.fill();
@@ -1704,7 +1822,7 @@ function drawKitten(now) {
   petCtx.ellipse(40, 130, 26, 18, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  petCtx.fillStyle = '#f5d4b8';
+  petCtx.fillStyle = P.belly;
   petCtx.beginPath();
   petCtx.arc(-40, 132, 6, 0, Math.PI*2);
   petCtx.fill();
@@ -1713,20 +1831,20 @@ function drawKitten(now) {
   petCtx.fill();
 
   /* Голова */
-  petCtx.fillStyle = '#e89e6b';
+  petCtx.fillStyle = P.body;
   petCtx.beginPath();
   petCtx.arc(0, -35, 72, 0, Math.PI*2);
   petCtx.fill();
 
   /* Ушки */
-  petCtx.fillStyle = '#e89e6b';
+  petCtx.fillStyle = P.body;
   petCtx.beginPath();
   petCtx.moveTo(-55, -85);
   petCtx.quadraticCurveTo(-75, -155, -20, -115);
   petCtx.quadraticCurveTo(-45, -100, -35, -80);
   petCtx.closePath();
   petCtx.fill();
-  petCtx.fillStyle = '#f5b390';
+  petCtx.fillStyle = P.ear;
   petCtx.beginPath();
   petCtx.moveTo(-50, -90);
   petCtx.quadraticCurveTo(-60, -130, -30, -105);
@@ -1734,14 +1852,14 @@ function drawKitten(now) {
   petCtx.closePath();
   petCtx.fill();
 
-  petCtx.fillStyle = '#e89e6b';
+  petCtx.fillStyle = P.body;
   petCtx.beginPath();
   petCtx.moveTo(55, -85);
   petCtx.quadraticCurveTo(75, -155, 20, -115);
   petCtx.quadraticCurveTo(45, -100, 35, -80);
   petCtx.closePath();
   petCtx.fill();
-  petCtx.fillStyle = '#f5b390';
+  petCtx.fillStyle = P.ear;
   petCtx.beginPath();
   petCtx.moveTo(50, -90);
   petCtx.quadraticCurveTo(60, -130, 30, -105);
@@ -1750,18 +1868,61 @@ function drawKitten(now) {
   petCtx.fill();
 
   /* Мордочка */
-  petCtx.fillStyle = '#f5d4b8';
+  petCtx.fillStyle = P.belly;
   petCtx.beginPath();
   petCtx.ellipse(0, -15, 42, 32, 0, 0, Math.PI*2);
   petCtx.fill();
 
+  /* Узор — полоски */
+  if (petPattern.key === 'tabby') {
+    petCtx.strokeStyle = stripe;
+    petCtx.lineCap = 'round';
+    petCtx.lineWidth = 5;
+    /* Лоб */
+    petCtx.beginPath();
+    petCtx.moveTo(-12, -78); petCtx.lineTo(-10, -55);
+    petCtx.moveTo(0, -82);   petCtx.lineTo(0, -58);
+    petCtx.moveTo(12, -78);  petCtx.lineTo(10, -55);
+    petCtx.stroke();
+    /* Бока */
+    petCtx.beginPath();
+    petCtx.moveTo(-55, 55); petCtx.lineTo(-35, 65);
+    petCtx.moveTo(-60, 78); petCtx.lineTo(-40, 88);
+    petCtx.moveTo(-58, 100); petCtx.lineTo(-38, 108);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.moveTo(55, 55); petCtx.lineTo(35, 65);
+    petCtx.moveTo(60, 78); petCtx.lineTo(40, 88);
+    petCtx.moveTo(58, 100); petCtx.lineTo(38, 108);
+    petCtx.stroke();
+    /* Кольца на хвосте */
+    petCtx.strokeStyle = stripe;
+    petCtx.lineWidth = 4;
+    petCtx.beginPath();
+    petCtx.moveTo(112 + tailWag*1.3, 10); petCtx.lineTo(124 + tailWag*1.3, 5);
+    petCtx.moveTo(116 + tailWag*1.4, -10); petCtx.lineTo(128 + tailWag*1.4, -15);
+    petCtx.stroke();
+  }
+
+  /* Узор — пятнышки */
+  if (petPattern.key === 'spotted') {
+    petCtx.fillStyle = spot;
+    const spots = [
+      [-40, 55, 7], [-20, 85, 5], [10, 100, 6], [35, 60, 7],
+      [50, 90, 5], [-50, 95, 6], [25, 40, 5], [-30, 40, 5]
+    ];
+    spots.forEach(([sx, sy, sr]) => {
+      petCtx.beginPath();
+      petCtx.arc(sx, sy, sr, 0, Math.PI*2);
+      petCtx.fill();
+    });
+  }
+
   /* Глаза */
   const sleeping = timeOfDay === 'night';
-  const squint = squinting;
 
   if (sleeping) {
-    /* Спит — длинные закрытые линии */
-    petCtx.strokeStyle = '#3a1e0e';
+    petCtx.strokeStyle = P.outline;
     petCtx.lineWidth = 4;
     petCtx.lineCap = 'round';
     petCtx.beginPath();
@@ -1772,9 +1933,8 @@ function drawKitten(now) {
     petCtx.moveTo(15, -33);
     petCtx.quadraticCurveTo(25, -30, 35, -33);
     petCtx.stroke();
-  } else if (squint) {
-    /* Жмурится — глаза в виде ^ ^ */
-    petCtx.strokeStyle = '#3a1e0e';
+  } else if (squinting) {
+    petCtx.strokeStyle = P.outline;
     petCtx.lineWidth = 4;
     petCtx.lineCap = 'round';
     petCtx.lineJoin = 'round';
@@ -1789,8 +1949,7 @@ function drawKitten(now) {
     petCtx.lineTo(33, -30);
     petCtx.stroke();
   } else if (meditating) {
-    /* Медитирует — глубоко закрытые глаза */
-    petCtx.strokeStyle = '#3a1e0e';
+    petCtx.strokeStyle = P.outline;
     petCtx.lineWidth = 4;
     petCtx.lineCap = 'round';
     petCtx.beginPath();
@@ -1811,8 +1970,7 @@ function drawKitten(now) {
     petCtx.moveTo(18, -26); petCtx.lineTo(16, -22);
     petCtx.stroke();
   } else {
-    /* Обычное состояние */
-    petCtx.strokeStyle = '#3a1e0e';
+    petCtx.strokeStyle = P.outline;
     petCtx.lineWidth = 4;
     petCtx.lineCap = 'round';
     petCtx.beginPath();
@@ -1836,7 +1994,7 @@ function drawKitten(now) {
   }
 
   /* Носик */
-  petCtx.fillStyle = '#d97a8a';
+  petCtx.fillStyle = P.nose;
   petCtx.beginPath();
   petCtx.moveTo(0, -8);
   petCtx.lineTo(-7, -3);
@@ -1844,15 +2002,14 @@ function drawKitten(now) {
   petCtx.closePath();
   petCtx.fill();
 
-  /* Ротик — если жмурится, шире */
-  petCtx.strokeStyle = '#3a1e0e';
+  /* Ротик */
+  petCtx.strokeStyle = P.outline;
   petCtx.lineWidth = 2.5;
   petCtx.beginPath();
   petCtx.moveTo(0, -3);
   petCtx.lineTo(0, 3);
   petCtx.stroke();
-  if (squint) {
-    /* Улыбка пошире */
+  if (squinting) {
     petCtx.beginPath();
     petCtx.arc(-5, 4, 6, 0, Math.PI);
     petCtx.stroke();
@@ -1869,7 +2026,7 @@ function drawKitten(now) {
   }
 
   /* Усы */
-  petCtx.strokeStyle = 'rgba(58, 30, 14, 0.55)';
+  petCtx.strokeStyle = `rgba(${hexToRgb(P.outline).join(',')}, 0.55)`;
   petCtx.lineWidth = 1.8;
   petCtx.beginPath(); petCtx.moveTo(-30, -5); petCtx.lineTo(-72, -12); petCtx.stroke();
   petCtx.beginPath(); petCtx.moveTo(-30, 2);  petCtx.lineTo(-72, 4);   petCtx.stroke();
@@ -1878,8 +2035,8 @@ function drawKitten(now) {
   petCtx.beginPath(); petCtx.moveTo(30, 2);  petCtx.lineTo(72, 4);   petCtx.stroke();
   petCtx.beginPath(); petCtx.moveTo(30, 8);  petCtx.lineTo(70, 18);  petCtx.stroke();
 
-  /* Мудрые пряди */
-  if (stage.key === 'wise' || stage.key === 'guardian') {
+  /* Седые пряди */
+  if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend') {
     petCtx.strokeStyle = 'rgba(255,255,255,0.55)';
     petCtx.lineWidth = 3;
     petCtx.beginPath();
@@ -1888,8 +2045,8 @@ function drawKitten(now) {
     petCtx.stroke();
   }
 
-  /* Светящиеся глаза у Хранителя */
-  if (stage.key === 'guardian') {
+  /* Светящиеся глаза */
+  if (stage.key === 'guardian' || stage.key === 'legend') {
     const eyeGlow = petCtx.createRadialGradient(-25, -35, 0, -25, -35, 20);
     eyeGlow.addColorStop(0, rgba(chakraLight, 0.9));
     eyeGlow.addColorStop(1, rgba(chakraRgb, 0));
@@ -1898,9 +2055,9 @@ function drawKitten(now) {
     petCtx.beginPath(); petCtx.arc(25, -35, 20, 0, Math.PI*2); petCtx.fill();
   }
 
-  /* Частицы */
-  if (stage.key === 'wise' || stage.key === 'guardian' || meditating) {
-    const count = stage.key === 'guardian' ? 12 : (meditating ? 8 : 6);
+  /* Частицы вокруг */
+  if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend' || meditating) {
+    const count = stage.key === 'legend' ? 16 : (stage.key === 'guardian' ? 12 : (meditating ? 8 : 6));
     for (let i = 0; i < count; i++) {
       const a = t * 0.5 + i * (Math.PI*2/count);
       const r = 160 + Math.sin(t * 1.2 + i) * 20;
@@ -1916,7 +2073,6 @@ function drawKitten(now) {
 
   /* Ночные "Z z z" */
   if (timeOfDay === 'night' && !meditating) {
-    petCtx.font = 'bold 22px sans-serif';
     for (let i = 0; i < 3; i++) {
       const phase = (t * 0.4 + i * 0.33) % 1;
       const zx = 90 + phase * 40;
@@ -1968,7 +2124,11 @@ function renderPetUI() {
   document.getElementById('petStageName').textContent = stage.name;
   document.getElementById('petStageName').style.color = currentColor();
 
-  /* Статус-бейдж */
+  /* Строка внешности: "рыжий полосатый" */
+  let lookStr = petPalette.name;
+  if (petPattern.name) lookStr += ' ' + petPattern.name;
+  document.getElementById('petLook').textContent = lookStr;
+
   const statusEl = document.getElementById('petStatus');
   if (isMeditating()) {
     statusEl.textContent = '🧘 медитирует с тобой';
@@ -2007,7 +2167,6 @@ function renderPetUI() {
   petLastStageKey = stage.key;
 }
 
-/* ---------- Инсайты ---------- */
 function ensureDailyInsight() {
   const today = todayStr();
   if (petInsightDate !== today) {
@@ -2015,7 +2174,7 @@ function ensureDailyInsight() {
     petInsightText = INSIGHTS[Math.floor(Math.random() * INSIGHTS.length)];
     storageSet('petInsightText', petInsightText);
     storageSet('petInsightDate', petInsightDate);
-    return true; /* новый инсайт */
+    return true;
   }
   return false;
 }
@@ -2298,7 +2457,6 @@ function startTimer() {
     else renderTimer();
   }, 200);
   updateMainIcon();
-  /* Обновить статус котёнка */
   renderPetUI();
 }
 function pauseTimer() {
@@ -2447,7 +2605,6 @@ document.querySelectorAll('.bottom-tab').forEach(btn => {
         resizePetCanvas();
         startPetAnim();
       });
-      /* Показать инсайт дня при первом заходе в сессии */
       if (!petInsightShownThisSession) {
         petInsightShownThisSession = true;
         setTimeout(() => {
@@ -3077,7 +3234,7 @@ document.getElementById('petInsightBtn').addEventListener('click', () => {
 (async () => {
   initPetCanvas();
 
-  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, achVal, dailyVal, logVal, pmVal, uiVal, urVal, pnVal, piTextVal, piDateVal] = await Promise.all([
+  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, achVal, dailyVal, logVal, pmVal, uiVal, urVal, pnVal, piTextVal, piDateVal, psVal] = await Promise.all([
     storageGetP('streak'),
     storageGetP('chakraProgress'),
     storageGetP('activeChakra'),
@@ -3092,7 +3249,8 @@ document.getElementById('petInsightBtn').addEventListener('click', () => {
     storageGetP('userRhythms'),
     storageGetP('petName'),
     storageGetP('petInsightText'),
-    storageGetP('petInsightDate')
+    storageGetP('petInsightDate'),
+    storageGetP('petSeed')
   ]);
 
   if (streakVal) { try { streak = JSON.parse(streakVal); } catch(e){} }
@@ -3112,6 +3270,16 @@ document.getElementById('petInsightBtn').addEventListener('click', () => {
     if (PRESETS.some(p => p.min === n)) currentPresetMin = n;
   }
 
+  /* Рандомный котёнок */
+  let seed;
+  if (psVal) {
+    seed = parseInt(psVal) || 0;
+  } else {
+    seed = Math.floor(Math.random() * 2147483647) || 1;
+    storageSet('petSeed', String(seed));
+  }
+  initPetFromSeed(seed);
+
   rebuildAllRhythms();
   if (arVal) {
     const r = allRhythms.find(x => x.key === arVal);
@@ -3129,7 +3297,6 @@ document.getElementById('petInsightBtn').addEventListener('click', () => {
 
   currentChakra = findCurrentUnlocked(acVal, chakraProgress);
 
-  /* Убедиться, что инсайт дня есть */
   ensureDailyInsight();
 
   renderRhythmPicker();
