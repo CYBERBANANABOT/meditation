@@ -756,6 +756,9 @@
       <button class="ctrl-side" id="btnNextTrack" title="Следующий">
         <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
       </button>
+      <button class="ctrl-side" id="btnAddTrack" title="Добавить трек">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      </button>
     </div>
 
     <button class="mark-btn" id="btnMark" disabled>Отметить день</button>
@@ -2150,6 +2153,7 @@ document.getElementById('btnTracks').addEventListener('click', () => {
   renderTracksModal();
   tracksModal.classList.add('show');
 });
+document.getElementById('btnAddTrack').addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
