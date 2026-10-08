@@ -55,6 +55,7 @@
   .bottom-tab.active { color: var(--accent); }
   .bottom-tab.active svg { filter: drop-shadow(0 0 8px var(--accent)); }
 
+  /* ============ КОТЁНОК ============ */
   .pet-wrap {
     display: flex;
     flex-direction: column;
@@ -93,6 +94,27 @@
     color: var(--accent);
     font-weight: 500;
     margin-top: 2px;
+    transition: color .5s;
+  }
+  .pet-status {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #a7a9be;
+    font-weight: 500;
+    padding: 4px 12px;
+    background: rgba(255,255,255,.04);
+    border-radius: 12px;
+    transition: .3s;
+  }
+  .pet-status.meditating {
+    color: var(--accent);
+    background: rgba(164,99,242,.15);
+    animation: pulseStatus 2s ease-in-out infinite;
+  }
+  @keyframes pulseStatus {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(164,99,242,.4); }
+    50% { box-shadow: 0 0 0 8px rgba(164,99,242,0); }
   }
 
   .pet-scene {
@@ -101,7 +123,7 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    min-height: 340px;
+    min-height: 320px;
     margin: 10px 0;
   }
   #pet-canvas {
@@ -110,7 +132,10 @@
     max-width: 380px;
     aspect-ratio: 1 / 1;
     height: auto;
+    cursor: pointer;
+    transition: transform .15s;
   }
+  #pet-canvas:active { transform: scale(.98); }
 
   .pet-progress-block {
     margin-top: auto;
@@ -154,6 +179,26 @@
     line-height: 1.4;
   }
   .pet-progress-text b { color: #fffffe; font-weight: 600; }
+
+  .pet-insight-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed #2a2a4a;
+    color: var(--accent);
+    padding: 12px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .pet-insight-btn:active { background: rgba(255,255,255,.03); }
 
   .streak-card {
     background: linear-gradient(135deg, #ff8906 0%, #e53170 100%);
@@ -511,6 +556,37 @@
     border-radius: 8px; transition: .15s;
   }
   .modal-close:active { background: rgba(255,255,255,.06); }
+
+  /* Карточка инсайта */
+  .insight-card {
+    background: linear-gradient(160deg, #1c1c38 0%, #131324 100%);
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+    border: 1px solid rgba(164,99,242,.25);
+    box-shadow: 0 8px 30px -10px rgba(164,99,242,.5);
+    margin-bottom: 16px;
+  }
+  .insight-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 12px var(--accent));
+  }
+  .insight-text {
+    font-size: 16px;
+    line-height: 1.55;
+    color: #fffffe;
+    font-weight: 400;
+    font-style: italic;
+  }
+  .insight-meta {
+    font-size: 11px;
+    color: #666a80;
+    margin-top: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
 
   .guide-section {
     margin-bottom: 14px;
@@ -875,6 +951,7 @@
         <svg class="edit-ic" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
       </div>
       <div class="pet-stage-name" id="petStageName">Малыш</div>
+      <div class="pet-status" id="petStatus" style="display:none;"></div>
     </div>
 
     <div class="pet-scene">
@@ -893,6 +970,11 @@
         Медитируй, чтобы котёнок рос
       </div>
     </div>
+
+    <button class="pet-insight-btn" id="petInsightBtn">
+      <span>💭</span>
+      <span>Мысль дня от котёнка</span>
+    </button>
   </div>
 </div>
 
@@ -1006,6 +1088,23 @@
   </div>
 </div>
 
+<div class="modal" id="insightModal">
+  <div class="modal-content" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2>Мысль от котёнка</h2>
+      <button class="modal-close" data-close="insightModal">✕</button>
+    </div>
+    <div class="insight-card">
+      <div class="insight-icon">💭</div>
+      <div class="insight-text" id="insightModalText">—</div>
+      <div class="insight-meta" id="insightModalMeta">Сегодня</div>
+    </div>
+    <div class="modal-actions">
+      <button class="primary" data-close="insightModal" style="flex:1;">Спасибо</button>
+    </div>
+  </div>
+</div>
+
 <audio id="audioEl" preload="none" loop></audio>
 <div class="toast" id="toast"></div>
 
@@ -1031,7 +1130,7 @@ function storageGetP(key) {
   return new Promise(resolve => storageGet(key, resolve));
 }
 
-/* ---------- IndexedDB для треков ---------- */
+/* ---------- IndexedDB ---------- */
 const DB_NAME = 'meditation-app';
 const DB_VERSION = 1;
 const STORE_TRACKS = 'userTracks';
@@ -1389,11 +1488,50 @@ const PET_STAGES = [
   { key:'wise',     name:'Мудрый',     min:600,  max:1200,  scale:1.00 },
   { key:'guardian', name:'Хранитель',  min:1200, max:Infinity, scale:1.10 }
 ];
+
+/* ---------- Инсайты ---------- */
+const INSIGHTS = [
+  "Каждый вдох — это возможность начать заново.",
+  "Тишина внутри не требует доказательств.",
+  "Ты не свои мысли. Ты — тот, кто их замечает.",
+  "Покой — это не отсутствие шума, а присутствие в нём.",
+  "Дыши медленнее. Мир подождёт.",
+  "То, что ты ищешь, уже есть в тебе.",
+  "Нежность к себе — это тоже сила.",
+  "Сегодня достаточно быть, а не делать.",
+  "Между двумя мыслями есть пространство. Зайди туда.",
+  "Твоё тело знает, как расслабиться. Дай ему шанс.",
+  "Каждый день — новая чашка. Наполни её осознанно.",
+  "Дерево не торопится расти. Оно растёт в своём темпе.",
+  "Ты — не проблема, которую нужно решить. Ты — жизнь, которая происходит.",
+  "Мягкость — это не слабость, а гибкость.",
+  "Возвращаться к дыханию — это возвращаться домой.",
+  "Молчание иногда говорит громче слов.",
+  "Ты делаешь больше, чем тебе кажется.",
+  "Позволь этому дню быть неидеальным.",
+  "Внимание — это форма любви.",
+  "Простые вещи держат мир: дыхание, тепло, тишина.",
+  "Ты не обязан всё понимать, чтобы продолжать.",
+  "Отпустить — не значит проиграть.",
+  "Каждая медитация — кирпичик в фундамент спокойствия.",
+  "Твоя настойчивость — это тихая сила.",
+  "Слушай не только умом, но и телом.",
+  "Сегодня ты ближе к себе, чем вчера.",
+  "Ты — не то, что с тобой произошло. Ты — то, что ты выбираешь сейчас.",
+  "Всё имеет свой ритм. Найди свой.",
+  "Спокойствие начинается с одного медленного выдоха.",
+  "Ты достаточен. Ровно такой, как сейчас."
+];
+
 let petName = 'Мурзик';
 let petAnimActive = false;
 let petCanvas, petCtx;
 let petStartTime = performance.now();
 let petLastStageKey = null;
+let petSquintUntil = 0;
+let petInsightText = '';
+let petInsightDate = '';
+let petInsightShownThisSession = false;
 
 function getPetStage(xp) {
   for (const s of PET_STAGES) {
@@ -1402,10 +1540,30 @@ function getPetStage(xp) {
   return PET_STAGES[PET_STAGES.length - 1];
 }
 
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 11) return 'morning';
+  if (h >= 11 && h < 18) return 'day';
+  if (h >= 18 && h < 23) return 'evening';
+  return 'night';
+}
+
 function initPetCanvas() {
   petCanvas = document.getElementById('pet-canvas');
   if (!petCanvas) return;
   petCtx = petCanvas.getContext('2d');
+  petCanvas.addEventListener('click', onPetTap);
+}
+
+function onPetTap() {
+  petSquintUntil = performance.now() + 1500;
+  if (tg) {
+    try { tg.HapticFeedback?.impactOccurred('light'); } catch(e){}
+  }
+}
+
+function isMeditating() {
+  return timerRunning && !timerDone;
 }
 
 function drawKitten(now) {
@@ -1419,25 +1577,54 @@ function drawKitten(now) {
   const xp = getTotalXP();
   const stage = getPetStage(xp);
   const scale = stage.scale;
+  const timeOfDay = getTimeOfDay();
+  const meditating = isMeditating();
+  const squinting = now < petSquintUntil;
 
   const chakraRgb = hexToRgb(currentColor());
   const chakraLight = lighten(chakraRgb, 0.5);
   const white = [255,255,255];
 
+  /* --- Ночной фон --- */
+  if (timeOfDay === 'night') {
+    petCtx.fillStyle = 'rgba(15, 20, 50, 0.35)';
+    petCtx.beginPath();
+    petCtx.arc(cx, cy, 260, 0, Math.PI*2);
+    petCtx.fill();
+  }
+
+  /* --- Свечение --- */
+  const glowIntensity = meditating ? 0.24 : 0.16;
   const glowR = 220 * scale;
   const glow = petCtx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
-  glow.addColorStop(0, rgba(chakraRgb, 0.16));
-  glow.addColorStop(0.5, rgba(chakraRgb, 0.06));
+  glow.addColorStop(0, rgba(chakraRgb, glowIntensity));
+  glow.addColorStop(0.5, rgba(chakraRgb, glowIntensity * 0.4));
   glow.addColorStop(1, rgba(chakraRgb, 0));
   petCtx.fillStyle = glow;
   petCtx.beginPath();
   petCtx.arc(cx, cy, glowR, 0, Math.PI*2);
   petCtx.fill();
 
-  const breath = 1 + Math.sin(t * Math.PI / 2) * 0.025;
+  /* --- Дыхание: усилено если медитирует --- */
+  const breathSpeed = meditating ? Math.PI / 2.5 : Math.PI / 2;
+  const breathAmp = meditating ? 0.045 : 0.025;
+  const breath = 1 + Math.sin(t * breathSpeed) * breathAmp;
 
+  /* --- Утреннее потягивание (периодическое) --- */
+  let stretchY = 0, stretchX = 0;
+  if (timeOfDay === 'morning') {
+    const stretchCycle = (t * 0.3) % 1;
+    if (stretchCycle > 0.85) {
+      const p = (stretchCycle - 0.85) / 0.15;
+      const ease = Math.sin(p * Math.PI);
+      stretchY = -ease * 15;
+      stretchX = ease * 0.05;
+    }
+  }
+
+  /* --- Стадия Искра --- */
   if (stage.key === 'spark') {
-    const coreR = 60 * (1 + Math.sin(t * 2) * 0.15);
+    const coreR = 60 * (1 + Math.sin(t * 2) * 0.15) * (meditating ? 1.15 : 1);
     const core = petCtx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
     core.addColorStop(0, rgba(white, 0.95));
     core.addColorStop(0.3, rgba(chakraLight, 0.8));
@@ -1462,14 +1649,17 @@ function drawKitten(now) {
   }
 
   petCtx.save();
-  petCtx.translate(cx, cy);
-  petCtx.scale(scale * breath, scale * breath);
+  petCtx.translate(cx + stretchX * 40, cy + stretchY);
+  const finalScale = scale * breath * (1 + (stretchX > 0 ? 0.03 : 0));
+  petCtx.scale(finalScale, finalScale);
 
-  if (stage.key === 'wise' || stage.key === 'guardian') {
+  /* Аура */
+  if (stage.key === 'wise' || stage.key === 'guardian' || meditating) {
     const auraR = 180;
+    const auraAlpha = meditating ? 0.30 : 0.20;
     const aura = petCtx.createRadialGradient(0, 0, 0, 0, 0, auraR);
-    aura.addColorStop(0, rgba(chakraRgb, 0.20));
-    aura.addColorStop(0.6, rgba(chakraRgb, 0.05));
+    aura.addColorStop(0, rgba(chakraRgb, auraAlpha));
+    aura.addColorStop(0.6, rgba(chakraRgb, auraAlpha * 0.25));
     aura.addColorStop(1, rgba(chakraRgb, 0));
     petCtx.fillStyle = aura;
     petCtx.beginPath();
@@ -1477,7 +1667,8 @@ function drawKitten(now) {
     petCtx.fill();
   }
 
-  const tailWag = Math.sin(t * 1.4) * 12;
+  /* Хвост */
+  const tailWag = meditating ? Math.sin(t * 0.6) * 5 : Math.sin(t * 1.4) * 12;
   petCtx.strokeStyle = '#d98555';
   petCtx.lineCap = 'round';
   petCtx.lineWidth = 22;
@@ -1493,6 +1684,7 @@ function drawKitten(now) {
   petCtx.quadraticCurveTo(122 + tailWag*1.4, -35, 116 + tailWag*1.5, -48);
   petCtx.stroke();
 
+  /* Тело */
   petCtx.fillStyle = '#e89e6b';
   petCtx.beginPath();
   petCtx.ellipse(0, 70, 75, 80, 0, 0, Math.PI*2);
@@ -1503,6 +1695,7 @@ function drawKitten(now) {
   petCtx.ellipse(-5, 85, 45, 55, 0, 0, Math.PI*2);
   petCtx.fill();
 
+  /* Лапки */
   petCtx.fillStyle = '#e89e6b';
   petCtx.beginPath();
   petCtx.ellipse(-40, 130, 26, 18, 0, 0, Math.PI*2);
@@ -1519,11 +1712,13 @@ function drawKitten(now) {
   petCtx.arc(40, 132, 6, 0, Math.PI*2);
   petCtx.fill();
 
+  /* Голова */
   petCtx.fillStyle = '#e89e6b';
   petCtx.beginPath();
   petCtx.arc(0, -35, 72, 0, Math.PI*2);
   petCtx.fill();
 
+  /* Ушки */
   petCtx.fillStyle = '#e89e6b';
   petCtx.beginPath();
   petCtx.moveTo(-55, -85);
@@ -1554,33 +1749,93 @@ function drawKitten(now) {
   petCtx.closePath();
   petCtx.fill();
 
+  /* Мордочка */
   petCtx.fillStyle = '#f5d4b8';
   petCtx.beginPath();
   petCtx.ellipse(0, -15, 42, 32, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  petCtx.strokeStyle = '#3a1e0e';
-  petCtx.lineWidth = 4;
-  petCtx.lineCap = 'round';
-  petCtx.beginPath();
-  petCtx.arc(-25, -35, 12, Math.PI * 0.15, Math.PI * 0.85);
-  petCtx.stroke();
-  petCtx.beginPath();
-  petCtx.arc(25, -35, 12, Math.PI * 0.15, Math.PI * 0.85);
-  petCtx.stroke();
+  /* Глаза */
+  const sleeping = timeOfDay === 'night';
+  const squint = squinting;
 
-  petCtx.lineWidth = 2.5;
-  petCtx.beginPath();
-  petCtx.moveTo(-32, -26); petCtx.lineTo(-34, -22);
-  petCtx.moveTo(-25, -23); petCtx.lineTo(-25, -19);
-  petCtx.moveTo(-18, -26); petCtx.lineTo(-16, -22);
-  petCtx.stroke();
-  petCtx.beginPath();
-  petCtx.moveTo(32, -26); petCtx.lineTo(34, -22);
-  petCtx.moveTo(25, -23); petCtx.lineTo(25, -19);
-  petCtx.moveTo(18, -26); petCtx.lineTo(16, -22);
-  petCtx.stroke();
+  if (sleeping) {
+    /* Спит — длинные закрытые линии */
+    petCtx.strokeStyle = '#3a1e0e';
+    petCtx.lineWidth = 4;
+    petCtx.lineCap = 'round';
+    petCtx.beginPath();
+    petCtx.moveTo(-35, -33);
+    petCtx.quadraticCurveTo(-25, -30, -15, -33);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.moveTo(15, -33);
+    petCtx.quadraticCurveTo(25, -30, 35, -33);
+    petCtx.stroke();
+  } else if (squint) {
+    /* Жмурится — глаза в виде ^ ^ */
+    petCtx.strokeStyle = '#3a1e0e';
+    petCtx.lineWidth = 4;
+    petCtx.lineCap = 'round';
+    petCtx.lineJoin = 'round';
+    petCtx.beginPath();
+    petCtx.moveTo(-33, -30);
+    petCtx.lineTo(-25, -38);
+    petCtx.lineTo(-17, -30);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.moveTo(17, -30);
+    petCtx.lineTo(25, -38);
+    petCtx.lineTo(33, -30);
+    petCtx.stroke();
+  } else if (meditating) {
+    /* Медитирует — глубоко закрытые глаза */
+    petCtx.strokeStyle = '#3a1e0e';
+    petCtx.lineWidth = 4;
+    petCtx.lineCap = 'round';
+    petCtx.beginPath();
+    petCtx.arc(-25, -35, 12, Math.PI * 0.2, Math.PI * 0.8);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.arc(25, -35, 12, Math.PI * 0.2, Math.PI * 0.8);
+    petCtx.stroke();
+    petCtx.lineWidth = 2.5;
+    petCtx.beginPath();
+    petCtx.moveTo(-32, -26); petCtx.lineTo(-34, -22);
+    petCtx.moveTo(-25, -23); petCtx.lineTo(-25, -19);
+    petCtx.moveTo(-18, -26); petCtx.lineTo(-16, -22);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.moveTo(32, -26); petCtx.lineTo(34, -22);
+    petCtx.moveTo(25, -23); petCtx.lineTo(25, -19);
+    petCtx.moveTo(18, -26); petCtx.lineTo(16, -22);
+    petCtx.stroke();
+  } else {
+    /* Обычное состояние */
+    petCtx.strokeStyle = '#3a1e0e';
+    petCtx.lineWidth = 4;
+    petCtx.lineCap = 'round';
+    petCtx.beginPath();
+    petCtx.arc(-25, -35, 12, Math.PI * 0.15, Math.PI * 0.85);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.arc(25, -35, 12, Math.PI * 0.15, Math.PI * 0.85);
+    petCtx.stroke();
 
+    petCtx.lineWidth = 2.5;
+    petCtx.beginPath();
+    petCtx.moveTo(-32, -26); petCtx.lineTo(-34, -22);
+    petCtx.moveTo(-25, -23); petCtx.lineTo(-25, -19);
+    petCtx.moveTo(-18, -26); petCtx.lineTo(-16, -22);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.moveTo(32, -26); petCtx.lineTo(34, -22);
+    petCtx.moveTo(25, -23); petCtx.lineTo(25, -19);
+    petCtx.moveTo(18, -26); petCtx.lineTo(16, -22);
+    petCtx.stroke();
+  }
+
+  /* Носик */
   petCtx.fillStyle = '#d97a8a';
   petCtx.beginPath();
   petCtx.moveTo(0, -8);
@@ -1589,19 +1844,31 @@ function drawKitten(now) {
   petCtx.closePath();
   petCtx.fill();
 
+  /* Ротик — если жмурится, шире */
   petCtx.strokeStyle = '#3a1e0e';
   petCtx.lineWidth = 2.5;
   petCtx.beginPath();
   petCtx.moveTo(0, -3);
   petCtx.lineTo(0, 3);
   petCtx.stroke();
-  petCtx.beginPath();
-  petCtx.arc(-5, 4, 5, 0, Math.PI);
-  petCtx.stroke();
-  petCtx.beginPath();
-  petCtx.arc(5, 4, 5, 0, Math.PI);
-  petCtx.stroke();
+  if (squint) {
+    /* Улыбка пошире */
+    petCtx.beginPath();
+    petCtx.arc(-5, 4, 6, 0, Math.PI);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.arc(5, 4, 6, 0, Math.PI);
+    petCtx.stroke();
+  } else {
+    petCtx.beginPath();
+    petCtx.arc(-5, 4, 5, 0, Math.PI);
+    petCtx.stroke();
+    petCtx.beginPath();
+    petCtx.arc(5, 4, 5, 0, Math.PI);
+    petCtx.stroke();
+  }
 
+  /* Усы */
   petCtx.strokeStyle = 'rgba(58, 30, 14, 0.55)';
   petCtx.lineWidth = 1.8;
   petCtx.beginPath(); petCtx.moveTo(-30, -5); petCtx.lineTo(-72, -12); petCtx.stroke();
@@ -1611,17 +1878,7 @@ function drawKitten(now) {
   petCtx.beginPath(); petCtx.moveTo(30, 2);  petCtx.lineTo(72, 4);   petCtx.stroke();
   petCtx.beginPath(); petCtx.moveTo(30, 8);  petCtx.lineTo(70, 18);  petCtx.stroke();
 
-  if (stage.key === 'baby') {
-    petCtx.strokeStyle = '#3a1e0e';
-    petCtx.lineWidth = 3;
-    petCtx.beginPath();
-    petCtx.arc(-25, -35, 10, Math.PI * 0.2, Math.PI * 0.8);
-    petCtx.stroke();
-    petCtx.beginPath();
-    petCtx.arc(25, -35, 10, Math.PI * 0.2, Math.PI * 0.8);
-    petCtx.stroke();
-  }
-
+  /* Мудрые пряди */
   if (stage.key === 'wise' || stage.key === 'guardian') {
     petCtx.strokeStyle = 'rgba(255,255,255,0.55)';
     petCtx.lineWidth = 3;
@@ -1631,6 +1888,7 @@ function drawKitten(now) {
     petCtx.stroke();
   }
 
+  /* Светящиеся глаза у Хранителя */
   if (stage.key === 'guardian') {
     const eyeGlow = petCtx.createRadialGradient(-25, -35, 0, -25, -35, 20);
     eyeGlow.addColorStop(0, rgba(chakraLight, 0.9));
@@ -1640,8 +1898,9 @@ function drawKitten(now) {
     petCtx.beginPath(); petCtx.arc(25, -35, 20, 0, Math.PI*2); petCtx.fill();
   }
 
-  if (stage.key === 'wise' || stage.key === 'guardian') {
-    const count = stage.key === 'guardian' ? 12 : 6;
+  /* Частицы */
+  if (stage.key === 'wise' || stage.key === 'guardian' || meditating) {
+    const count = stage.key === 'guardian' ? 12 : (meditating ? 8 : 6);
     for (let i = 0; i < count; i++) {
       const a = t * 0.5 + i * (Math.PI*2/count);
       const r = 160 + Math.sin(t * 1.2 + i) * 20;
@@ -1653,6 +1912,33 @@ function drawKitten(now) {
       petCtx.arc(px, py, size, 0, Math.PI*2);
       petCtx.fill();
     }
+  }
+
+  /* Ночные "Z z z" */
+  if (timeOfDay === 'night' && !meditating) {
+    petCtx.font = 'bold 22px sans-serif';
+    for (let i = 0; i < 3; i++) {
+      const phase = (t * 0.4 + i * 0.33) % 1;
+      const zx = 90 + phase * 40;
+      const zy = -80 - phase * 60;
+      const alpha = Math.max(0, 1 - phase) * 0.7;
+      petCtx.fillStyle = `rgba(200, 200, 255, ${alpha})`;
+      petCtx.font = `bold ${18 + i * 4}px sans-serif`;
+      petCtx.fillText('z', zx, zy);
+    }
+  }
+
+  /* Сердечки при поглаживании */
+  if (squinting) {
+    const heartPhase = (performance.now() % 600) / 600;
+    const hy = -140 - heartPhase * 40;
+    const hAlpha = Math.max(0, 1 - heartPhase) * 0.9;
+    petCtx.font = '20px sans-serif';
+    petCtx.fillStyle = `rgba(255, 120, 160, ${hAlpha})`;
+    petCtx.fillText('♥', 60, hy);
+    petCtx.fillStyle = `rgba(255, 120, 160, ${hAlpha * 0.7})`;
+    petCtx.font = '14px sans-serif';
+    petCtx.fillText('♥', 85, hy + 15);
   }
 
   petCtx.restore();
@@ -1682,6 +1968,17 @@ function renderPetUI() {
   document.getElementById('petStageName').textContent = stage.name;
   document.getElementById('petStageName').style.color = currentColor();
 
+  /* Статус-бейдж */
+  const statusEl = document.getElementById('petStatus');
+  if (isMeditating()) {
+    statusEl.textContent = '🧘 медитирует с тобой';
+    statusEl.style.display = 'inline-block';
+    statusEl.classList.add('meditating');
+  } else {
+    statusEl.style.display = 'none';
+    statusEl.classList.remove('meditating');
+  }
+
   const progressFill = document.getElementById('petProgressFill');
   const progressVal = document.getElementById('petProgressVal');
   const progressText = document.getElementById('petProgressText');
@@ -1708,6 +2005,33 @@ function renderPetUI() {
     }, 600);
   }
   petLastStageKey = stage.key;
+}
+
+/* ---------- Инсайты ---------- */
+function ensureDailyInsight() {
+  const today = todayStr();
+  if (petInsightDate !== today) {
+    petInsightDate = today;
+    petInsightText = INSIGHTS[Math.floor(Math.random() * INSIGHTS.length)];
+    storageSet('petInsightText', petInsightText);
+    storageSet('petInsightDate', petInsightDate);
+    return true; /* новый инсайт */
+  }
+  return false;
+}
+
+function openInsightModal() {
+  document.getElementById('insightModalText').textContent = petInsightText || '—';
+  document.getElementById('insightModalMeta').textContent = 'Мысль дня · ' + formatRuDate(todayStr());
+  document.getElementById('insightModal').classList.add('show');
+}
+
+function formatRuDate(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  if (dateStr === todayStr()) return 'сегодня';
+  if (dateStr === yesterdayStr()) return 'вчера';
+  return `${d} ${months[m-1]}`;
 }
 
 /* ============================================================
@@ -1974,6 +2298,8 @@ function startTimer() {
     else renderTimer();
   }, 200);
   updateMainIcon();
+  /* Обновить статус котёнка */
+  renderPetUI();
 }
 function pauseTimer() {
   if (!timerRunning) return;
@@ -1982,6 +2308,7 @@ function pauseTimer() {
   clearInterval(timerInterval);
   renderTimer();
   updateMainIcon();
+  renderPetUI();
 }
 function finishTimer() {
   clearInterval(timerInterval);
@@ -2033,6 +2360,7 @@ function resetTimer(newTotalSec) {
   updateMainIcon();
   lastHintState = null;
   if (audioEl && !audioEl.paused) audioEl.pause();
+  renderPetUI();
 }
 
 const audioEl = document.getElementById('audioEl');
@@ -2119,6 +2447,13 @@ document.querySelectorAll('.bottom-tab').forEach(btn => {
         resizePetCanvas();
         startPetAnim();
       });
+      /* Показать инсайт дня при первом заходе в сессии */
+      if (!petInsightShownThisSession) {
+        petInsightShownThisSession = true;
+        setTimeout(() => {
+          openInsightModal();
+        }, 500);
+      }
     } else {
       stopPetAnim();
     }
@@ -2255,14 +2590,6 @@ function renderProfileHistory() {
   });
   if (historySubTab === 'sessions') renderSessionsInto(document.getElementById('historyContent'));
   else renderCalendarInto(document.getElementById('historyContent'));
-}
-
-function formatRuDate(dateStr) {
-  const [y,m,d] = dateStr.split('-').map(Number);
-  const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
-  if (dateStr === todayStr()) return 'Сегодня';
-  if (dateStr === yesterdayStr()) return 'Вчера';
-  return `${d} ${months[m-1]}`;
 }
 
 function renderSessionsInto(target) {
@@ -2741,11 +3068,16 @@ document.getElementById('petNameWrap').addEventListener('click', () => {
   }
 });
 
+/* ---------- Кнопка "Мысль дня" ---------- */
+document.getElementById('petInsightBtn').addEventListener('click', () => {
+  openInsightModal();
+});
+
 /* ---------- Инициализация ---------- */
 (async () => {
   initPetCanvas();
 
-  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, achVal, dailyVal, logVal, pmVal, uiVal, urVal, pnVal] = await Promise.all([
+  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, achVal, dailyVal, logVal, pmVal, uiVal, urVal, pnVal, piTextVal, piDateVal] = await Promise.all([
     storageGetP('streak'),
     storageGetP('chakraProgress'),
     storageGetP('activeChakra'),
@@ -2758,7 +3090,9 @@ document.getElementById('petNameWrap').addEventListener('click', () => {
     storageGetP('practiceMode'),
     storageGetP('userIntentions'),
     storageGetP('userRhythms'),
-    storageGetP('petName')
+    storageGetP('petName'),
+    storageGetP('petInsightText'),
+    storageGetP('petInsightDate')
   ]);
 
   if (streakVal) { try { streak = JSON.parse(streakVal); } catch(e){} }
@@ -2770,6 +3104,8 @@ document.getElementById('petNameWrap').addEventListener('click', () => {
   if (uiVal) { try { userIntentions = JSON.parse(uiVal) || {}; } catch(e){} }
   if (urVal) { try { userRhythms = JSON.parse(urVal) || []; } catch(e){} }
   if (pnVal) petName = pnVal;
+  if (piTextVal) petInsightText = piTextVal;
+  if (piDateVal) petInsightDate = piDateVal;
   if (pmVal === 'scan' || pmVal === 'breath') practiceMode = pmVal;
   if (apVal) {
     const n = parseInt(apVal);
@@ -2792,6 +3128,9 @@ document.getElementById('petNameWrap').addEventListener('click', () => {
   rebuildAllTracks();
 
   currentChakra = findCurrentUnlocked(acVal, chakraProgress);
+
+  /* Убедиться, что инсайт дня есть */
+  ensureDailyInsight();
 
   renderRhythmPicker();
   renderPresets();
