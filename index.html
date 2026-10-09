@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Медитации</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
@@ -987,6 +987,18 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.success { border-color: var(--accent); }
+  @media (max-width: 380px) {
+    body { padding-left: 10px; padding-right: 10px; }
+    #orb { width: min(100%, 270px); height: auto; aspect-ratio: 1; }
+    .player { padding: 12px 10px 20px; }
+    .control-bar { gap: 6px; }
+    .ctrl-play { width: 64px; height: 64px; }
+    .profile-tab { font-size: 11px; padding: 10px 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -1285,16 +1297,24 @@ if (tg) { tg.ready(); tg.expand(); }
 
 /* ---------- Хранилище ---------- */
 function storageGet(key, cb) {
+  // Local cache allows recovery if Telegram CloudStorage is unavailable.
   if (tg?.CloudStorage) {
     tg.CloudStorage.getItem(key, (err, val) => {
-      if (err || val === undefined || val === null || val === '') cb(null);
-      else cb(val);
+      if (err || val === undefined || val === null || val === '') {
+        try { cb(localStorage.getItem(key)); } catch (_) { cb(null); }
+      } else {
+        try { localStorage.setItem(key, val); } catch (_) {}
+        cb(val);
+      }
     });
-  } else cb(localStorage.getItem(key));
+  } else { try { cb(localStorage.getItem(key)); } catch (_) { cb(null); } }
 }
 function storageSet(key, val) {
-  if (tg?.CloudStorage) tg.CloudStorage.setItem(key, val);
-  else localStorage.setItem(key, val);
+  try { localStorage.setItem(key, val); } catch (e) { console.warn('Local storage unavailable', e); }
+  if (tg?.CloudStorage) {
+    try { tg.CloudStorage.setItem(key, val, err => { if (err) console.warn('Cloud sync failed:', key, err); }); }
+    catch (e) { console.warn('Cloud storage unavailable:', key, e); }
+  }
 }
 function storageGetP(key) {
   return new Promise(resolve => storageGet(key, resolve));
@@ -1386,12 +1406,18 @@ let allTracks = [];
 let trackIndex = 0;
 
 function rebuildAllTracks() {
+  const oldUrls = allTracks.map(t => t.src).filter(u => u && u.startsWith('blob:'));
+  const previousId = allTracks[trackIndex]?._id;
+  audioEl?.pause();
+  audioEl?.removeAttribute('src');
   allTracks = userTracks.map(t => ({
     title: t.name,
     src: URL.createObjectURL(t.blob),
     _user: true,
     _id: t.id
   }));
+  trackIndex = Math.max(0, allTracks.findIndex(t => t._id === previousId));
+  oldUrls.forEach(url => URL.revokeObjectURL(url));
 }
 
 /* ---------- Ритмы ---------- */
@@ -2464,6 +2490,7 @@ function drawKitten(now) {
 
 function petLoop(now) {
   if (!petAnimActive) return;
+  if (document.hidden) { petAnimActive = false; return; }
   drawKitten(now);
   requestAnimationFrame(petLoop);
 }
@@ -2776,9 +2803,17 @@ function animateOrb(now) {
 
   const progress = timerTotalSec > 0 ? Math.min(1, currentElapsed()/timerTotalSec) : 0;
   drawUniverse(finalLevel, progress, t);
-  requestAnimationFrame(animateOrb);
+  if (!document.hidden) requestAnimationFrame(animateOrb);
 }
 requestAnimationFrame(animateOrb);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    if (document.getElementById('screen-pet').classList.contains('active')) startPetAnim();
+    if (timerRunning && currentElapsed() >= timerTotalSec) finishTimer();
+    else renderTimer();
+    requestAnimationFrame(animateOrb);
+  }
+});
 
 /* ---------- Таймер ---------- */
 let timerTotalSec = 600;
@@ -2854,6 +2889,7 @@ function finishTimer() {
     intention: getSessionIntention(currentChakra),
     note: '', mode: practiceMode
   };
+  if (sessionLog.some(s => s.id === entry.id)) entry.id += Math.floor(Math.random()*1000000)+1;
   sessionLog.push(entry);
   if (sessionLog.length > 200) sessionLog = sessionLog.slice(-200);
   storageSet('sessionLog', JSON.stringify(sessionLog));
