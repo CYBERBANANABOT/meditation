@@ -1345,6 +1345,9 @@ function hexToRgb(hex) {
 function lighten([r,g,b], amt) {
   return [Math.round(r+(255-r)*amt), Math.round(g+(255-g)*amt), Math.round(b+(255-b)*amt)];
 }
+function darkenRgb([r,g,b], amt) {
+  return [Math.round(r*(1-amt)), Math.round(g*(1-amt)), Math.round(b*(1-amt))];
+}
 function rgba([r,g,b], a) { return `rgba(${r},${g},${b},${a})`; }
 function applyAccent(hex) {
   const rgb = hexToRgb(hex);
@@ -1541,7 +1544,6 @@ const PET_PATTERNS = [
   { key:'spotted', name:'пятнистый' }
 ];
 
-/* 60 фраз дня */
 const INSIGHTS = [
   "Каждый вдох — это возможность начать заново.",
   "Тишина внутри не требует доказательств.",
@@ -1619,7 +1621,6 @@ let petInsightText = '';
 let petInsightDate = '';
 let petInsightShownThisSession = false;
 
-/* PRNG */
 function mulberry32(a) {
   return function() {
     a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -1643,9 +1644,7 @@ function initPetFromSeed(seed) {
   petPattern = app.pattern;
 }
 
-/* ============================================================
-   ЗВУКИ КОТЁНКА — обновлено
-   ============================================================ */
+/* ---------- Звуки ---------- */
 let petAudioCtx = null;
 
 function ensureAudioCtx() {
@@ -1662,21 +1661,17 @@ function ensureAudioCtx() {
   return petAudioCtx;
 }
 
-/* --- Улучшенное мурлыканье --- */
 function playPurr() {
   const ctx = ensureAudioCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const dur = 1.7;
-
-  /* Мастер */
   const master = ctx.createGain();
   master.gain.setValueAtTime(0, now);
   master.gain.linearRampToValueAtTime(0.20, now + 0.18);
   master.gain.setValueAtTime(0.20, now + dur - 0.5);
   master.gain.linearRampToValueAtTime(0, now + dur);
 
-  /* LFO 1: основная пульсация 26 Гц */
   const lfo1 = ctx.createOscillator();
   lfo1.type = 'sine';
   lfo1.frequency.value = 26;
@@ -1685,7 +1680,6 @@ function playPurr() {
   lfo1.connect(lfo1Gain);
   lfo1Gain.connect(master.gain);
 
-  /* LFO 2: медленная «волна» 3.7 Гц — «живость» */
   const lfo2 = ctx.createOscillator();
   lfo2.type = 'sine';
   lfo2.frequency.value = 3.7;
@@ -1694,11 +1688,9 @@ function playPurr() {
   lfo2.connect(lfo2Gain);
   lfo2Gain.connect(master.gain);
 
-  /* Основной низкий рокот */
   const rumble = ctx.createOscillator();
   rumble.type = 'sawtooth';
   rumble.frequency.value = 62;
-  /* Лёгкая частотная модуляция от lfo2 — «плывёт» */
   lfo2Gain.connect(rumble.frequency);
   const bp1 = ctx.createBiquadFilter();
   bp1.type = 'bandpass';
@@ -1707,7 +1699,6 @@ function playPurr() {
   rumble.connect(bp1);
   bp1.connect(master);
 
-  /* Тёплый саб */
   const sub = ctx.createOscillator();
   sub.type = 'triangle';
   sub.frequency.value = 42;
@@ -1716,7 +1707,6 @@ function playPurr() {
   sub.connect(subGain);
   subGain.connect(master);
 
-  /* Дыхание — шумовой слой */
   const bufSize = ctx.sampleRate * dur;
   const noiseBuffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
   const noiseData = noiseBuffer.getChannelData(0);
@@ -1733,7 +1723,6 @@ function playPurr() {
   noiseBp.connect(noiseGain);
   noiseGain.connect(master);
 
-  /* Низкий lowpass для мягкости */
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
   lp.frequency.value = 700;
@@ -1748,22 +1737,17 @@ function playPurr() {
   noiseSrc.stop(tEnd);
 }
 
-/* --- Милое мяуканье --- */
 function playMeow() {
   const ctx = ensureAudioCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const dur = 0.55;
-
-  /* Источник — пила, чтобы было богаче гармоник */
   const osc = ctx.createOscillator();
   osc.type = 'sawtooth';
-  /* Sweep: 380 → 680 → 340 */
   osc.frequency.setValueAtTime(380, now);
   osc.frequency.exponentialRampToValueAtTime(680, now + 0.14);
   osc.frequency.exponentialRampToValueAtTime(340, now + dur);
 
-  /* Вибрато 16 Гц — «живое» мяу */
   const vib = ctx.createOscillator();
   vib.frequency.value = 16;
   const vibGain = ctx.createGain();
@@ -1771,14 +1755,12 @@ function playMeow() {
   vib.connect(vibGain);
   vibGain.connect(osc.frequency);
 
-  /* Envelope — атака / хвост */
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, now);
   env.gain.linearRampToValueAtTime(0.26, now + 0.07);
   env.gain.setValueAtTime(0.26, now + 0.32);
   env.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
-  /* Форманты — три резонансные частоты, как у кошачьего голоса */
   const f1 = ctx.createBiquadFilter();
   f1.type = 'bandpass';
   f1.frequency.setValueAtTime(950, now);
@@ -1796,7 +1778,6 @@ function playMeow() {
   f3.frequency.value = 3200;
   f3.Q.value = 12;
 
-  /* Микс */
   const direct = ctx.createGain(); direct.gain.value = 0.32;
   const f1g = ctx.createGain(); f1g.gain.value = 0.55;
   const f2g = ctx.createGain(); f2g.gain.value = 0.30;
@@ -1807,7 +1788,6 @@ function playMeow() {
   osc.connect(f2); f2.connect(f2g); f2g.connect(env);
   osc.connect(f3); f3.connect(f3g); f3g.connect(env);
 
-  /* Финальный lowpass чтобы не резало уши */
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
   lp.frequency.value = 4500;
@@ -1818,14 +1798,9 @@ function playMeow() {
   vib.start(now); vib.stop(now + dur);
 }
 
-/* --- Случайный звук при тапе --- */
 function playPetSound() {
-  /* 80% — мурлыканье, 20% — мяуканье */
-  if (Math.random() < 0.8) {
-    playPurr();
-  } else {
-    playMeow();
-  }
+  if (Math.random() < 0.8) playPurr();
+  else playMeow();
 }
 
 function getPetStage(xp) {
@@ -1862,6 +1837,9 @@ function isMeditating() {
   return timerRunning && !timerDone;
 }
 
+/* ============================================================
+   УЛУЧШЕННОЕ РИСОВАНИЕ КОТЁНКА
+   ============================================================ */
 function drawKitten(now) {
   if (!petCtx) return;
   const w = petCanvas.width, h = petCanvas.height;
@@ -1882,10 +1860,14 @@ function drawKitten(now) {
   const white = [255,255,255];
 
   const P = petPalette;
-  const tailDark = darkenHex(P.body, 0.15);
-  const stripe = darkenHex(P.body, 0.32);
-  const spot = darkenHex(P.body, 0.25);
+  const bodyRgb = hexToRgb(P.body);
+  const outlineRgb = hexToRgb(P.outline);
+  const tailDark = darkenRgb(bodyRgb, 0.15);
+  const stripe = darkenRgb(bodyRgb, 0.34);
+  const spot = darkenRgb(bodyRgb, 0.25);
+  const outline = P.outline;
 
+  /* Ночной фон */
   if (timeOfDay === 'night') {
     petCtx.fillStyle = 'rgba(15, 20, 50, 0.35)';
     petCtx.beginPath();
@@ -1893,6 +1875,7 @@ function drawKitten(now) {
     petCtx.fill();
   }
 
+  /* Свечение чакры */
   const glowIntensity = meditating ? 0.24 : 0.16;
   const glowR = 220 * scale;
   const glow = petCtx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
@@ -1924,6 +1907,7 @@ function drawKitten(now) {
   const finalScale = scale * breath * (1 + (stretchX > 0 ? 0.03 : 0));
   petCtx.scale(finalScale, finalScale);
 
+  /* Аура */
   if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend' || meditating) {
     const auraR = 180;
     const auraAlpha = meditating ? 0.30 : 0.20;
@@ -1937,15 +1921,41 @@ function drawKitten(now) {
     petCtx.fill();
   }
 
+  /* ============ ТЕНЬ ПОД КОТЁНКОМ ============ */
+  const shadowGrad = petCtx.createRadialGradient(0, 148, 0, 0, 148, 95);
+  shadowGrad.addColorStop(0, 'rgba(0,0,0,0.30)');
+  shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  petCtx.fillStyle = shadowGrad;
+  petCtx.beginPath();
+  petCtx.ellipse(0, 148, 95, 18, 0, 0, Math.PI*2);
+  petCtx.fill();
+
+  /* ============ ХВОСТ с обводкой ============ */
   const tailWag = meditating ? Math.sin(t * 0.6) * 5 : Math.sin(t * 1.4) * 12;
-  petCtx.strokeStyle = tailDark;
   petCtx.lineCap = 'round';
-  petCtx.lineWidth = 22;
+  petCtx.lineJoin = 'round';
+
+  // обводка хвоста
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 26;
   petCtx.beginPath();
   petCtx.moveTo(65, 55);
   petCtx.quadraticCurveTo(140 + tailWag, 60, 120 + tailWag*1.3, -25);
   petCtx.stroke();
-
+  // тело хвоста
+  petCtx.strokeStyle = `rgb(${tailDark.join(',')})`;
+  petCtx.lineWidth = 20;
+  petCtx.beginPath();
+  petCtx.moveTo(65, 55);
+  petCtx.quadraticCurveTo(140 + tailWag, 60, 120 + tailWag*1.3, -25);
+  petCtx.stroke();
+  // кончик с обводкой
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 24;
+  petCtx.beginPath();
+  petCtx.moveTo(120 + tailWag*1.3 - 4, -20);
+  petCtx.quadraticCurveTo(122 + tailWag*1.4, -35, 116 + tailWag*1.5, -48);
+  petCtx.stroke();
   petCtx.strokeStyle = P.tailTip;
   petCtx.lineWidth = 18;
   petCtx.beginPath();
@@ -1953,24 +1963,42 @@ function drawKitten(now) {
   petCtx.quadraticCurveTo(122 + tailWag*1.4, -35, 116 + tailWag*1.5, -48);
   petCtx.stroke();
 
-  petCtx.fillStyle = P.body;
+  /* ============ ТЕЛО с обводкой ============ */
   petCtx.beginPath();
   petCtx.ellipse(0, 70, 75, 80, 0, 0, Math.PI*2);
+  petCtx.fillStyle = P.body;
   petCtx.fill();
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 4.5;
+  petCtx.stroke();
 
-  petCtx.fillStyle = P.belly;
+  /* ============ ЖИВОТ с градиентом ============ */
+  const bellyRgb = hexToRgb(P.belly);
+  const bellyDark = darkenRgb(bellyRgb, 0.10);
+  const bellyGrad = petCtx.createRadialGradient(-8, 72, 5, -5, 88, 65);
+  bellyGrad.addColorStop(0, P.belly);
+  bellyGrad.addColorStop(1, `rgb(${bellyDark.join(',')})`);
+  petCtx.fillStyle = bellyGrad;
   petCtx.beginPath();
   petCtx.ellipse(-5, 85, 45, 55, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  petCtx.fillStyle = P.body;
+  /* ============ ЛАПКИ с обводкой ============ */
+  // левая
   petCtx.beginPath();
   petCtx.ellipse(-40, 130, 26, 18, 0, 0, Math.PI*2);
+  petCtx.fillStyle = P.body;
   petCtx.fill();
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 4;
+  petCtx.stroke();
+  // правая
   petCtx.beginPath();
   petCtx.ellipse(40, 130, 26, 18, 0, 0, Math.PI*2);
   petCtx.fill();
+  petCtx.stroke();
 
+  // подушечки — большая + три маленькие
   petCtx.fillStyle = P.belly;
   petCtx.beginPath();
   petCtx.arc(-40, 132, 6, 0, Math.PI*2);
@@ -1978,56 +2006,88 @@ function drawKitten(now) {
   petCtx.beginPath();
   petCtx.arc(40, 132, 6, 0, Math.PI*2);
   petCtx.fill();
-
-  petCtx.fillStyle = P.body;
+  // 3 маленькие пальцевые подушечки
   petCtx.beginPath();
-  petCtx.arc(0, -35, 72, 0, Math.PI*2);
+  petCtx.arc(-46, 125, 3.5, 0, Math.PI*2);
+  petCtx.arc(-40, 123, 3.5, 0, Math.PI*2);
+  petCtx.arc(-34, 125, 3.5, 0, Math.PI*2);
+  petCtx.fill();
+  petCtx.beginPath();
+  petCtx.arc(34, 125, 3.5, 0, Math.PI*2);
+  petCtx.arc(40, 123, 3.5, 0, Math.PI*2);
+  petCtx.arc(46, 125, 3.5, 0, Math.PI*2);
   petCtx.fill();
 
+  /* ============ ГОЛОВА с обводкой ============ */
+  petCtx.beginPath();
+  petCtx.arc(0, -35, 72, 0, Math.PI*2);
   petCtx.fillStyle = P.body;
+  petCtx.fill();
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 4.5;
+  petCtx.stroke();
+
+  /* ============ УШКИ ============ */
+  // левое
   petCtx.beginPath();
   petCtx.moveTo(-55, -85);
   petCtx.quadraticCurveTo(-75, -155, -20, -115);
   petCtx.quadraticCurveTo(-45, -100, -35, -80);
   petCtx.closePath();
+  petCtx.fillStyle = P.body;
   petCtx.fill();
-  petCtx.fillStyle = P.ear;
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 4;
+  petCtx.stroke();
+  // внутреннее
   petCtx.beginPath();
   petCtx.moveTo(-50, -90);
   petCtx.quadraticCurveTo(-60, -130, -30, -105);
   petCtx.quadraticCurveTo(-42, -98, -38, -88);
   petCtx.closePath();
+  petCtx.fillStyle = P.ear;
+  petCtx.fill();
+  // тень внутри уха
+  petCtx.fillStyle = 'rgba(0,0,0,0.18)';
+  petCtx.beginPath();
+  petCtx.ellipse(-42, -95, 7, 14, -0.3, 0, Math.PI*2);
   petCtx.fill();
 
-  petCtx.fillStyle = P.body;
+  // правое
   petCtx.beginPath();
   petCtx.moveTo(55, -85);
   petCtx.quadraticCurveTo(75, -155, 20, -115);
   petCtx.quadraticCurveTo(45, -100, 35, -80);
   petCtx.closePath();
+  petCtx.fillStyle = P.body;
   petCtx.fill();
-  petCtx.fillStyle = P.ear;
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 4;
+  petCtx.stroke();
   petCtx.beginPath();
   petCtx.moveTo(50, -90);
   petCtx.quadraticCurveTo(60, -130, 30, -105);
   petCtx.quadraticCurveTo(42, -98, 38, -88);
   petCtx.closePath();
+  petCtx.fillStyle = P.ear;
   petCtx.fill();
-
-  petCtx.fillStyle = P.belly;
+  petCtx.fillStyle = 'rgba(0,0,0,0.18)';
   petCtx.beginPath();
-  petCtx.ellipse(0, -15, 42, 32, 0, 0, Math.PI*2);
+  petCtx.ellipse(42, -95, 7, 14, 0.3, 0, Math.PI*2);
   petCtx.fill();
 
+  /* ============ УЗОРЫ ============ */
   if (petPattern.key === 'tabby') {
-    petCtx.strokeStyle = stripe;
+    petCtx.strokeStyle = `rgb(${stripe.join(',')})`;
     petCtx.lineCap = 'round';
     petCtx.lineWidth = 5;
+    // полосы на лбу
     petCtx.beginPath();
-    petCtx.moveTo(-12, -78); petCtx.lineTo(-10, -55);
+    petCtx.moveTo(-14, -78); petCtx.lineTo(-12, -55);
     petCtx.moveTo(0, -82);   petCtx.lineTo(0, -58);
-    petCtx.moveTo(12, -78);  petCtx.lineTo(10, -55);
+    petCtx.moveTo(14, -78);  petCtx.lineTo(12, -55);
     petCtx.stroke();
+    // полосы на боках
     petCtx.beginPath();
     petCtx.moveTo(-55, 55); petCtx.lineTo(-35, 65);
     petCtx.moveTo(-60, 78); petCtx.lineTo(-40, 88);
@@ -2038,19 +2098,19 @@ function drawKitten(now) {
     petCtx.moveTo(60, 78); petCtx.lineTo(40, 88);
     petCtx.moveTo(58, 100); petCtx.lineTo(38, 108);
     petCtx.stroke();
-    petCtx.strokeStyle = stripe;
+    // кольца на хвосте
     petCtx.lineWidth = 4;
     petCtx.beginPath();
-    petCtx.moveTo(112 + tailWag*1.3, 10); petCtx.lineTo(124 + tailWag*1.3, 5);
-    petCtx.moveTo(116 + tailWag*1.4, -10); petCtx.lineTo(128 + tailWag*1.4, -15);
+    petCtx.moveTo(112 + tailWag*1.3, 10); petCtx.lineTo(126 + tailWag*1.3, 5);
+    petCtx.moveTo(116 + tailWag*1.4, -10); petCtx.lineTo(130 + tailWag*1.4, -15);
     petCtx.stroke();
   }
 
   if (petPattern.key === 'spotted') {
-    petCtx.fillStyle = spot;
+    petCtx.fillStyle = `rgb(${spot.join(',')})`;
     const spots = [
-      [-40, 55, 7], [-20, 85, 5], [10, 100, 6], [35, 60, 7],
-      [50, 90, 5], [-50, 95, 6], [25, 40, 5], [-30, 40, 5]
+      [-40, 55, 8], [-20, 85, 6], [10, 100, 7], [35, 60, 8],
+      [50, 90, 6], [-50, 95, 7], [25, 40, 6], [-30, 40, 6]
     ];
     spots.forEach(([sx, sy, sr]) => {
       petCtx.beginPath();
@@ -2059,80 +2119,135 @@ function drawKitten(now) {
     });
   }
 
+  /* ============ МОРДОЧКА ============ */
+  const muzzleGrad = petCtx.createRadialGradient(0, -18, 5, 0, -15, 55);
+  muzzleGrad.addColorStop(0, P.belly);
+  const bellySlightDark = darkenRgb(hexToRgb(P.belly), 0.06);
+  muzzleGrad.addColorStop(1, `rgb(${bellySlightDark.join(',')})`);
+  petCtx.fillStyle = muzzleGrad;
+  petCtx.beginPath();
+  petCtx.ellipse(0, -15, 42, 32, 0, 0, Math.PI*2);
+  petCtx.fill();
+
+  /* ============ РУМЯНЕЦ ============ */
+  petCtx.fillStyle = 'rgba(255, 150, 170, 0.28)';
+  petCtx.beginPath();
+  petCtx.ellipse(-38, -10, 12, 8, 0, 0, Math.PI*2);
+  petCtx.fill();
+  petCtx.beginPath();
+  petCtx.ellipse(38, -10, 12, 8, 0, 0, Math.PI*2);
+  petCtx.fill();
+
+  /* ============ ГЛАЗА ============ */
   const sleeping = timeOfDay === 'night';
 
   if (sleeping) {
-    petCtx.strokeStyle = P.outline;
-    petCtx.lineWidth = 4;
+    // длинные закрытые линии
+    petCtx.strokeStyle = outline;
+    petCtx.lineWidth = 5;
     petCtx.lineCap = 'round';
     petCtx.beginPath();
     petCtx.moveTo(-35, -33);
-    petCtx.quadraticCurveTo(-25, -30, -15, -33);
+    petCtx.quadraticCurveTo(-25, -28, -15, -33);
     petCtx.stroke();
     petCtx.beginPath();
     petCtx.moveTo(15, -33);
-    petCtx.quadraticCurveTo(25, -30, 35, -33);
+    petCtx.quadraticCurveTo(25, -28, 35, -33);
     petCtx.stroke();
   } else if (squinting) {
-    petCtx.strokeStyle = P.outline;
-    petCtx.lineWidth = 4;
+    // ^ ^
+    petCtx.strokeStyle = outline;
+    petCtx.lineWidth = 5;
     petCtx.lineCap = 'round';
     petCtx.lineJoin = 'round';
     petCtx.beginPath();
     petCtx.moveTo(-33, -30);
-    petCtx.lineTo(-25, -38);
+    petCtx.lineTo(-25, -42);
     petCtx.lineTo(-17, -30);
     petCtx.stroke();
     petCtx.beginPath();
     petCtx.moveTo(17, -30);
-    petCtx.lineTo(25, -38);
+    petCtx.lineTo(25, -42);
     petCtx.lineTo(33, -30);
     petCtx.stroke();
   } else if (meditating) {
-    petCtx.strokeStyle = P.outline;
-    petCtx.lineWidth = 4;
+    // глубоко закрытые
+    petCtx.strokeStyle = outline;
+    petCtx.lineWidth = 5;
     petCtx.lineCap = 'round';
     petCtx.beginPath();
-    petCtx.arc(-25, -35, 12, Math.PI * 0.2, Math.PI * 0.8);
+    petCtx.arc(-25, -35, 13, Math.PI * 0.1, Math.PI * 0.9);
     petCtx.stroke();
     petCtx.beginPath();
-    petCtx.arc(25, -35, 12, Math.PI * 0.2, Math.PI * 0.8);
+    petCtx.arc(25, -35, 13, Math.PI * 0.1, Math.PI * 0.9);
     petCtx.stroke();
-    petCtx.lineWidth = 2.5;
+    // реснички
+    petCtx.lineWidth = 3;
     petCtx.beginPath();
-    petCtx.moveTo(-32, -26); petCtx.lineTo(-34, -22);
-    petCtx.moveTo(-25, -23); petCtx.lineTo(-25, -19);
-    petCtx.moveTo(-18, -26); petCtx.lineTo(-16, -22);
+    petCtx.moveTo(-33, -28); petCtx.lineTo(-36, -24);
+    petCtx.moveTo(-25, -22); petCtx.lineTo(-25, -18);
+    petCtx.moveTo(-17, -28); petCtx.lineTo(-14, -24);
     petCtx.stroke();
     petCtx.beginPath();
-    petCtx.moveTo(32, -26); petCtx.lineTo(34, -22);
-    petCtx.moveTo(25, -23); petCtx.lineTo(25, -19);
-    petCtx.moveTo(18, -26); petCtx.lineTo(16, -22);
+    petCtx.moveTo(33, -28); petCtx.lineTo(36, -24);
+    petCtx.moveTo(25, -22); petCtx.lineTo(25, -18);
+    petCtx.moveTo(17, -28); petCtx.lineTo(14, -24);
     petCtx.stroke();
   } else {
-    petCtx.strokeStyle = P.outline;
-    petCtx.lineWidth = 4;
-    petCtx.lineCap = 'round';
+    // ============ БОЛЬШИЕ ОТКРЫТЫЕ ГЛАЗА ============
+    // Белок левый
+    petCtx.fillStyle = '#ffffff';
     petCtx.beginPath();
-    petCtx.arc(-25, -35, 12, Math.PI * 0.15, Math.PI * 0.85);
+    petCtx.ellipse(-25, -35, 14, 16, 0, 0, Math.PI*2);
+    petCtx.fill();
+    petCtx.strokeStyle = outline;
+    petCtx.lineWidth = 3;
     petCtx.stroke();
+    // Белок правый
     petCtx.beginPath();
-    petCtx.arc(25, -35, 12, Math.PI * 0.15, Math.PI * 0.85);
+    petCtx.ellipse(25, -35, 14, 16, 0, 0, Math.PI*2);
+    petCtx.fill();
     petCtx.stroke();
 
-    petCtx.lineWidth = 2.5;
+    // Зрачок левый
+    petCtx.fillStyle = '#1a0e08';
     petCtx.beginPath();
-    petCtx.moveTo(-32, -26); petCtx.lineTo(-34, -22);
-    petCtx.moveTo(-25, -23); petCtx.lineTo(-25, -19);
-    petCtx.moveTo(-18, -26); petCtx.lineTo(-16, -22);
-    petCtx.stroke();
+    petCtx.arc(-25, -35, 10, 0, Math.PI*2);
+    petCtx.fill();
+    // Зрачок правый
     petCtx.beginPath();
-    petCtx.moveTo(32, -26); petCtx.lineTo(34, -22);
-    petCtx.moveTo(25, -23); petCtx.lineTo(25, -19);
-    petCtx.moveTo(18, -26); petCtx.lineTo(16, -22);
-    petCtx.stroke();
+    petCtx.arc(25, -35, 10, 0, Math.PI*2);
+    petCtx.fill();
+
+    // Большой блик слева сверху
+    petCtx.fillStyle = 'rgba(255,255,255,0.95)';
+    petCtx.beginPath();
+    petCtx.arc(-28, -39, 4.5, 0, Math.PI*2);
+    petCtx.fill();
+    petCtx.beginPath();
+    petCtx.arc(22, -39, 4.5, 0, Math.PI*2);
+    petCtx.fill();
+
+    // Маленький блик снизу справа
+    petCtx.fillStyle = 'rgba(255,255,255,0.6)';
+    petCtx.beginPath();
+    petCtx.arc(-21, -30, 2, 0, Math.PI*2);
+    petCtx.fill();
+    petCtx.beginPath();
+    petCtx.arc(29, -30, 2, 0, Math.PI*2);
+    petCtx.fill();
   }
 
+  /* ============ НОСИК ============ */
+  // тень под носиком
+  petCtx.fillStyle = 'rgba(0,0,0,0.15)';
+  petCtx.beginPath();
+  petCtx.moveTo(0, -7);
+  petCtx.lineTo(-7, -2);
+  petCtx.lineTo(7, -2);
+  petCtx.closePath();
+  petCtx.fill();
+  // основной нос
   petCtx.fillStyle = P.nose;
   petCtx.beginPath();
   petCtx.moveTo(0, -8);
@@ -2140,31 +2255,40 @@ function drawKitten(now) {
   petCtx.lineTo(7, -3);
   petCtx.closePath();
   petCtx.fill();
+  // блик на носу
+  petCtx.fillStyle = 'rgba(255,255,255,0.65)';
+  petCtx.beginPath();
+  petCtx.ellipse(-2, -6, 2.2, 1.2, -0.3, 0, Math.PI*2);
+  petCtx.fill();
 
-  petCtx.strokeStyle = P.outline;
-  petCtx.lineWidth = 2.5;
+  /* ============ РОТИК ============ */
+  petCtx.strokeStyle = outline;
+  petCtx.lineWidth = 3;
+  petCtx.lineCap = 'round';
   petCtx.beginPath();
   petCtx.moveTo(0, -3);
   petCtx.lineTo(0, 3);
   petCtx.stroke();
+
   if (squinting) {
     petCtx.beginPath();
-    petCtx.arc(-5, 4, 6, 0, Math.PI);
+    petCtx.arc(-5, 4, 6, 0.15, Math.PI - 0.15);
     petCtx.stroke();
     petCtx.beginPath();
-    petCtx.arc(5, 4, 6, 0, Math.PI);
+    petCtx.arc(5, 4, 6, 0.15, Math.PI - 0.15);
     petCtx.stroke();
   } else {
     petCtx.beginPath();
-    petCtx.arc(-5, 4, 5, 0, Math.PI);
+    petCtx.arc(-5, 4, 5, 0.15, Math.PI - 0.15);
     petCtx.stroke();
     petCtx.beginPath();
-    petCtx.arc(5, 4, 5, 0, Math.PI);
+    petCtx.arc(5, 4, 5, 0.15, Math.PI - 0.15);
     petCtx.stroke();
   }
 
-  petCtx.strokeStyle = `rgba(${hexToRgb(P.outline).join(',')}, 0.55)`;
-  petCtx.lineWidth = 1.8;
+  /* ============ УСИКИ ============ */
+  petCtx.strokeStyle = `rgba(${outlineRgb.join(',')}, 0.6)`;
+  petCtx.lineWidth = 2;
   petCtx.beginPath(); petCtx.moveTo(-30, -5); petCtx.lineTo(-72, -12); petCtx.stroke();
   petCtx.beginPath(); petCtx.moveTo(-30, 2);  petCtx.lineTo(-72, 4);   petCtx.stroke();
   petCtx.beginPath(); petCtx.moveTo(-30, 8);  petCtx.lineTo(-70, 18);  petCtx.stroke();
@@ -2172,24 +2296,37 @@ function drawKitten(now) {
   petCtx.beginPath(); petCtx.moveTo(30, 2);  petCtx.lineTo(72, 4);   petCtx.stroke();
   petCtx.beginPath(); petCtx.moveTo(30, 8);  petCtx.lineTo(70, 18);  petCtx.stroke();
 
+  /* ============ БЛИК НА ЛБУ ============ */
+  const foreheadGrad = petCtx.createRadialGradient(-15, -75, 0, -15, -75, 45);
+  foreheadGrad.addColorStop(0, 'rgba(255,255,255,0.32)');
+  foreheadGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  petCtx.fillStyle = foreheadGrad;
+  petCtx.beginPath();
+  petCtx.arc(-15, -75, 45, 0, Math.PI*2);
+  petCtx.fill();
+
+  /* ============ Седые пряди ============ */
   if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend') {
-    petCtx.strokeStyle = 'rgba(255,255,255,0.55)';
-    petCtx.lineWidth = 3;
+    petCtx.strokeStyle = 'rgba(255,255,255,0.75)';
+    petCtx.lineWidth = 4;
+    petCtx.lineCap = 'round';
     petCtx.beginPath();
-    petCtx.moveTo(-45, -100); petCtx.lineTo(-35, -125);
-    petCtx.moveTo(45, -100); petCtx.lineTo(35, -125);
+    petCtx.moveTo(-48, -103); petCtx.lineTo(-38, -128);
+    petCtx.moveTo(48, -103); petCtx.lineTo(38, -128);
     petCtx.stroke();
   }
 
+  /* ============ Светящиеся глаза ============ */
   if (stage.key === 'guardian' || stage.key === 'legend') {
-    const eyeGlow = petCtx.createRadialGradient(-25, -35, 0, -25, -35, 20);
-    eyeGlow.addColorStop(0, rgba(chakraLight, 0.9));
+    const eyeGlow = petCtx.createRadialGradient(-25, -35, 0, -25, -35, 22);
+    eyeGlow.addColorStop(0, rgba(chakraLight, 0.85));
     eyeGlow.addColorStop(1, rgba(chakraRgb, 0));
     petCtx.fillStyle = eyeGlow;
-    petCtx.beginPath(); petCtx.arc(-25, -35, 20, 0, Math.PI*2); petCtx.fill();
-    petCtx.beginPath(); petCtx.arc(25, -35, 20, 0, Math.PI*2); petCtx.fill();
+    petCtx.beginPath(); petCtx.arc(-25, -35, 22, 0, Math.PI*2); petCtx.fill();
+    petCtx.beginPath(); petCtx.arc(25, -35, 22, 0, Math.PI*2); petCtx.fill();
   }
 
+  /* Частицы */
   if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend' || meditating) {
     const count = stage.key === 'legend' ? 16 : (stage.key === 'guardian' ? 12 : (meditating ? 8 : 6));
     for (let i = 0; i < count; i++) {
@@ -2205,6 +2342,7 @@ function drawKitten(now) {
     }
   }
 
+  /* ZZZ */
   if (timeOfDay === 'night' && !meditating) {
     for (let i = 0; i < 3; i++) {
       const phase = (t * 0.4 + i * 0.33) % 1;
@@ -2217,6 +2355,7 @@ function drawKitten(now) {
     }
   }
 
+  /* Сердечки при поглаживании */
   if (squinting) {
     const heartPhase = (performance.now() % 600) / 600;
     const hy = -140 - heartPhase * 40;
@@ -2230,11 +2369,6 @@ function drawKitten(now) {
   }
 
   petCtx.restore();
-}
-
-function darkenHex(hex, amt) {
-  const [r,g,b] = hexToRgb(hex);
-  return `rgb(${Math.round(r*(1-amt))},${Math.round(g*(1-amt))},${Math.round(b*(1-amt))})`;
 }
 
 function petLoop(now) {
@@ -2713,7 +2847,6 @@ document.getElementById('noteSave').addEventListener('click', () => {
 });
 noteModal.addEventListener('click', e => { if (e.target.id === 'noteModal') closeNoteModal(); });
 
-/* ---------- Модалки ---------- */
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show'));
 });
@@ -3365,7 +3498,6 @@ document.getElementById('petChangeBtn').addEventListener('click', () => {
   initPetFromSeed(newSeed);
   storageSet('petSeed', String(newSeed));
   renderPetUI();
-  /* Мяуканье при смене — приятный отклик */
   playMeow();
   if (tg) tg.HapticFeedback?.impactOccurred('medium');
   showToast('🎨 Новый окрас!');
