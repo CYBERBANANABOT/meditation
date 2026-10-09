@@ -473,6 +473,12 @@
     padding: 0 14px 14px;
   }
   .setting-block.open .setting-options { display: flex; }
+  .setting-options.slider-mode {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .setting-options.slider-mode > * { width: 100%; }
   .setting-options button {
     background: transparent; border: 1px solid #24243e;
     color: #a7a9be; padding: 8px 14px; border-radius: 12px;
@@ -494,6 +500,108 @@
     font-size: 14px; opacity: .6; padding: 0 2px;
   }
   .setting-block.hidden { display: none; }
+
+  /* ============ Слайдеры ============ */
+  .slider-wrap {
+    width: 100%;
+    padding: 8px 2px 4px;
+  }
+  .slider-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .slider-head .big-val {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    transition: color .3s;
+  }
+  .slider-head .hint-mini {
+    font-size: 11px;
+    color: #666a80;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  input[type="range"].custom-range {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px;
+    background: rgba(255,255,255,.08);
+    border-radius: 3px; outline: none; display: block;
+    cursor: pointer; margin: 0;
+  }
+  input[type="range"].custom-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: none;
+    box-shadow: 0 0 0 4px rgba(255,255,255,.06), 0 0 16px var(--accent-glow);
+    transition: transform .15s, box-shadow .15s;
+    margin-top: -10px;
+  }
+  input[type="range"].custom-range::-webkit-slider-thumb:active {
+    transform: scale(1.15);
+  }
+  input[type="range"].custom-range::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: none;
+    box-shadow: 0 0 0 4px rgba(255,255,255,.06), 0 0 16px var(--accent-glow);
+  }
+  input[type="range"].custom-range::-moz-range-track {
+    height: 6px; background: rgba(255,255,255,.08);
+    border-radius: 3px;
+  }
+  .slider-marks {
+    display: flex; justify-content: space-between;
+    margin-top: 12px; padding: 0 2px;
+    font-size: 10px; color: #666a80;
+    font-weight: 600; gap: 4px;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .slider-marks span {
+    transition: color .2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    flex: 1;
+  }
+  .slider-marks span:first-child { text-align: left; }
+  .slider-marks span:last-child { text-align: right; }
+  .slider-marks span.active { color: var(--accent); }
+
+  .quick-row {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 4px;
+  }
+  .quick-row button {
+    flex: 1 1 0;
+    background: transparent; border: 1px solid #24243e;
+    color: #a7a9be; padding: 8px 6px; border-radius: 12px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: .2s; font-family: inherit; white-space: nowrap;
+    min-width: 0;
+  }
+  .quick-row button:active { background: rgba(255,255,255,.05); }
+  .quick-row button.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+
+  .rhythm-actions {
+    display: flex; gap: 6px; margin-top: 6px;
+  }
+  .rhythm-actions button {
+    flex: 1;
+    background: transparent; border: 1px solid #24243e;
+    color: #a7a9be; padding: 9px 12px; border-radius: 10px;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    transition: .2s; font-family: inherit;
+  }
+  .rhythm-actions button.danger { color: #e53170; border-color: rgba(229,49,112,.35); }
+  .rhythm-actions button.add-btn { color: var(--accent); border-style: dashed; }
+  .rhythm-actions button:active { background: rgba(255,255,255,.05); }
 
   .timer-display {
     text-align: center; font-size: 46px; font-weight: 300;
@@ -912,9 +1020,14 @@
           <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </span>
       </div>
-      <div class="setting-options" id="practicePicker">
-        <button data-mode="breath">Дыхание</button>
-        <button data-mode="scan">Сканирование тела</button>
+      <div class="setting-options slider-mode" id="practicePicker">
+        <div class="slider-wrap">
+          <input type="range" class="custom-range" id="practiceSlider" min="0" max="1" step="1" value="0">
+          <div class="slider-marks">
+            <span id="practiceMark0" class="active">Дыхание</span>
+            <span id="practiceMark1">Скан тела</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -926,7 +1039,16 @@
           <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </span>
       </div>
-      <div class="setting-options" id="rhythmPicker"></div>
+      <div class="setting-options slider-mode" id="rhythmPicker">
+        <div class="slider-wrap">
+          <input type="range" class="custom-range" id="rhythmSlider" min="0" max="0" step="1" value="0">
+          <div class="slider-marks" id="rhythmMarks"></div>
+        </div>
+        <div class="rhythm-actions">
+          <button id="addRhythmBtn" class="add-btn">+ Свой ритм</button>
+          <button id="delRhythmBtn" class="danger" style="display:none;">Удалить</button>
+        </div>
+      </div>
     </div>
 
     <div class="setting-block" id="timeBlock">
@@ -937,7 +1059,27 @@
           <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </span>
       </div>
-      <div class="setting-options" id="presets"></div>
+      <div class="setting-options slider-mode" id="presets">
+        <div class="slider-wrap">
+          <div class="slider-head">
+            <span class="hint-mini">Минуты</span>
+            <span class="big-val" id="timeBigVal">10</span>
+          </div>
+          <input type="range" class="custom-range" id="timeSlider" min="1" max="180" step="1" value="10">
+          <div class="slider-marks">
+            <span>1 мин</span>
+            <span>90 мин</span>
+            <span>180 мин</span>
+          </div>
+        </div>
+        <div class="quick-row" id="quickPresets">
+          <button data-min="5">5</button>
+          <button data-min="10">10</button>
+          <button data-min="15">15</button>
+          <button data-min="30">30</button>
+          <button data-min="60">60</button>
+        </div>
+      </div>
     </div>
 
     <div class="timer-display" id="timerDisplay">10:00</div>
@@ -1867,7 +2009,6 @@ function drawKitten(now) {
   const spot = darkenRgb(bodyRgb, 0.25);
   const outline = P.outline;
 
-  /* Ночной фон */
   if (timeOfDay === 'night') {
     petCtx.fillStyle = 'rgba(15, 20, 50, 0.35)';
     petCtx.beginPath();
@@ -1875,7 +2016,6 @@ function drawKitten(now) {
     petCtx.fill();
   }
 
-  /* Свечение чакры */
   const glowIntensity = meditating ? 0.24 : 0.16;
   const glowR = 220 * scale;
   const glow = petCtx.createRadialGradient(cx, cy, 0, cx, cy, glowR);
@@ -1907,7 +2047,6 @@ function drawKitten(now) {
   const finalScale = scale * breath * (1 + (stretchX > 0 ? 0.03 : 0));
   petCtx.scale(finalScale, finalScale);
 
-  /* Аура */
   if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend' || meditating) {
     const auraR = 180;
     const auraAlpha = meditating ? 0.30 : 0.20;
@@ -1921,7 +2060,6 @@ function drawKitten(now) {
     petCtx.fill();
   }
 
-  /* ============ ТЕНЬ ПОД КОТЁНКОМ ============ */
   const shadowGrad = petCtx.createRadialGradient(0, 148, 0, 0, 148, 95);
   shadowGrad.addColorStop(0, 'rgba(0,0,0,0.30)');
   shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1930,26 +2068,22 @@ function drawKitten(now) {
   petCtx.ellipse(0, 148, 95, 18, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ ХВОСТ с обводкой ============ */
   const tailWag = meditating ? Math.sin(t * 0.6) * 5 : Math.sin(t * 1.4) * 12;
   petCtx.lineCap = 'round';
   petCtx.lineJoin = 'round';
 
-  // обводка хвоста
   petCtx.strokeStyle = outline;
   petCtx.lineWidth = 26;
   petCtx.beginPath();
   petCtx.moveTo(65, 55);
   petCtx.quadraticCurveTo(140 + tailWag, 60, 120 + tailWag*1.3, -25);
   petCtx.stroke();
-  // тело хвоста
   petCtx.strokeStyle = `rgb(${tailDark.join(',')})`;
   petCtx.lineWidth = 20;
   petCtx.beginPath();
   petCtx.moveTo(65, 55);
   petCtx.quadraticCurveTo(140 + tailWag, 60, 120 + tailWag*1.3, -25);
   petCtx.stroke();
-  // кончик с обводкой
   petCtx.strokeStyle = outline;
   petCtx.lineWidth = 24;
   petCtx.beginPath();
@@ -1963,7 +2097,6 @@ function drawKitten(now) {
   petCtx.quadraticCurveTo(122 + tailWag*1.4, -35, 116 + tailWag*1.5, -48);
   petCtx.stroke();
 
-  /* ============ ТЕЛО с обводкой ============ */
   petCtx.beginPath();
   petCtx.ellipse(0, 70, 75, 80, 0, 0, Math.PI*2);
   petCtx.fillStyle = P.body;
@@ -1972,7 +2105,6 @@ function drawKitten(now) {
   petCtx.lineWidth = 4.5;
   petCtx.stroke();
 
-  /* ============ ЖИВОТ с градиентом ============ */
   const bellyRgb = hexToRgb(P.belly);
   const bellyDark = darkenRgb(bellyRgb, 0.10);
   const bellyGrad = petCtx.createRadialGradient(-8, 72, 5, -5, 88, 65);
@@ -1983,8 +2115,6 @@ function drawKitten(now) {
   petCtx.ellipse(-5, 85, 45, 55, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ ЛАПКИ с обводкой ============ */
-  // левая
   petCtx.beginPath();
   petCtx.ellipse(-40, 130, 26, 18, 0, 0, Math.PI*2);
   petCtx.fillStyle = P.body;
@@ -1992,13 +2122,11 @@ function drawKitten(now) {
   petCtx.strokeStyle = outline;
   petCtx.lineWidth = 4;
   petCtx.stroke();
-  // правая
   petCtx.beginPath();
   petCtx.ellipse(40, 130, 26, 18, 0, 0, Math.PI*2);
   petCtx.fill();
   petCtx.stroke();
 
-  // подушечки — большая + три маленькие
   petCtx.fillStyle = P.belly;
   petCtx.beginPath();
   petCtx.arc(-40, 132, 6, 0, Math.PI*2);
@@ -2006,7 +2134,6 @@ function drawKitten(now) {
   petCtx.beginPath();
   petCtx.arc(40, 132, 6, 0, Math.PI*2);
   petCtx.fill();
-  // 3 маленькие пальцевые подушечки
   petCtx.beginPath();
   petCtx.arc(-46, 125, 3.5, 0, Math.PI*2);
   petCtx.arc(-40, 123, 3.5, 0, Math.PI*2);
@@ -2018,7 +2145,6 @@ function drawKitten(now) {
   petCtx.arc(46, 125, 3.5, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ ГОЛОВА с обводкой ============ */
   petCtx.beginPath();
   petCtx.arc(0, -35, 72, 0, Math.PI*2);
   petCtx.fillStyle = P.body;
@@ -2027,8 +2153,6 @@ function drawKitten(now) {
   petCtx.lineWidth = 4.5;
   petCtx.stroke();
 
-  /* ============ УШКИ ============ */
-  // левое
   petCtx.beginPath();
   petCtx.moveTo(-55, -85);
   petCtx.quadraticCurveTo(-75, -155, -20, -115);
@@ -2039,7 +2163,6 @@ function drawKitten(now) {
   petCtx.strokeStyle = outline;
   petCtx.lineWidth = 4;
   petCtx.stroke();
-  // внутреннее
   petCtx.beginPath();
   petCtx.moveTo(-50, -90);
   petCtx.quadraticCurveTo(-60, -130, -30, -105);
@@ -2047,13 +2170,11 @@ function drawKitten(now) {
   petCtx.closePath();
   petCtx.fillStyle = P.ear;
   petCtx.fill();
-  // тень внутри уха
   petCtx.fillStyle = 'rgba(0,0,0,0.18)';
   petCtx.beginPath();
   petCtx.ellipse(-42, -95, 7, 14, -0.3, 0, Math.PI*2);
   petCtx.fill();
 
-  // правое
   petCtx.beginPath();
   petCtx.moveTo(55, -85);
   petCtx.quadraticCurveTo(75, -155, 20, -115);
@@ -2076,18 +2197,15 @@ function drawKitten(now) {
   petCtx.ellipse(42, -95, 7, 14, 0.3, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ УЗОРЫ ============ */
   if (petPattern.key === 'tabby') {
     petCtx.strokeStyle = `rgb(${stripe.join(',')})`;
     petCtx.lineCap = 'round';
     petCtx.lineWidth = 5;
-    // полосы на лбу
     petCtx.beginPath();
     petCtx.moveTo(-14, -78); petCtx.lineTo(-12, -55);
     petCtx.moveTo(0, -82);   petCtx.lineTo(0, -58);
     petCtx.moveTo(14, -78);  petCtx.lineTo(12, -55);
     petCtx.stroke();
-    // полосы на боках
     petCtx.beginPath();
     petCtx.moveTo(-55, 55); petCtx.lineTo(-35, 65);
     petCtx.moveTo(-60, 78); petCtx.lineTo(-40, 88);
@@ -2098,7 +2216,6 @@ function drawKitten(now) {
     petCtx.moveTo(60, 78); petCtx.lineTo(40, 88);
     petCtx.moveTo(58, 100); petCtx.lineTo(38, 108);
     petCtx.stroke();
-    // кольца на хвосте
     petCtx.lineWidth = 4;
     petCtx.beginPath();
     petCtx.moveTo(112 + tailWag*1.3, 10); petCtx.lineTo(126 + tailWag*1.3, 5);
@@ -2119,7 +2236,6 @@ function drawKitten(now) {
     });
   }
 
-  /* ============ МОРДОЧКА ============ */
   const muzzleGrad = petCtx.createRadialGradient(0, -18, 5, 0, -15, 55);
   muzzleGrad.addColorStop(0, P.belly);
   const bellySlightDark = darkenRgb(hexToRgb(P.belly), 0.06);
@@ -2129,7 +2245,6 @@ function drawKitten(now) {
   petCtx.ellipse(0, -15, 42, 32, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ РУМЯНЕЦ ============ */
   petCtx.fillStyle = 'rgba(255, 150, 170, 0.28)';
   petCtx.beginPath();
   petCtx.ellipse(-38, -10, 12, 8, 0, 0, Math.PI*2);
@@ -2138,11 +2253,9 @@ function drawKitten(now) {
   petCtx.ellipse(38, -10, 12, 8, 0, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ ГЛАЗА ============ */
   const sleeping = timeOfDay === 'night';
 
   if (sleeping) {
-    // длинные закрытые линии
     petCtx.strokeStyle = outline;
     petCtx.lineWidth = 5;
     petCtx.lineCap = 'round';
@@ -2155,7 +2268,6 @@ function drawKitten(now) {
     petCtx.quadraticCurveTo(25, -28, 35, -33);
     petCtx.stroke();
   } else if (squinting) {
-    // ^ ^
     petCtx.strokeStyle = outline;
     petCtx.lineWidth = 5;
     petCtx.lineCap = 'round';
@@ -2171,7 +2283,6 @@ function drawKitten(now) {
     petCtx.lineTo(33, -30);
     petCtx.stroke();
   } else if (meditating) {
-    // глубоко закрытые
     petCtx.strokeStyle = outline;
     petCtx.lineWidth = 5;
     petCtx.lineCap = 'round';
@@ -2181,7 +2292,6 @@ function drawKitten(now) {
     petCtx.beginPath();
     petCtx.arc(25, -35, 13, Math.PI * 0.1, Math.PI * 0.9);
     petCtx.stroke();
-    // реснички
     petCtx.lineWidth = 3;
     petCtx.beginPath();
     petCtx.moveTo(-33, -28); petCtx.lineTo(-36, -24);
@@ -2194,8 +2304,6 @@ function drawKitten(now) {
     petCtx.moveTo(17, -28); petCtx.lineTo(14, -24);
     petCtx.stroke();
   } else {
-    // ============ БОЛЬШИЕ ОТКРЫТЫЕ ГЛАЗА ============
-    // Белок левый
     petCtx.fillStyle = '#ffffff';
     petCtx.beginPath();
     petCtx.ellipse(-25, -35, 14, 16, 0, 0, Math.PI*2);
@@ -2203,23 +2311,19 @@ function drawKitten(now) {
     petCtx.strokeStyle = outline;
     petCtx.lineWidth = 3;
     petCtx.stroke();
-    // Белок правый
     petCtx.beginPath();
     petCtx.ellipse(25, -35, 14, 16, 0, 0, Math.PI*2);
     petCtx.fill();
     petCtx.stroke();
 
-    // Зрачок левый
     petCtx.fillStyle = '#1a0e08';
     petCtx.beginPath();
     petCtx.arc(-25, -35, 10, 0, Math.PI*2);
     petCtx.fill();
-    // Зрачок правый
     petCtx.beginPath();
     petCtx.arc(25, -35, 10, 0, Math.PI*2);
     petCtx.fill();
 
-    // Большой блик слева сверху
     petCtx.fillStyle = 'rgba(255,255,255,0.95)';
     petCtx.beginPath();
     petCtx.arc(-28, -39, 4.5, 0, Math.PI*2);
@@ -2228,7 +2332,6 @@ function drawKitten(now) {
     petCtx.arc(22, -39, 4.5, 0, Math.PI*2);
     petCtx.fill();
 
-    // Маленький блик снизу справа
     petCtx.fillStyle = 'rgba(255,255,255,0.6)';
     petCtx.beginPath();
     petCtx.arc(-21, -30, 2, 0, Math.PI*2);
@@ -2238,8 +2341,6 @@ function drawKitten(now) {
     petCtx.fill();
   }
 
-  /* ============ НОСИК ============ */
-  // тень под носиком
   petCtx.fillStyle = 'rgba(0,0,0,0.15)';
   petCtx.beginPath();
   petCtx.moveTo(0, -7);
@@ -2247,7 +2348,6 @@ function drawKitten(now) {
   petCtx.lineTo(7, -2);
   petCtx.closePath();
   petCtx.fill();
-  // основной нос
   petCtx.fillStyle = P.nose;
   petCtx.beginPath();
   petCtx.moveTo(0, -8);
@@ -2255,13 +2355,11 @@ function drawKitten(now) {
   petCtx.lineTo(7, -3);
   petCtx.closePath();
   petCtx.fill();
-  // блик на носу
   petCtx.fillStyle = 'rgba(255,255,255,0.65)';
   petCtx.beginPath();
   petCtx.ellipse(-2, -6, 2.2, 1.2, -0.3, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ РОТИК ============ */
   petCtx.strokeStyle = outline;
   petCtx.lineWidth = 3;
   petCtx.lineCap = 'round';
@@ -2286,7 +2384,6 @@ function drawKitten(now) {
     petCtx.stroke();
   }
 
-  /* ============ УСИКИ ============ */
   petCtx.strokeStyle = `rgba(${outlineRgb.join(',')}, 0.6)`;
   petCtx.lineWidth = 2;
   petCtx.beginPath(); petCtx.moveTo(-30, -5); petCtx.lineTo(-72, -12); petCtx.stroke();
@@ -2296,7 +2393,6 @@ function drawKitten(now) {
   petCtx.beginPath(); petCtx.moveTo(30, 2);  petCtx.lineTo(72, 4);   petCtx.stroke();
   petCtx.beginPath(); petCtx.moveTo(30, 8);  petCtx.lineTo(70, 18);  petCtx.stroke();
 
-  /* ============ БЛИК НА ЛБУ ============ */
   const foreheadGrad = petCtx.createRadialGradient(-15, -75, 0, -15, -75, 45);
   foreheadGrad.addColorStop(0, 'rgba(255,255,255,0.32)');
   foreheadGrad.addColorStop(1, 'rgba(255,255,255,0)');
@@ -2305,7 +2401,6 @@ function drawKitten(now) {
   petCtx.arc(-15, -75, 45, 0, Math.PI*2);
   petCtx.fill();
 
-  /* ============ Седые пряди ============ */
   if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend') {
     petCtx.strokeStyle = 'rgba(255,255,255,0.75)';
     petCtx.lineWidth = 4;
@@ -2316,7 +2411,6 @@ function drawKitten(now) {
     petCtx.stroke();
   }
 
-  /* ============ Светящиеся глаза ============ */
   if (stage.key === 'guardian' || stage.key === 'legend') {
     const eyeGlow = petCtx.createRadialGradient(-25, -35, 0, -25, -35, 22);
     eyeGlow.addColorStop(0, rgba(chakraLight, 0.85));
@@ -2326,7 +2420,6 @@ function drawKitten(now) {
     petCtx.beginPath(); petCtx.arc(25, -35, 22, 0, Math.PI*2); petCtx.fill();
   }
 
-  /* Частицы */
   if (stage.key === 'wise' || stage.key === 'guardian' || stage.key === 'legend' || meditating) {
     const count = stage.key === 'legend' ? 16 : (stage.key === 'guardian' ? 12 : (meditating ? 8 : 6));
     for (let i = 0; i < count; i++) {
@@ -2342,7 +2435,6 @@ function drawKitten(now) {
     }
   }
 
-  /* ZZZ */
   if (timeOfDay === 'night' && !meditating) {
     for (let i = 0; i < 3; i++) {
       const phase = (t * 0.4 + i * 0.33) % 1;
@@ -2355,7 +2447,6 @@ function drawKitten(now) {
     }
   }
 
-  /* Сердечки при поглаживании */
   if (squinting) {
     const heartPhase = (performance.now() % 600) / 600;
     const hy = -140 - heartPhase * 40;
@@ -3187,85 +3278,119 @@ function openGuide(chakraKey) {
   });
 }
 
-/* ---------- Настройки практики ---------- */
+/* ============================================================
+   НАСТРОЙКИ ПРАКТИКИ (СЛАЙДЕРЫ)
+   ============================================================ */
 const practiceBlock = document.getElementById('practiceBlock');
 const practiceHeader = document.getElementById('practiceHeader');
-const practicePicker = document.getElementById('practicePicker');
 const practiceValue = document.getElementById('practiceValue');
+const practiceSlider = document.getElementById('practiceSlider');
+const practiceMark0 = document.getElementById('practiceMark0');
+const practiceMark1 = document.getElementById('practiceMark1');
+
+const PRACTICE_MODES = ['breath', 'scan'];
 
 function renderPracticeUI() {
-  practicePicker.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === practiceMode));
+  const idx = PRACTICE_MODES.indexOf(practiceMode);
+  practiceSlider.value = idx >= 0 ? idx : 0;
   practiceValue.textContent = practiceMode === 'scan' ? 'Скан тела' : 'Дыхание';
+  practiceMark0.classList.toggle('active', practiceMode === 'breath');
+  practiceMark1.classList.toggle('active', practiceMode === 'scan');
   rhythmBlock.classList.toggle('hidden', practiceMode === 'scan');
 }
+
 practiceHeader.addEventListener('click', () => {
   practiceBlock.classList.toggle('open');
-  if (practiceBlock.classList.contains('open')) { rhythmBlock.classList.remove('open'); timeBlock.classList.remove('open'); }
+  if (practiceBlock.classList.contains('open')) {
+    rhythmBlock.classList.remove('open');
+    timeBlock.classList.remove('open');
+  }
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
-practicePicker.addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  if (btn.dataset.mode === practiceMode) { practiceBlock.classList.remove('open'); return; }
-  practiceMode = btn.dataset.mode;
-  renderPracticeUI();
+
+practiceSlider.addEventListener('input', () => {
+  const newMode = PRACTICE_MODES[parseInt(practiceSlider.value)] || 'breath';
+  practiceMark0.classList.toggle('active', newMode === 'breath');
+  practiceMark1.classList.toggle('active', newMode === 'scan');
+  practiceValue.textContent = newMode === 'scan' ? 'Скан тела' : 'Дыхание';
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+practiceSlider.addEventListener('change', () => {
+  const newMode = PRACTICE_MODES[parseInt(practiceSlider.value)] || 'breath';
+  if (newMode === practiceMode) return;
+  practiceMode = newMode;
   storageSet('practiceMode', practiceMode);
   resetTimer(currentPresetMin * 60);
-  practiceBlock.classList.remove('open');
-  if (tg) tg.HapticFeedback?.selectionChanged();
+  renderPracticeUI();
 });
 
+/* ---------- Ритм дыхания (слайдер) ---------- */
 const rhythmBlock = document.getElementById('rhythmBlock');
 const rhythmHeader = document.getElementById('rhythmHeader');
-const rhythmPicker = document.getElementById('rhythmPicker');
 const rhythmValue = document.getElementById('rhythmValue');
+const rhythmSlider = document.getElementById('rhythmSlider');
+const rhythmMarks = document.getElementById('rhythmMarks');
+const delRhythmBtn = document.getElementById('delRhythmBtn');
+const addRhythmBtn = document.getElementById('addRhythmBtn');
 
 function renderRhythmPicker() {
-  const builtin = BUILTIN_RHYTHMS.map(r => `
-    <button data-key="${r.key}" class="${r.key === currentRhythm.key ? 'active' : ''}">${r.label}</button>
-  `).join('');
-  const custom = userRhythms.map(r => `
-    <button data-key="${r.key}" class="custom ${r.key === currentRhythm.key ? 'active' : ''}">
-      ${r.label}<span class="del" data-del-key="${r.key}">✕</span>
-    </button>
-  `).join('');
-  rhythmPicker.innerHTML = builtin + custom + `<button class="add-btn" id="addRhythmBtn">+ Свой</button>`;
+  if (!allRhythms.length) return;
+  const idx = Math.max(0, allRhythms.findIndex(r => r.key === currentRhythm.key));
+  rhythmSlider.min = 0;
+  rhythmSlider.max = Math.max(0, allRhythms.length - 1);
+  rhythmSlider.step = 1;
+  rhythmSlider.value = idx;
+
   rhythmValue.textContent = currentRhythm.label;
+
+  rhythmMarks.innerHTML = allRhythms.map((r, i) =>
+    `<span class="${i === idx ? 'active' : ''}">${r.label}</span>`
+  ).join('');
+
+  const isCustom = currentRhythm.key.startsWith('custom-');
+  delRhythmBtn.style.display = isCustom ? 'block' : 'none';
 }
+
 rhythmHeader.addEventListener('click', () => {
   rhythmBlock.classList.toggle('open');
-  if (rhythmBlock.classList.contains('open')) { timeBlock.classList.remove('open'); practiceBlock.classList.remove('open'); }
+  if (rhythmBlock.classList.contains('open')) {
+    timeBlock.classList.remove('open');
+    practiceBlock.classList.remove('open');
+  }
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
-rhythmPicker.addEventListener('click', e => {
-  const delBtn = e.target.closest('[data-del-key]');
-  if (delBtn) {
-    e.stopPropagation();
-    const key = delBtn.dataset.delKey;
-    userRhythms = userRhythms.filter(r => r.key !== key);
-    storageSet('userRhythms', JSON.stringify(userRhythms));
-    rebuildAllRhythms();
-    if (currentRhythm.key === key) {
-      currentRhythm = BUILTIN_RHYTHMS[0];
-      resetTimer(currentPresetMin * 60);
-      storageSet('activeRhythm', currentRhythm.key);
-    }
-    renderRhythmPicker();
-    renderDailyTasks();
-    return;
-  }
-  if (e.target.closest('#addRhythmBtn')) { openCustomRhythmModal(); return; }
-  const btn = e.target.closest('button[data-key]');
-  if (!btn) return;
-  const r = allRhythms.find(x => x.key === btn.dataset.key);
+
+rhythmSlider.addEventListener('input', () => {
+  const i = parseInt(rhythmSlider.value) || 0;
+  const r = allRhythms[i];
   if (!r) return;
-  if (r.key === currentRhythm.key) { rhythmBlock.classList.remove('open'); return; }
+  rhythmValue.textContent = r.label;
+  rhythmMarks.querySelectorAll('span').forEach((s, k) => s.classList.toggle('active', k === i));
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+rhythmSlider.addEventListener('change', () => {
+  const i = parseInt(rhythmSlider.value) || 0;
+  const r = allRhythms[i];
+  if (!r || r.key === currentRhythm.key) return;
   currentRhythm = r;
-  renderRhythmPicker();
   storageSet('activeRhythm', currentRhythm.key);
   resetTimer(currentPresetMin * 60);
-  rhythmBlock.classList.remove('open');
-  if (tg) tg.HapticFeedback?.selectionChanged();
+  renderRhythmPicker();
+});
+
+addRhythmBtn.addEventListener('click', () => openCustomRhythmModal());
+delRhythmBtn.addEventListener('click', () => {
+  if (!currentRhythm.key.startsWith('custom-')) return;
+  if (!confirm('Удалить этот ритм?')) return;
+  const key = currentRhythm.key;
+  userRhythms = userRhythms.filter(r => r.key !== key);
+  storageSet('userRhythms', JSON.stringify(userRhythms));
+  rebuildAllRhythms();
+  currentRhythm = BUILTIN_RHYTHMS[0];
+  storageSet('activeRhythm', currentRhythm.key);
+  renderRhythmPicker();
+  renderDailyTasks();
+  resetTimer(currentPresetMin * 60);
 });
 
 function openCustomRhythmModal() {
@@ -3320,41 +3445,65 @@ document.getElementById('saveRhythmBtn').addEventListener('click', () => {
   showToast(`✨ Ритм ${label} добавлен`, 'success');
 });
 
+/* ---------- Длительность (слайдер) ---------- */
 const timeBlock = document.getElementById('timeBlock');
 const timeHeader = document.getElementById('timeHeader');
-const presets = document.getElementById('presets');
 const timeValue = document.getElementById('timeValue');
-const PRESETS = [
-  { min:5,  label:'5 мин' },
-  { min:10, label:'10 мин' },
-  { min:15, label:'15 мин' },
-  { min:30, label:'30 мин' }
-];
-presets.innerHTML = PRESETS.map(p => `<button data-min="${p.min}">${p.label}</button>`).join('');
-function renderPresets() {
-  presets.querySelectorAll('button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.min) === currentPresetMin));
-  const p = PRESETS.find(x => x.min === currentPresetMin);
-  timeValue.textContent = p ? p.label : `${currentPresetMin} мин`;
+const timeBigVal = document.getElementById('timeBigVal');
+const timeSlider = document.getElementById('timeSlider');
+const quickPresets = document.getElementById('quickPresets');
+
+const MIN_TIME = 1;
+const MAX_TIME = 180;
+
+function updateTimeUI(min) {
+  timeValue.textContent = `${min} мин`;
+  timeBigVal.textContent = min;
+  quickPresets.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.min) === min);
+  });
 }
+
+function renderPresets() {
+  const v = Math.min(MAX_TIME, Math.max(MIN_TIME, currentPresetMin));
+  timeSlider.min = MIN_TIME;
+  timeSlider.max = MAX_TIME;
+  timeSlider.value = v;
+  updateTimeUI(v);
+}
+
 timeHeader.addEventListener('click', () => {
   timeBlock.classList.toggle('open');
-  if (timeBlock.classList.contains('open')) { rhythmBlock.classList.remove('open'); practiceBlock.classList.remove('open'); }
+  if (timeBlock.classList.contains('open')) {
+    rhythmBlock.classList.remove('open');
+    practiceBlock.classList.remove('open');
+  }
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
-presets.addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  currentPresetMin = parseInt(btn.dataset.min);
-  resetTimer(currentPresetMin * 60);
+
+timeSlider.addEventListener('input', () => {
+  const v = Math.min(MAX_TIME, Math.max(MIN_TIME, parseInt(timeSlider.value) || MIN_TIME));
+  updateTimeUI(v);
+  if (tg) tg.HapticFeedback?.selectionChanged();
+});
+timeSlider.addEventListener('change', () => {
+  const v = Math.min(MAX_TIME, Math.max(MIN_TIME, parseInt(timeSlider.value) || MIN_TIME));
+  if (v === currentPresetMin) return;
+  currentPresetMin = v;
+  storageSet('activePreset', String(v));
+  resetTimer(v * 60);
   renderPresets();
-  storageSet('activePreset', String(currentPresetMin));
-  timeBlock.classList.remove('open');
-  if (tg) tg.HapticFeedback?.selectionChanged();
 });
-document.addEventListener('click', e => {
-  if (!rhythmBlock.contains(e.target)) rhythmBlock.classList.remove('open');
-  if (!timeBlock.contains(e.target)) timeBlock.classList.remove('open');
-  if (!practiceBlock.contains(e.target)) practiceBlock.classList.remove('open');
+
+quickPresets.addEventListener('click', e => {
+  const btn = e.target.closest('button[data-min]');
+  if (!btn) return;
+  const v = parseInt(btn.dataset.min);
+  currentPresetMin = v;
+  storageSet('activePreset', String(v));
+  resetTimer(v * 60);
+  renderPresets();
+  if (tg) tg.HapticFeedback?.selectionChanged();
 });
 
 /* ---------- Треки ---------- */
@@ -3545,7 +3694,7 @@ document.getElementById('petInsightBtn').addEventListener('click', () => {
   if (pmVal === 'scan' || pmVal === 'breath') practiceMode = pmVal;
   if (apVal) {
     const n = parseInt(apVal);
-    if (PRESETS.some(p => p.min === n)) currentPresetMin = n;
+    if (n >= MIN_TIME && n <= MAX_TIME) currentPresetMin = n;
   }
 
   let seed;
