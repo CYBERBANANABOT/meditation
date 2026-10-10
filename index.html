@@ -5,19 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Медитации</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="./assets/style.css?v=20261011i">
+<link rel="stylesheet" href="./assets/style.css?v=20261011j">
 </head>
 <body>
 
 <!-- ==================== ЭКРАН ПРАКТИКА ==================== -->
 <div class="screen screen-practice active" id="screen-practice">
   <div class="player">
+    <div class="home-chakra" id="homeChakraLabel" aria-live="polite">
+      <span class="home-chakra-dot" aria-hidden="true"></span>
+      <span id="homeChakraName">Муладхара</span>
+    </div>
     <canvas id="orb" width="600" height="600"></canvas>
     <div class="breath-hint" id="breathHint" role="status" aria-live="off"></div>
 
-    <div class="control-bar">
+    <div class="home-duration" aria-label="Длительность медитации">
+      <span class="home-duration-label">Минуты практики</span>
+      <div class="duration-wheel-frame">
+        <div class="duration-wheel-highlight" aria-hidden="true"></div>
+        <div class="duration-wheel" id="durationWheel" role="listbox" tabindex="0" aria-label="Выбрать длительность прокруткой вверх или вниз"></div>
+        <span class="duration-wheel-unit" aria-hidden="true">мин</span>
+      </div>
+      <div class="home-time-remaining" id="homeTimerRemaining" aria-live="off" hidden></div>
+    </div>
+    <div class="home-music" aria-label="Музыкальный плеер">
+      <button class="home-music-menu" id="btnTracks" aria-label="Выбрать музыку" title="Выбрать музыку">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
+      </button>
+      <div class="player-track-status" id="playerTrackStatus" role="status" aria-live="polite">Музыка не выбрана</div>
+      <button class="home-music-add" id="btnAddTrack" aria-label="Добавить свою музыку" title="Добавить трек">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      </button>
+    </div>
+    <div class="control-bar home-controls">
+      <button class="ctrl-side" id="btnPrevTrack" aria-label="Предыдущий трек" title="Предыдущий трек">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
       <button class="ctrl-play" id="btnMain" aria-label="Начать или приостановить медитацию" title="Старт">
         <svg id="mainIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="ctrl-side" id="btnNextTrack" aria-label="Следующий трек" title="Следующий трек">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
       </button>
     </div>
 
@@ -131,24 +159,9 @@
   </div>
   <div class="settings-panel">
     <h3>Музыка</h3>
-    <p class="settings-description">Управление звуком и твоими треками.</p>
-    <div class="settings-audio-controls">
-      <button class="ctrl-side" id="btnTracks" aria-label="Выбрать музыку" title="Треки">
-        <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg><span>Треки</span>
-      </button>
-      <button class="ctrl-side" id="btnPrevTrack" aria-label="Предыдущий трек" title="Прошлый">
-        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg><span>Назад</span>
-      </button>
-      <button class="ctrl-side" id="btnNextTrack" aria-label="Следующий трек" title="Следующий">
-        <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg><span>Далее</span>
-      </button>
-      <button class="ctrl-side" id="btnAddTrack" aria-label="Добавить свою музыку" title="Добавить трек">
-        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>Добавить</span>
-      </button>
-
-    </div>
-    <div class="player-track-status" id="playerTrackStatus" role="status" aria-live="polite">Музыка не выбрана</div>
-
+    <p class="settings-description">Треки и загрузка своей музыки доступны на экране практики. Здесь можно открыть их напрямую.</p>
+    <button type="button" id="settingsMusicLibrary" class="quiet-toggle">♫ Выбрать музыку</button>
+    <button type="button" id="settingsMusicUpload" class="quiet-toggle">+ Добавить свой трек</button>
   </div>
 </div>
 
@@ -355,10 +368,10 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="./assets/core.js?v=20261011i"></script>
-<script src="./assets/visualizer.js?v=20261011i"></script>
-<script src="./assets/session.js?v=20261011i"></script>
-<script src="./assets/ui.js?v=20261011i"></script>
-<script src="./assets/journal-backup.js?v=20261011i"></script>
+<script src="./assets/core.js?v=20261011j"></script>
+<script src="./assets/visualizer.js?v=20261011j"></script>
+<script src="./assets/session.js?v=20261011j"></script>
+<script src="./assets/ui.js?v=20261011j"></script>
+<script src="./assets/journal-backup.js?v=20261011j"></script>
 </body>
 </html>
