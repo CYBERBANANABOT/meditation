@@ -995,6 +995,7 @@
   margin: 0 auto;
 }
 .screen-practice .breath-hint {
+  width: 100%;
   min-height: 20px;
   height: auto;
   margin: 10px 0 16px;
