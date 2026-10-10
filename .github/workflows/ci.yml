@@ -1,0 +1,37 @@
+name: Meditation regression tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          if test -f assets/app.js; then
+            node --check assets/app.js
+          else
+            python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          js=[m for m in re.findall(r'<script\b[^>]*>([\s\S]*?)</script>',html,re.I) if m.strip()]
+          assert len(js)==1,'Exactly one inline application script expected'
+          Path('/tmp/meditation-app.js').write_text(js[0],encoding='utf-8')
+          PY
+            node --check /tmp/meditation-app.js
+          fi
+      - name: Exercise timer, audio and journal regression tests
+        run: node --test tests/smoke.cjs
+      - name: Check patch whitespace
+        run: git diff --check
