@@ -40,6 +40,10 @@ const fs=require('node:fs');
         orb=await page.locator('#orb').boundingBox();
       assert(info&&orb&&info.y+info.height<=orb.y+2,'Chakra instruction must be above universe');
       assert(info.x>=-1&&info.x+info.width<=viewport.width+1,'Chakra instruction overflow');
+      const playButton=await page.locator('#btnMain').boundingBox();
+      const bottomNavigation=await page.locator('.tabs-bottom').boundingBox();
+      assert(playButton && bottomNavigation && playButton.y + playButton.height <= bottomNavigation.y + 2,
+        'Play button is hidden under bottom navigation at '+viewport.width+'x'+viewport.height);
       await page.screenshot({path:'artifacts/layout/practice-'+viewport.width+'.png',fullPage:true});
 
       // The small icon to the left of the title changes the practice goal.
