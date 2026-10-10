@@ -341,7 +341,7 @@ jobs:
           });""")
 
           # Internal status feedback for failed audio, without breaking timer.
-          one("    if (allTracks.length) updateTrackStatus('Не удаётся прочитать аудиофайл');",
+          one("  if (allTracks.length) updateTrackStatus('Не удаётся прочитать аудиофайл');",
               """    if (allTracks.length) {
                 updateTrackStatus('Не удаётся прочитать аудиофайл');
                 showToast('Проблема с музыкой. Практика продолжится без звука');
