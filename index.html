@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Медитации</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="./assets/style.css?v=20261011f">
+<link rel="stylesheet" href="./assets/style.css?v=20261011g">
 </head>
 <body>
 
@@ -144,7 +144,9 @@
   </div>
 
   <div class="profile-actions">
-    <button type="button" id="exportJournalBtn" class="quiet-toggle">↓ Сохранить мой дневник</button>
+    <button type="button" id="exportJournalBtn" class="quiet-toggle">↓ Сохранить дневник</button>
+    <button type="button" id="importJournalBtn" class="quiet-toggle">↑ Восстановить дневник</button>
+    <p class="profile-backup-hint">Записи сохраняются автоматически. Эти кнопки нужны для резервной копии.</p>
   </div>
   <div class="profile-tabs">
     <button class="profile-tab active" data-ptab="stats">Статистика</button>
@@ -195,16 +197,41 @@
       <h2 id="journalExportTitle">Сохранить дневник</h2>
       <button type="button" class="modal-close" data-close="journalExportModal" aria-label="Закрыть">✕</button>
     </div>
-    <p class="journal-export-help" id="journalExportHelp">Выбери способ сохранить свои записи. Данные остаются только на твоём устройстве.</p>
+    <p class="journal-export-help" id="journalExportHelp">Сохрани файл, чтобы позже восстановить свои записи.</p>
     <div class="journal-export-actions">
-      <button type="button" class="primary" id="journalExportShare" hidden>↗ Сохранить или отправить файл</button>
-      <button type="button" class="primary" id="journalExportCopy">Скопировать дневник</button>
-      <button type="button" class="ghost" id="journalExportDownload">↓ Скачать JSON-файл</button>
+      <button type="button" class="primary" id="journalExportShare" hidden>Сохранить или отправить файл</button>
+      <button type="button" class="primary" id="journalExportDownload" hidden>↓ Скачать файл</button>
     </div>
+    <details class="journal-backup-advanced" id="journalExportAdvanced">
+      <summary>Другой способ: сохранить в заметках</summary>
+      <p>Скопируй резервную копию и вставь её в новую заметку на телефоне. При восстановлении вставь текст из этой заметки обратно.</p>
+      <button type="button" class="primary journal-backup-copy" id="journalExportCopy">Скопировать для заметок</button>
+      <label class="journal-export-label" for="journalExportText">Содержимое резервной копии</label>
+      <textarea id="journalExportText" class="journal-export-text" readonly spellcheck="false" autocapitalize="off" aria-label="Содержимое резервной копии дневника"></textarea>
+      <button type="button" class="ghost journal-export-select" id="journalExportSelect">Выделить текст вручную</button>
+    </details>
     <p class="journal-export-status" id="journalExportStatus" role="status" aria-live="polite"></p>
-    <label class="journal-export-label" for="journalExportText">Резервная копия в формате JSON</label>
-    <textarea id="journalExportText" class="journal-export-text" readonly spellcheck="false" autocapitalize="off" aria-label="Текст резервной копии дневника"></textarea>
-    <button type="button" class="ghost journal-export-select" id="journalExportSelect">Выделить весь текст для копирования</button>
+  </div>
+</div>
+
+<div class="modal" id="journalImportModal" role="dialog" aria-modal="true" aria-labelledby="journalImportTitle">
+  <div class="modal-content" style="max-width:460px;">
+    <div class="modal-header">
+      <h2 id="journalImportTitle">Восстановить дневник</h2>
+      <button type="button" class="modal-close" data-close="journalImportModal" aria-label="Закрыть">✕</button>
+    </div>
+    <p class="journal-export-help">Выбери ранее сохранённую копию. Существующие медитации и заметки не удалятся.</p>
+    <button type="button" class="primary journal-import-choice" id="journalImportChoose">Выбрать сохранённый файл</button>
+    <input type="file" id="journalImportFile" accept=".json,.txt,application/json,text/plain" hidden>
+    <details class="journal-backup-advanced" id="journalImportAdvanced">
+      <summary>Копия сохранена в заметках?</summary>
+      <p>Скопируй текст резервной копии из заметок и вставь сюда.</p>
+      <textarea id="journalImportText" class="journal-export-text" placeholder="Вставь сюда скопированный текст"></textarea>
+      <button type="button" class="ghost journal-import-check" id="journalImportCheckText">Проверить копию</button>
+    </details>
+    <p class="journal-export-status" id="journalImportStatus" role="status" aria-live="polite"></p>
+    <p class="journal-import-preview" id="journalImportPreview" hidden></p>
+    <button type="button" class="primary journal-import-confirm" id="journalImportConfirm" hidden>Восстановить записи</button>
   </div>
 </div>
 
@@ -292,9 +319,10 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="./assets/core.js?v=20261011f"></script>
-<script src="./assets/visualizer.js?v=20261011f"></script>
-<script src="./assets/session.js?v=20261011f"></script>
-<script src="./assets/ui.js?v=20261011f"></script>
+<script src="./assets/core.js?v=20261011g"></script>
+<script src="./assets/visualizer.js?v=20261011g"></script>
+<script src="./assets/session.js?v=20261011g"></script>
+<script src="./assets/ui.js?v=20261011g"></script>
+<script src="./assets/journal-backup.js?v=20261011g"></script>
 </body>
 </html>
