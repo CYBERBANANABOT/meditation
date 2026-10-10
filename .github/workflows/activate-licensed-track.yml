@@ -1,0 +1,80 @@
+name: Activate licensed meditation piano track
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/activate-licensed-track.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch only the track metadata and attribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s assets/peace-of-mind.mp3
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          import tempfile
+
+          file = Path('index.html')
+          source = file.read_text(encoding='utf-8')
+          text = source
+
+          def replace_exact(old, new):
+              global text
+              matches = text.count(old)
+              if matches != 1:
+                  raise ValueError(f'Expected one occurrence: {old[:70]!r}; found {matches}')
+              text = text.replace(old, new, 1)
+
+          replace_exact(
+              "allTracks = [{title:'Тихая гармония · музыка для медитации', src:'assets/quiet-harmony.wav', _builtin:true},",
+              "allTracks = [{title:'Спокойствие · фортепиано', src:'assets/peace-of-mind.mp3', _builtin:true},"
+          )
+          replace_exact('✦ Тихая гармония · встроенная музыка', '✦ Спокойствие · фортепиано')
+          replace_exact('64 сек · повтор', '36 мин · длинная композиция')
+          replace_exact(
+              '    <div class="track-list" id="myTracksList"></div>',
+              '''    <div class="track-list" id="myTracksList"></div>
+              <p class="track-attribution">Встроенная музыка: «Peace of Mind» — Kevin MacLeod. <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200099" target="_blank" rel="noopener noreferrer">Источник</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Добавлено плавное вступление.</p>'''
+          )
+          replace_exact(
+              '  .track-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }',
+              '''  .track-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+              .track-attribution { color:#a7a9be; font-size:11px; line-height:1.6; margin-top:8px; }
+              .track-attribution a { color:#c4a3fb; text-decoration:underline; text-underline-offset:2px; }'''
+          )
+          if 'assets/quiet-harmony.wav' in text or 'Тихая гармония' in text:
+              raise ValueError('An outdated track reference remains')
+          if text.count('assets/peace-of-mind.mp3') != 1:
+              raise ValueError('Incorrect new asset reference count')
+          scripts = [m for m in re.findall(r'<script\\b[^>]*>([\\s\\S]*?)</script>', text, flags=re.I) if m.strip()]
+          if len(scripts) != 1:
+              raise ValueError(f'Expected one inline script, found {len(scripts)}')
+          with tempfile.TemporaryDirectory() as tmp:
+              script_file = Path(tmp) / 'application.js'
+              script_file.write_text(scripts[0], encoding='utf-8')
+              subprocess.run(['node', '--check', str(script_file)], check=True)
+          file.write_text(text, encoding='utf-8')
+          print('Validated JS; changed only track metadata and attribution')
+          PY
+      - name: Commit validated player change to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Replace repetitive built-in sound with long licensed piano piece"
+          git pull --rebase origin main
+          git push origin HEAD:main
