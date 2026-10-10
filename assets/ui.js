@@ -57,7 +57,7 @@ function offerPracticeRecovery(saved) {
       document.getElementById('practiceRecoveryDiscard').onclick = () => {
         clearSavedPractice();
         close();
-        showWelcomeThought();
+        showWelcomeGoal();
       };
       dialog.classList.add('show');
       document.getElementById('practiceRecoveryResume').focus();
@@ -504,7 +504,6 @@ const timeHeader = document.getElementById('timeHeader');
 const timeValue = document.getElementById('timeValue');
 const timeBigVal = document.getElementById('timeBigVal');
 const timeSlider = document.getElementById('timeSlider');
-const timeExactInput = document.getElementById('timeExactInput');
 const quickPresets = document.getElementById('quickPresets');
 
 const MIN_TIME = 1;
@@ -513,7 +512,6 @@ const MAX_TIME = 180;
 function updateTimeUI(min) {
   timeValue.textContent = `${min} мин`;
   timeBigVal.textContent = min;
-  timeExactInput.value = String(min);
   quickPresets.querySelectorAll('button').forEach(b => {
     b.classList.toggle('active', parseInt(b.dataset.min) === min);
   });
@@ -557,12 +555,6 @@ function commitPracticeMinutes(min) {
 }
 timeSlider.addEventListener('change', () => {
   commitPracticeMinutes(Number(timeSlider.value));
-});
-timeExactInput.addEventListener('change', () => {
-  commitPracticeMinutes(Number(timeExactInput.value));
-});
-timeExactInput.addEventListener('keydown', event => {
-  if (event.key === 'Enter') timeExactInput.blur();
 });
 quickPresets.addEventListener('click', event => {
   const button = event.target.closest('button[data-min]');
@@ -668,11 +660,6 @@ function renderStreak() {
   const active = streak.lastDate === today || streak.lastDate === yesterday;
   const count = active ? (Number(streak.count) || 0) : 0;
   document.getElementById('streakNum').textContent = count;
-  const practiceNote = document.getElementById('practiceStreakNote');
-  if (practiceNote) practiceNote.textContent = streak.lastDate === today
-    ? `🔥 День засчитан! Твоя серия: ${count} дн. · Завтра продолжим`
-    : count ? `🔥 Серия: ${count} дн. · Заверши медитацию сегодня`
-    : '🔥 Заверши медитацию — день засчитается автоматически';
   const doneToday = streak.lastDate === today || sessionLog.some(s => s.date === today);
   document.getElementById('streakStatus').textContent = doneToday
     ? '✨ Сегодня уже засчитано! Возвращайся завтра, чтобы продолжить серию.'
@@ -706,23 +693,52 @@ const MEDITATION_GOALS = [
 let selectedGoal = 'calm';
 const goalGrid = document.getElementById('goalGrid');
 const practiceTip = document.getElementById('practiceTip');
+const welcomeGoalGrid = document.getElementById('welcomeGoalGrid');
+const welcomeGoalModal = document.getElementById('welcomeGoalModal');
+const welcomeGoalKeep = document.getElementById('welcomeGoalKeep');
+
 function renderGoals() {
-  goalGrid.innerHTML = MEDITATION_GOALS.map(g => `<button type="button" class="goal-option" data-goal="${g.key}" aria-pressed="${g.key===selectedGoal}"><strong>${g.icon} ${g.title}</strong><small>${g.subtitle}</small></button>`).join('');
+  const markup = MEDITATION_GOALS.map(g =>
+    `<button type="button" class="goal-option" data-goal="${g.key}" aria-pressed="${g.key === selectedGoal}"><strong>${g.icon} ${g.title}</strong><small>${g.subtitle}</small></button>`
+  ).join('');
+  goalGrid.innerHTML = markup;
+  welcomeGoalGrid.innerHTML = markup;
 }
-function getGoalForChakra(key) { return MEDITATION_GOALS.find(g=>g.chakra===key); }
-goalGrid.addEventListener('click', e => {
-  const btn=e.target.closest('[data-goal]');
-  if(!btn) return;
-  const selected=MEDITATION_GOALS.find(g=>g.key===btn.dataset.goal);
-  if(!selected || (selectedGoal===selected.key && currentChakra===selected.chakra)) return;
-  if(!confirmTimerReset()) return;
-  selectedGoal=selected.key;
-  currentChakra=selected.chakra;
+function getGoalForChakra(key) { return MEDITATION_GOALS.find(g => g.chakra === key); }
+function selectMeditationGoal(key) {
+  const goal = MEDITATION_GOALS.find(g => g.key === key);
+  if (!goal) return false;
+  if (selectedGoal === goal.key && currentChakra === goal.chakra) return true;
+  if (!confirmTimerReset()) return false;
+  selectedGoal = goal.key;
+  currentChakra = goal.chakra;
+  storageSet('activeChakra',currentChakra);
+  resetTimer(currentPresetMin * 60);
   updateChakraUI();
-  storageSet('activeChakra', currentChakra);
-  resetTimer(currentPresetMin*60);
-  if(tg) tg.HapticFeedback?.selectionChanged();
+  if (tg) tg.HapticFeedback?.selectionChanged();
+  return true;
+}
+goalGrid.addEventListener('click', event => {
+  const option=event.target.closest('[data-goal]');
+  if (option) selectMeditationGoal(option.dataset.goal);
 });
+function closeGoalWelcome() {
+  welcomeGoalModal.classList.remove('show');
+  showWelcomeThought();
+}
+welcomeGoalGrid.addEventListener('click', event => {
+  const option=event.target.closest('[data-goal]');
+  if (!option || !selectMeditationGoal(option.dataset.goal)) return;
+  closeGoalWelcome();
+});
+welcomeGoalKeep.addEventListener('click', closeGoalWelcome);
+function showWelcomeGoal() {
+  renderGoals();
+  welcomeGoalKeep.textContent = 'Продолжить с прежним настроем';
+  welcomeGoalModal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  welcomeGoalGrid.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
+}
 
 /* ---------- Информация о выбранной теме ---------- */
 const chakraName = document.getElementById('chakraName');
@@ -824,7 +840,7 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
     if (journalNeedsCloudSync) saveSessionLog();
     const recovery = readSavedPractice();
     if (recovery) offerPracticeRecovery(recovery);
-    else showWelcomeThought();
+    else showWelcomeGoal();
 })();
 
 
