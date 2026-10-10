@@ -36,7 +36,9 @@ test('Core music and user features',()=>{
 test('Unique IDs, correct controls, no blocked zoom',()=>{
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
   assert.equal(ids.length,new Set(ids).size,'Duplicate ID');
-  const known=new Set(ids);
+  // Some containers are created dynamically from trusted UI templates.
+  const dynamicIds=[...script.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
+  const known=new Set([...ids,...dynamicIds]);
   for(const m of script.matchAll(/getElementById\(\s*['"]([^'"]+)['"]\s*\)/g)){
     assert(known.has(m[1]),'Missing DOM element '+m[1]);
   }
