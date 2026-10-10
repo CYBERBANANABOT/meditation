@@ -245,6 +245,12 @@ let lastHintState = null;
 function animateOrb(now) {
   orbFrameId = null;
   if (!canAnimateOrb()) { orbDisplayed = false; return; }
+  // Frames can arrive between loading visualizer.js and session.js in a
+  // Telegram WebView. Start drawing only after the timer module is ready.
+  if (typeof currentElapsed !== 'function') {
+    orbFrameId = requestAnimationFrame(animateOrb);
+    return;
+  }
   // Target 60 FPS on all visible practice states. Small tolerance avoids
   // unintentionally dropping to 30 FPS on 60 Hz screens from timestamp jitter.
   const minFrameMs = 1000 / 60 - 1.5;
