@@ -73,17 +73,20 @@ jobs:
               path=base/(name+'.ogg')
               secs=length(path)
               assert fade_seconds < secs/4
-              cutoff=secs-fade_seconds
+              edge=2*fade_seconds
+              cutoff=secs-edge
+              assert cutoff > edge, f'Audio source too short for crossfade: {name}'
+              # Independent decoders ensure the head and tail complete
+              # their overlap before concatenation; no missing seam.
               filters=(
-                '[0:a]asplit=3[first][middle][last];'
-                f'[first]atrim=0:{fade_seconds},asetpts=PTS-STARTPTS[head];'
-                f'[middle]atrim={fade_seconds}:{cutoff},asetpts=PTS-STARTPTS[center];'
-                f'[last]atrim={cutoff}:{secs},asetpts=PTS-STARTPTS[tail];'
+                f'[0:a]atrim=start={cutoff}:end={secs},asetpts=PTS-STARTPTS[tail];'
+                f'[1:a]atrim=start=0:end={edge},asetpts=PTS-STARTPTS[head];'
+                f'[2:a]atrim=start={edge}:end={cutoff},asetpts=PTS-STARTPTS[center];'
                 f'[tail][head]acrossfade=d={fade_seconds}:c1=tri:c2=tri[seam];'
                 '[center][seam]concat=n=2:v=0:a=1,aresample=32000[loop]'
               )
               out=base/(name+'-loop.wav')
-              ff('-i',path,'-filter_complex',filters,'-map','[loop]',
+              ff('-i',path,'-i',path,'-i',path,'-filter_complex',filters,'-map','[loop]',
                  '-ar','32000','-ac','1','-c:a','pcm_s16le',out)
               assert secs-fade_seconds-1 <= length(out) <= secs+1, (name,length(out))
               return out
