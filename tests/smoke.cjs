@@ -2,7 +2,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {test}=require('node:test');
 const html=fs.readFileSync('index.html','utf8');
-const modules=['core','visualizer','session','ui'].map(name=>'assets/'+name+'.js');
+const modules=['core','visualizer','session','ui','journal-backup'].map(name=>'assets/'+name+'.js');
 const modular=modules.every(file=>fs.existsSync(file));
 const script=modular?modules.map(file=>fs.readFileSync(file,'utf8')).join('\n'):
   (fs.existsSync('assets/app.js')?fs.readFileSync('assets/app.js','utf8'):
@@ -46,7 +46,8 @@ test('Unique IDs, correct controls, no blocked zoom',()=>{
     assert(html.includes('id="'+id+'" aria-expanded="false"'));
   }
   for(const id of ['timeExactInput','scanChimeButton','exportJournalBtn',
-    'practiceRecoveryModal','finishOverlay','myTracksList','audioEl']){
+    'importJournalBtn','journalImportFile','journalImportConfirm','journalExportModal',
+    'journalImportModal','practiceRecoveryModal','finishOverlay','myTracksList','audioEl']){
     assert(known.has(id),'Missing '+id);
   }
   assert(!html.includes('user-scalable=no'));
@@ -147,3 +148,12 @@ test('Controls and defaults remain consistent',()=>{
   assert(css.includes('prefers-reduced-motion'));
 });
 console.log('Smoke suite running against '+(modular?'modular':'inline')+' version');
+
+test('Journal backups support safe non-destructive recovery',()=>{
+  for(const fn of ['createJournalBackup','readJournalBackup','validateJournalEntry',
+    'journalPreviewStats','updateJournalStreak'])assert(script.includes('function '+fn+'('));
+  assert(script.includes("journalImportConfirm.addEventListener('click'"));
+  assert(script.includes("journalImportFile.addEventListener('change'"));
+  assert(script.includes('localStorage.setItem(\'sessionLog\''));
+  assert(script.includes('mergeSessionLogs(sessionLog, backup.sessions)'));
+});
