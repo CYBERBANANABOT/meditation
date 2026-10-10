@@ -531,7 +531,6 @@ const MEDITATION_GOALS = [
   {key:'presence', chakra:'sahasrara', icon:'✨', title:'Просто побыть', subtitle:'Без цели и ожиданий', instruction:'Позволь вниманию свободно замечать дыхание, звуки и ощущения. Не нужно достигать особого состояния — просто побудь здесь несколько минут.'}
 ];
 let selectedGoal = 'calm';
-const practiceTip = document.getElementById('practiceTip');
 const welcomeGoalGrid = document.getElementById('welcomeGoalGrid');
 const welcomeGoalModal = document.getElementById('welcomeGoalModal');
 const welcomeGoalKeep = document.getElementById('welcomeGoalKeep');
@@ -607,7 +606,6 @@ function updateChakraUI() {
   chakraName.style.color = c.color;
   const goal = getGoalForChakra(currentChakra);
   chakraDesc.textContent = goal ? `Тема: ${goal.title.toLowerCase()} · ${c.name}` : c.desc;
-  practiceTip.innerHTML = goal ? `<b>Как практиковать</b>${goal.instruction}` : '';
   renderGoals();
   applyAccent(c.color);
   lastHintState = null;
