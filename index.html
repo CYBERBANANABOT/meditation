@@ -624,6 +624,8 @@
   }
 
   .track-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .track-attribution { color:#a7a9be; font-size:11px; line-height:1.6; margin-top:8px; }
+    .track-attribution a { color:#c4a3fb; text-decoration:underline; text-underline-offset:2px; }
   .track-item {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
@@ -1097,6 +1099,7 @@
     </div>
 
     <div class="track-list" id="myTracksList"></div>
+    <p class="track-attribution">Встроенная музыка: «Peace of Mind» — Kevin MacLeod. <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200099" target="_blank" rel="noopener noreferrer">Источник</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Добавлено плавное вступление.</p>
   </div>
 </div>
 
@@ -1316,7 +1319,7 @@ function rebuildAllTracks() {
   for (const [id, url] of trackUrls) {
     if (!ids.has(id)) { URL.revokeObjectURL(url); trackUrls.delete(id); }
   }
-  allTracks = [{title:'Тихая гармония · музыка для медитации', src:'assets/quiet-harmony.wav', _builtin:true}, ...userTracks.map(t => {
+  allTracks = [{title:'Спокойствие · фортепиано', src:'assets/peace-of-mind.mp3', _builtin:true}, ...userTracks.map(t => {
     if (!trackUrls.has(t.id)) trackUrls.set(t.id, URL.createObjectURL(t.blob));
     return {title:t.name, src:trackUrls.get(t.id), _user:true, _id:t.id};
   })];
@@ -2564,7 +2567,7 @@ const fileInput = document.getElementById('fileInput');
 const myTracksList = document.getElementById('myTracksList');
 
 function renderTracksModal() {
-  myTracksList.innerHTML = `<div class="track-item" style="border:1px solid rgba(164,99,242,.26)"><span class="name">✦ Тихая гармония · встроенная музыка</span><span class="size">64 сек · повтор</span></div>` + userTracks.map(t => `
+  myTracksList.innerHTML = `<div class="track-item" style="border:1px solid rgba(164,99,242,.26)"><span class="name">✦ Спокойствие · фортепиано</span><span class="size">36 мин · длинная композиция</span></div>` + userTracks.map(t => `
     <div class="track-item">
       <span class="name">${escapeHtml(t.name)}</span>
       <span class="size">${formatBytes(t.blob.size)}</span>
