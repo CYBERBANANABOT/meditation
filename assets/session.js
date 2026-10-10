@@ -45,8 +45,6 @@ function restoreSavedPractice(saved) {
   currentChakra = saved.chakra;
   selectedGoal = getGoalForChakra(currentChakra)?.key || 'calm';
   renderPresets();
-  renderPracticeUI();
-  renderRhythmPicker();
   updateChakraUI();
   renderTimer();
   updateMainIcon();
@@ -74,7 +72,6 @@ function armTimerDeadline() {
     else armTimerDeadline();
   }, Math.max(30,Math.ceil((timerTotalSec-currentElapsed())*1000)));
 }
-const timerDisplay = document.getElementById('timerDisplay');
 const mainIcon = document.getElementById('mainIcon');
 const ICON_PLAY = 'M8 5v14l11-7z';
 const ICON_PAUSE = 'M6 5h4v14H6zm8 0h4v14h-4z';
@@ -89,15 +86,14 @@ function fmt(sec) {
 }
 function renderTimer() {
   const left = Math.max(0, timerTotalSec - currentElapsed());
-  timerDisplay.textContent = fmt(left);
-  timerDisplay.classList.toggle('warn', left <= 30 && left > 0);
   const remaining = document.getElementById('homeTimerRemaining');
-  const homeDuration = document.querySelector('.home-duration');
-  if (remaining && homeDuration) {
+  const duration = document.querySelector('.home-duration');
+  if (remaining && duration) {
     const inProgress = timerRunning || timerElapsed > 0 || timerDone;
     remaining.hidden = !inProgress;
     remaining.textContent = inProgress ? 'Осталось ' + fmt(left) : '';
-    homeDuration.classList.toggle('is-running', timerRunning);
+    remaining.classList.toggle('warn', left <= 30 && left > 0);
+    duration.classList.toggle('is-running', timerRunning);
     document.getElementById('durationWheel')?.setAttribute('aria-disabled', String(timerRunning));
   }
 }
