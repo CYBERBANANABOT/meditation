@@ -505,6 +505,75 @@ const timeValue = document.getElementById('timeValue');
 const timeBigVal = document.getElementById('timeBigVal');
 const timeSlider = document.getElementById('timeSlider');
 const quickPresets = document.getElementById('quickPresets');
+const durationWheel = document.getElementById('durationWheel');
+const DURATION_WHEEL_ITEM_HEIGHT = 42;
+let wheelPreviewMinutes = null;
+let wheelSettleTimer = null;
+let wheelSelectedOption = null;
+durationWheel.innerHTML = Array.from({length: 180}, (_, i) =>
+  `<div class="duration-wheel-option" role="option" data-min="${i + 1}" aria-selected="false">${i + 1}</div>`
+).join('');
+
+function wheelValueFromPosition() {
+  const value = Math.round(durationWheel.scrollTop / DURATION_WHEEL_ITEM_HEIGHT) + 1;
+  return Math.max(MIN_TIME, Math.min(MAX_TIME, value));
+}
+function setWheelHighlight(minutes) {
+  if (wheelSelectedOption) wheelSelectedOption.setAttribute('aria-selected','false');
+  wheelPreviewMinutes = minutes;
+  wheelSelectedOption = durationWheel.children[minutes - 1] || null;
+  if (wheelSelectedOption) wheelSelectedOption.setAttribute('aria-selected','true');
+  durationWheel.setAttribute('aria-valuetext', minutes + ' минут');
+}
+function syncDurationWheel(minutes) {
+  clearTimeout(wheelSettleTimer);
+  setWheelHighlight(minutes);
+  const top = (minutes - 1) * DURATION_WHEEL_ITEM_HEIGHT;
+  if (Math.abs(durationWheel.scrollTop - top) > 0.5) durationWheel.scrollTop = top;
+}
+function scheduleWheelCommit() {
+  clearTimeout(wheelSettleTimer);
+  wheelSettleTimer = setTimeout(() => {
+    const chosen = wheelValueFromPosition();
+    if (timerRunning) {
+      syncDurationWheel(currentPresetMin);
+      return;
+    }
+    if (chosen !== currentPresetMin) commitPracticeMinutes(chosen);
+    else syncDurationWheel(currentPresetMin);
+  }, 260);
+}
+durationWheel.addEventListener('scroll', () => {
+  if (timerRunning) {
+    clearTimeout(wheelSettleTimer);
+    return;
+  }
+  const next = wheelValueFromPosition();
+  if (next !== wheelPreviewMinutes) {
+    setWheelHighlight(next);
+    if (tg) tg.HapticFeedback?.selectionChanged();
+  }
+  scheduleWheelCommit();
+}, {passive:true});
+durationWheel.addEventListener('click', event => {
+  const option = event.target.closest('[data-min]');
+  if (!option || timerRunning) return;
+  const minutes = Number(option.dataset.min);
+  durationWheel.scrollTo({top:(minutes-1)*DURATION_WHEEL_ITEM_HEIGHT,behavior:'smooth'});
+  scheduleWheelCommit();
+});
+durationWheel.addEventListener('keydown', event => {
+  if (!['ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key)) return;
+  event.preventDefault();
+  if (timerRunning) return;
+  const offsets = {ArrowUp:-1, ArrowDown:1, PageUp:-5, PageDown:5};
+  const next = event.key === 'Home' ? MIN_TIME :
+    event.key === 'End' ? MAX_TIME :
+    Math.max(MIN_TIME, Math.min(MAX_TIME, wheelValueFromPosition() + offsets[event.key]));
+  durationWheel.scrollTop = (next - 1) * DURATION_WHEEL_ITEM_HEIGHT;
+  setWheelHighlight(next);
+  scheduleWheelCommit();
+});
 
 const MIN_TIME = 1;
 const MAX_TIME = 180;
@@ -523,6 +592,7 @@ function renderPresets() {
   timeSlider.max = MAX_TIME;
   timeSlider.value = v;
   updateTimeUI(v);
+  syncDurationWheel(v);
 }
 
 timeHeader.addEventListener('click', () => {
@@ -621,6 +691,10 @@ document.getElementById('btnTracks').addEventListener('click', () => {
   tracksModal.classList.add('show');
 });
 document.getElementById('btnAddTrack').addEventListener('click', () => fileInput.click());
+document.getElementById('settingsMusicLibrary').addEventListener('click', () =>
+  document.getElementById('btnTracks').click());
+document.getElementById('settingsMusicUpload').addEventListener('click', () =>
+  document.getElementById('btnAddTrack').click());
 
 fileInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
@@ -747,6 +821,9 @@ function updateChakraUI() {
   const c = CHAKRAS.find(x=>x.key===currentChakra) || CHAKRAS[0];
   chakraName.textContent = c.name;
   chakraName.style.color = c.color;
+  const homeChakraName = document.getElementById('homeChakraName');
+  homeChakraName.textContent = c.name;
+  homeChakraName.style.color = c.color;
   const goal = getGoalForChakra(currentChakra);
   chakraDesc.textContent = goal ? `Тема: ${goal.title.toLowerCase()} · ${c.name}` : c.desc;
   practiceTip.innerHTML = goal ? `<b>Как практиковать</b>${goal.instruction}` : '';
