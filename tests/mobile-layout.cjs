@@ -78,9 +78,11 @@ const fs=require('node:fs');
       await page.locator('.bottom-tab[data-screen="practice"]').click();
       assert(await page.locator('#screen-practice').isVisible());
       await page.locator('#btnMain').click();
-      await page.waitForTimeout(250);
-      assert((await page.locator('#timerDisplay').textContent())!=='17:00','Timer should advance during meditation');
+      assert(await page.evaluate(()=>timerRunning),'Timer did not start');
+      await page.waitForFunction(()=>document.getElementById('timerDisplay').textContent !== '17:00',
+        null,{timeout:3500});
       await page.locator('#btnMain').click();
+      assert(!(await page.evaluate(()=>timerRunning)),'Timer did not pause');
       // Restoring a paused session after the screen is changed must preserve elapsed time.
       await page.locator('.bottom-tab[data-screen="profile"]').click();
       assert(await page.locator('#screen-profile').isVisible());
