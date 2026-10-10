@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           if test -f assets/ui.js; then
-            for file in assets/core.js assets/visualizer.js assets/session.js assets/ui.js; do
+            for file in assets/core.js assets/visualizer.js assets/session.js assets/ui.js assets/journal-backup.js; do
               test -s "$file"
               node --check "$file"
             done
