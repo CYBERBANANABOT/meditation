@@ -1630,10 +1630,11 @@ let lastHintState = null;
 function animateOrb(now) {
   orbFrameId = null;
   if (!canAnimateOrb()) { orbDisplayed = false; return; }
-  // 30 FPS while practicing, 20 FPS at rest, 15 FPS in reduced-motion mode.
-  const fps = motionPreference.matches ? 15 : (timerRunning ? 30 : 20);
-  if (!orbForceDraw && (fps === 0 || now - orbLastDraw < 1000 / fps)) {
-    if (fps !== 0) orbFrameId = requestAnimationFrame(animateOrb);
+  // Target 60 FPS on all visible practice states. Small tolerance avoids
+  // unintentionally dropping to 30 FPS on 60 Hz screens from timestamp jitter.
+  const minFrameMs = 1000 / 60 - 1.5;
+  if (!orbForceDraw && now - orbLastDraw < minFrameMs) {
+    orbFrameId = requestAnimationFrame(animateOrb);
     return;
   }
   orbForceDraw = false;
@@ -1676,7 +1677,7 @@ function animateOrb(now) {
 
   const progress = timerTotalSec > 0 ? Math.min(1, currentElapsed()/timerTotalSec) : 0;
   drawUniverse(finalLevel, progress, t);
-  // Continue animating even with reduced-motion enabled; use a gentler frame rate.
+  // Keep the universe smooth while this screen remains visible.
   orbFrameId = requestAnimationFrame(animateOrb);
 }
 if (motionPreference.addEventListener) motionPreference.addEventListener('change', startOrbAnimation);
