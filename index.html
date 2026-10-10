@@ -1347,18 +1347,28 @@ function rebuildAllRhythms() {
 
 /* ---------- Скан тела ---------- */
 const SCAN_PARTS = ['Стопы','Голени','Колени','Бёдра','Живот','Грудь','Кисти рук','Плечи','Шея','Лицо','Макушка','Всё тело'];
-const SCAN_PART_DUR = 25;
 let practiceMode = 'breath';
+
+// Divide the selected timer duration evenly between all 12 scan steps.
+// Elapsed time (not frame count) keeps the scan in sync after pauses
+// or background-tab switches. Clamp at the end; never wrap to step 1.
+function scanStepAt(elapsedSeconds, durationSeconds) {
+  const total = Math.max(1, durationSeconds);
+  const stepSeconds = total / SCAN_PARTS.length;
+  const elapsed = Math.max(0, Math.min(elapsedSeconds, total));
+  const partIdx = Math.min(SCAN_PARTS.length - 1, Math.floor(elapsed / stepSeconds));
+  const local = Math.max(0, Math.min(1, (elapsed - partIdx * stepSeconds) / stepSeconds));
+  return { partIdx, local };
+}
 
 function rhythmTotal(r) { return r.phases.reduce((s,p)=>s+p.dur,0); }
 function easeInOut(x) { return x*x*(3-2*x); }
 function breathing(secondsInCycle) {
   if (practiceMode === 'scan') {
-    const totalDur = SCAN_PARTS.length * SCAN_PART_DUR;
-    const time = ((secondsInCycle % totalDur) + totalDur) % totalDur;
-    const partIdx = Math.floor(time / SCAN_PART_DUR);
-    const local = (time % SCAN_PART_DUR) / SCAN_PART_DUR;
-    const breathePhase = (time / 8) * Math.PI * 2;
+    const { partIdx, local } = scanStepAt(secondsInCycle, timerTotalSec);
+    // The universe keeps its smooth breathing rhythm independent
+    // of the 12-stage progression and selected session length.
+    const breathePhase = (secondsInCycle / 8) * Math.PI * 2;
     const level = (1 - Math.cos(breathePhase)) / 2;
     return { level, phaseName: 'scan', scanPart: SCAN_PARTS[partIdx], scanIdx: partIdx, scanLocal: local };
   }
