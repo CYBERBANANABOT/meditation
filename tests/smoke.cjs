@@ -43,13 +43,17 @@ test('Unique IDs, correct controls, no blocked zoom',()=>{
     assert(known.has(m[1]),'Missing DOM element '+m[1]);
   }
   for(const id of ['welcomeGoalModal','welcomeGoalGrid','changeChakraBtn','chakraNameWrap',
-    'chakraName','chakraDesc','practiceTip','durationWheel','btnMain','exportJournalBtn',
+    'chakraName','chakraDesc','durationWheel','btnMain','exportJournalBtn',
     'importJournalBtn','journalImportFile','journalImportConfirm','journalExportModal',
     'journalImportModal','practiceRecoveryModal','finishOverlay','myTracksList','audioEl']){
     assert(known.has(id),'Missing '+id);
   }
   assert(!html.includes('user-scalable=no'));
   assert(html.includes('id="durationWheel" role="listbox"'));
+  assert(!html.includes('id="practiceTip"'), 'Instruction card should not appear on home');
+  assert(!html.includes('home-duration-label'), 'Minute caption should not appear on home');
+  assert(script.includes("getGoalForChakra(chakraKey)?.instruction || g.feel"),
+    'Chakra information should remain in About Chakra');
   assert(script.includes('scroll-snap-type:y mandatory') === false);
   assert(css.includes('scroll-snap-type:y mandatory'));
   for(const fn of ['wheelValueFromPosition','syncDurationWheel','scheduleWheelCommit']){
@@ -81,7 +85,7 @@ test('Every HTML container closes correctly; practice and profile cannot overlap
       '#'+id+' escaped its expected parent #'+ancestor+'; actual ancestors: '+ids.get(id).join(','));
   }
   for(const id of ['btnMain','chakraNameWrap','changeChakraBtn','chakraDesc',
-    'practiceTip','durationWheel','homeTimerRemaining','playerTrackStatus',
+    'durationWheel','homeTimerRemaining','playerTrackStatus',
     'btnTracks','btnPrevTrack','btnNextTrack','btnAddTrack']){
     inside(id,'screen-practice');
   }
