@@ -244,8 +244,8 @@ jobs:
               "function pauseTimer() {\n  if (!timerRunning) return;\n  clearTimerDeadline();")
           one("function finishTimer() {\n  if (timerDone) return;\n  clearSavedPractice();",
               "function finishTimer() {\n  if (timerDone) return;\n  clearTimerDeadline();\n  clearSavedPractice();")
-          one("function resetTimer(newTotalSec, preserveRecovery = false) {\n  if (!preserveRecovery) clearSavedPractice();",
-              "function resetTimer(newTotalSec, preserveRecovery = false) {\n  clearTimerDeadline();\n  if (!preserveRecovery) clearSavedPractice();")
+          one("function resetTimer(newTotalSec, preserveRecovery = false) {\n    if (!preserveRecovery) clearSavedPractice();",
+              "function resetTimer(newTotalSec, preserveRecovery = false) {\n    clearTimerDeadline();\n    if (!preserveRecovery) clearSavedPractice();")
           one("  if (!audioEl.paused) fadeAudioTo(0, 4500, true);",
               """  if (!audioEl.paused) {
               if (document.hidden) {
