@@ -301,6 +301,13 @@ function animateOrb(now) {
 }
 if (motionPreference.addEventListener) motionPreference.addEventListener('change', startOrbAnimation);
 document.addEventListener('visibilitychange', () => {
+  // The visualizer loads before the timer module. Mobile WebViews may emit
+  // visibilitychange while a later script is still loading; avoid accessing
+  // timer functions until they have been initialized.
+  if (typeof currentElapsed !== 'function' || typeof finishTimer !== 'function') {
+    if (document.hidden) stopOrbAnimation();
+    return;
+  }
   if (document.hidden) {
     if (timerRunning && currentElapsed() >= timerTotalSec) finishTimer();
     saveActivePractice();
