@@ -4,15 +4,6 @@
 const orb = document.getElementById('orb');
 const octx = orb.getContext('2d', { alpha: true });
 const breathHint = document.getElementById('breathHint');
-const immersionButton = document.getElementById('immersiveToggle');
-immersionButton.addEventListener('click', () => {
-  const screen = document.getElementById('screen-practice');
-  const active = screen.classList.toggle('immersive');
-  immersionButton.textContent = active ? '↙ Выйти из погружения' : '⛶ Режим погружения';
-  immersionButton.setAttribute('aria-pressed', String(active));
-  // The visualizer stays alive; update its dimensions on the next frame.
-  if (typeof startOrbAnimation === 'function') startOrbAnimation();
-});
 // Canvas renders only when the practice screen is actually visible.
 // Cap internal resolution for phone GPUs (previously 600x600 on every phone).
 const motionPreference = typeof window.matchMedia === 'function'
