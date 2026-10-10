@@ -91,31 +91,91 @@ const fs=require('node:fs');
         });
       }
       await page.locator('#exportJournalBtn').click();
-      assert(await page.locator('#journalExportModal').isVisible(),'Export dialog did not open');
+      assert(await page.locator('#journalExportModal').isVisible(),'Save dialog did not open');
       const archive=JSON.parse(await page.locator('#journalExportText').inputValue());
       assert.equal(archive.format,'meditation-journal');
-      assert(Array.isArray(archive.sessions),'Export omits sessions');
-      assert(archive.streak,'Export omits streak');
-      assert(await page.locator('#journalExportText').inputValue()!=='','Backup text must be available');
-      assert(!(await page.locator('#journalExportDownload').isVisible()),
-        'Telegram should not show unreliable blob downloads');
+      assert(Array.isArray(archive.sessions));
+      assert(archive.streak);
+      assert.equal(archive.version,1);
+      assert(!(await page.locator('#journalExportDownload').isVisible()),'No blob download in Telegram');
       if(viewport.width===390){
-        assert(await page.locator('#journalExportShare').isVisible(),'Native share button not shown when supported');
+        assert(await page.locator('#journalExportShare').isVisible(),'Native file share is missing');
         await page.locator('#journalExportShare').click();
         await page.waitForFunction(()=>typeof window.__journalSharedText === 'string');
         assert((await page.evaluate(()=>window.__journalFileName)).endsWith('.json'));
         assert.equal(JSON.parse(await page.evaluate(()=>window.__journalSharedText)).format,'meditation-journal');
+        await page.locator('#journalExportAdvanced').evaluate(el=>el.open=true);
       } else {
-        assert(!(await page.locator('#journalExportShare').isVisible()),'Unsupported native share should be hidden');
+        assert(!(await page.locator('#journalExportShare').isVisible()),'Unsupported share should be hidden');
+        assert(await page.locator('#journalExportCopy').isVisible(),'Notes fallback must be visible');
+        await page.locator('#journalExportCopy').click();
+        await page.waitForFunction(()=>document.getElementById('journalExportStatus').textContent.length>0);
       }
-      await page.locator('#journalExportCopy').click();
-      assert(await page.locator('#journalExportStatus').textContent(),'Copy must show clear feedback');
       await page.locator('#journalExportSelect').click();
       const selected=await page.locator('#journalExportText').evaluate(el=>
         el.selectionStart===0 && el.selectionEnd===el.value.length);
-      assert(selected,'Manual copy fallback should select full journal text');
+      assert(selected,'Manual fallback selects the entire backup');
       await page.locator('[data-close="journalExportModal"]').click();
-      assert(!(await page.locator('#journalExportModal').isVisible()),'Export dialog should close');
+      assert(!(await page.locator('#journalExportModal').isVisible()),'Save dialog should close');
+
+      await page.locator('#importJournalBtn').click();
+      assert(await page.locator('#journalImportModal').isVisible(),'Restore dialog did not open');
+      assert(await page.locator('#journalImportChoose').isVisible(),'Pick-a-file button missing');
+      if(viewport.width===390){
+        const entry={id:1700000000001,ts:1700000000001,
+          date:'2025-10-11',time:'12:00',minutes:10,chakra:'muladhara',
+          mode:'scan',note:'Тихая практика',mood:'calm'};
+        const backup={format:'meditation-journal',version:1,sessions:[entry],
+          streak:{count:1,lastDate:'2025-10-11'},sessionsCount:1,
+          chakraProgress:{muladhara:10}};
+        const bytes=Buffer.from(JSON.stringify(backup),'utf8');
+        await page.locator('#journalImportFile').setInputFiles({
+          name:'my-journal.json',mimeType:'application/json',buffer:bytes
+        });
+        await page.locator('#journalImportPreview').waitFor({state:'visible'});
+        assert((await page.locator('#journalImportPreview').textContent()).includes('Новых записей: 1'));
+        await page.locator('#journalImportConfirm').click();
+        await page.waitForFunction(()=>document.getElementById('journalImportStatus').textContent.includes('Восстановлено:'));
+        await page.locator('[data-close="journalImportModal"]').click();
+        assert((await page.locator('#historyContent').textContent()).includes('Тихая практика'),
+          'Restored note is missing from history');
+
+        // Importing the same file cannot duplicate a meditation.
+        await page.locator('#importJournalBtn').click();
+        await page.locator('#journalImportFile').setInputFiles({
+          name:'my-journal.json',mimeType:'application/json',buffer:bytes
+        });
+        await page.locator('#journalImportPreview').waitFor({state:'visible'});
+        assert((await page.locator('#journalImportPreview').textContent()).includes('Новых записей: 0'));
+        await page.locator('#journalImportConfirm').click();
+        assert.equal(await page.locator('.session-item').count(),1);
+        await page.locator('[data-close="journalImportModal"]').click();
+
+        // A corrupt archive must never change the existing diary.
+        await page.locator('#importJournalBtn').click();
+        await page.locator('#journalImportFile').setInputFiles({
+          name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"hello":"no"}')
+        });
+        await page.waitForFunction(()=>document.getElementById('journalImportStatus').textContent.includes('не резервная'));
+        assert(!(await page.locator('#journalImportConfirm').isVisible()));
+        await page.locator('[data-close="journalImportModal"]').click();
+        assert.equal(await page.locator('.session-item').count(),1);
+
+        // Copies kept in a Notes app can also be restored by pasting text.
+        await page.locator('#importJournalBtn').click();
+        await page.locator('#journalImportAdvanced').evaluate(el=>el.open=true);
+        const extra={...entry,id:1700000000002,ts:1700000000002,note:'Из заметок'};
+        await page.locator('#journalImportText').fill(
+          JSON.stringify({...backup,sessions:[entry,extra]})
+        );
+        await page.locator('#journalImportCheckText').click();
+        assert((await page.locator('#journalImportPreview').textContent()).includes('Новых записей: 1'));
+        await page.locator('#journalImportConfirm').click();
+        assert.equal(await page.locator('.session-item').count(),2);
+        await page.locator('[data-close="journalImportModal"]').click();
+      } else {
+        await page.locator('[data-close="journalImportModal"]').click();
+      }
       console.log('PASS viewport '+viewport.width+'x'+viewport.height,
         'player controls',practice.buttons.map(b=>Math.round(b.x)+'+'+Math.round(b.w)).join(' '),
         'profile width',Math.round(profile.profile.width),'stats',profile.cards.length,'page errors',errors.length);
