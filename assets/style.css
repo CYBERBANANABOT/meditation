@@ -944,3 +944,25 @@
 }
 .journal-export-select { margin-top:8px; font-size:12px; }
 
+/* Daily journal backups: two clear actions, detailed fallbacks stay optional. */
+.profile-actions { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.profile-actions .quiet-toggle { margin:0; min-height:44px; text-align:center; font-size:13px; }
+.profile-backup-hint { color:#9391aa; text-align:center; line-height:1.5;
+  font-size:11px; padding:0 6px; margin:3px 0 0; }
+.journal-backup-advanced { margin-top:14px; padding:12px; border-radius:12px;
+  border:1px solid #30304c; background:#141425; }
+.journal-backup-advanced summary { cursor:pointer; color:#d1bdf1; font-size:13px;
+  font-weight:600; line-height:1.4; }
+.journal-backup-advanced p { color:#aea8bc; font-size:12px; line-height:1.55; margin:12px 0; }
+.journal-backup-advanced .journal-export-text { max-height:24vh; }
+.journal-backup-copy, .journal-import-choice, .journal-import-confirm, .journal-import-check {
+  width:100%; min-height:44px; cursor:pointer; padding:10px 14px; border-radius:11px;
+  font:inherit; font-size:13px; font-weight:600;
+}
+.journal-backup-copy, .journal-import-choice, .journal-import-confirm {
+  border:0; color:#fff; background:var(--accent); }
+.journal-import-check { background:#23233b; color:#e2dcef; border:1px solid #343453; }
+.journal-import-preview { background:rgba(164,99,242,.08); border:1px solid rgba(164,99,242,.22);
+  color:#e4d4f7; padding:12px; border-radius:12px; font-size:13px; line-height:1.5; margin:12px 0; }
+.journal-import-confirm { margin-top:10px; }
+.journal-export-actions .primary:disabled, .journal-import-confirm:disabled { opacity:.45; }
