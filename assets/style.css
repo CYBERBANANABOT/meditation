@@ -1202,3 +1202,21 @@
   .screen-practice .player {min-height:0;}
   .screen-practice .practice-tip {line-height:1.4;}
 }
+
+/* Keep the play button visible above the bottom bar on compact phones. */
+@media (max-height:760px) {
+  .screen-practice #orb { width:min(100%,230px,23dvh); }
+  .screen-practice .player { padding-top:3px; padding-bottom:5px; }
+  .screen-practice .home-chakra-info { margin-bottom:6px; }
+  .screen-practice .practice-tip { padding:9px 12px; line-height:1.4; }
+  .duration-wheel-frame { height:108px; }
+  .duration-wheel { height:108px; padding:33px 0; }
+  .duration-wheel-highlight { top:33px; }
+  .home-duration { margin-bottom:3px; }
+}
+@media (max-height:715px) {
+  body { padding-top:10px; }
+  .screen-practice #orb { width:min(100%,210px,20dvh); }
+  .screen-practice .chakra-desc { margin:0; }
+  .screen-practice .practice-tip {margin-top:7px;}
+}
