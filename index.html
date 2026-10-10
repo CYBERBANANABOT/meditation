@@ -840,6 +840,27 @@
   .screen-profile { max-width:700px; margin:0 auto; }
   .player-track-status { text-align:center; color:#a7a9be; font-size:12px; margin:12px 0 0; min-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ctrl-side:disabled { opacity:.3; cursor:default; }
+  .player { position:relative; }
+  .immersive-toggle { display:block; margin:0 auto 12px; padding:9px 16px; border:1px solid #35304a; border-radius:30px; background:#211c31; color:#e9ddf9; font:inherit; font-size:12px; cursor:pointer; }
+  .screen-practice.immersive .chakra-picker,.screen-practice.immersive .chakra-info,.screen-practice.immersive .setting-block,.screen-practice.immersive .timer-display,.screen-practice.immersive .player-track-status,.screen-practice.immersive .practice-streak-note { display:none; }
+  .screen-practice.immersive .player { min-height:calc(100dvh - 120px); display:flex; flex-direction:column; justify-content:center; }
+  .screen-practice.immersive #orb { width:min(100%, 370px); }
+  .screen-practice.immersive .control-bar { margin-top:24px; }
+  .screen-practice.immersive .ctrl-side { opacity:.55; }
+  .mood-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0; }
+  .mood-choice { border:1px solid #353047; background:#221c32; border-radius:12px; color:#ded2e9; padding:12px 8px; font:inherit; font-size:13px; cursor:pointer; }
+  .mood-choice.selected { background:#473169; border-color:#bd94ff; color:white; }
+  .mood-entry { margin-top:8px; font-size:12px; color:#cbb7eb; }
+  .finish-overlay { position:fixed; inset:0; z-index:110; background:rgba(7,5,17,.94); display:none; align-items:center; justify-content:center; padding:22px; text-align:center; backdrop-filter:blur(12px); }
+  .finish-overlay.show { display:flex; animation:finishAppear .7s ease both; }
+  .finish-content { max-width:360px; width:100%; }
+  .finish-orb { margin:auto; width:132px; height:132px; border-radius:50%; background:radial-gradient(circle,#fff 0%,#c9aaff 8%,#9754e3 23%,rgba(125,61,209,.16) 62%,transparent 72%); animation:finishGlow 3.5s ease-in-out infinite alternate; }
+  .finish-content h2 { margin:24px 0 12px; font-size:27px; }
+  .finish-content p { color:#bdb1cb; line-height:1.6; font-size:14px; }
+  .finish-close { margin-top:28px; padding:13px 30px; border:0; border-radius:14px; background:#a463f2; color:white; font:inherit; font-weight:650; cursor:pointer; }
+  @keyframes finishAppear { from {opacity:0} to {opacity:1} }
+  @keyframes finishGlow { from {transform:scale(.9);filter:brightness(.85)} to {transform:scale(1.1);filter:brightness(1.23)} }
+
 </style>
 </head>
 <body>
@@ -861,6 +882,7 @@
   </div>
 
   <div class="player">
+    <button id="immersiveToggle" class="immersive-toggle" type="button" aria-pressed="false">⛶ Режим погружения</button>
     <canvas id="orb" width="600" height="600"></canvas>
     <div class="breath-hint" id="breathHint"></div>
 
@@ -995,7 +1017,13 @@
 <div class="modal" id="noteModal">
   <div class="modal-content" style="max-width: 400px;">
     <div class="modal-header"><h2>Как прошло?</h2></div>
-    <div class="note-subtitle">Одна строка — что чувствуешь сейчас.</div>
+    <div class="note-subtitle">Как ты себя чувствуешь после практики?</div>
+    <div class="mood-options" id="moodOptions">
+      <button type="button" class="mood-choice" data-mood="calm">🌿 Спокойно</button>
+      <button type="button" class="mood-choice" data-mood="lighter">✨ Легче</button>
+      <button type="button" class="mood-choice" data-mood="same">🌙 Без изменений</button>
+      <button type="button" class="mood-choice" data-mood="other">💭 По-разному</button>
+    </div>
     <textarea class="note-textarea" id="noteInput" placeholder="Спокойно. Внимание было глубоким..." maxlength="180"></textarea>
     <div class="note-actions">
       <button class="ghost" id="noteSkip">Пропустить</button>
@@ -1061,6 +1089,12 @@
 
 <input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.ogg,.wav,.flac" multiple hidden>
 <audio id="audioEl" preload="metadata" loop></audio>
+<div id="finishOverlay" class="finish-overlay" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+  <div class="finish-content"><div class="finish-orb" aria-hidden="true"></div>
+    <h2 id="finishTitle">Практика завершена</h2><p id="finishDescription">Этот момент ты посвятил себе.</p>
+    <button id="finishContinue" class="finish-close" type="button">Продолжить</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1410,6 +1444,15 @@ function formatRuDate(dateStr) {
 const orb = document.getElementById('orb');
 const octx = orb.getContext('2d', { alpha: true });
 const breathHint = document.getElementById('breathHint');
+const immersionButton = document.getElementById('immersiveToggle');
+immersionButton.addEventListener('click', () => {
+  const screen = document.getElementById('screen-practice');
+  const active = screen.classList.toggle('immersive');
+  immersionButton.textContent = active ? '↙ Выйти из погружения' : '⛶ Режим погружения';
+  immersionButton.setAttribute('aria-pressed', String(active));
+  // The visualizer stays alive; update its dimensions on the next frame.
+  if (typeof startOrbAnimation === 'function') startOrbAnimation();
+});
 // Canvas renders only when the practice screen is actually visible.
 // Cap internal resolution for phone GPUs (previously 600x600 on every phone).
 const motionPreference = typeof window.matchMedia === 'function'
@@ -1567,6 +1610,17 @@ function drawUniverse(level, progress, t) {
   octx.fillStyle = core;
   octx.beginPath(); octx.arc(cx,cy,coreSize,0,Math.PI*2); octx.fill();
 
+  // Soft breathing ripples; keep Canvas lifecycle and 60 FPS scheduler unchanged.
+  octx.save();
+  octx.globalCompositeOperation = 'screen';
+  for (let i = 0; i < 3; i++) {
+    const phase = (t * 0.105 + i / 3) % 1;
+    const rippleR = R * (0.10 + phase * 0.82) * (0.85 + level * 0.22);
+    octx.beginPath(); octx.arc(cx, cy, rippleR, 0, Math.PI * 2);
+    octx.strokeStyle = rgba(lightRgb, (1-phase) * (0.055 + level*0.048));
+    octx.lineWidth = Math.max(0.7, w*0.0023); octx.stroke();
+  }
+  octx.restore();
   const gravity = 0.55 + 0.45*(1-level);
   for (const s of SPARKS) {
     const angle = s.angle + t*s.drift;
@@ -1738,12 +1792,39 @@ function pauseTimer() {
   updateMainIcon();
   if (canAnimateOrb()) startOrbAnimation();
 }
+// Audio fade is separate from the breathing animation and cancels on user actions.
+let fadeToken = 0;
+const MUSIC_VOLUME = 0.82;
+function stopAudioFade() { fadeToken++; }
+function fadeAudioTo(target, ms = 3500, pauseAtEnd = false) {
+  const token = ++fadeToken;
+  const beginning = audioEl.volume;
+  const started = performance.now();
+  function tick(now) {
+    if (token !== fadeToken) return;
+    const fraction = Math.min(1, (now-started)/ms);
+    const smooth = fraction*fraction*(3-2*fraction);
+    audioEl.volume = beginning + (target-beginning)*smooth;
+    if (fraction < 1) requestAnimationFrame(tick);
+    else if (pauseAtEnd) { audioEl.pause(); audioEl.volume = MUSIC_VOLUME; }
+  }
+  requestAnimationFrame(tick);
+}
+function showFinishMoment(mins, newDay) {
+  const overlay = document.getElementById('finishOverlay');
+  document.getElementById('finishDescription').textContent = `${mins} мин для себя · ${newDay ? '🔥 День засчитан' : 'Сегодняшний день уже засчитан'}.`;
+  overlay.classList.add('show');
+}
+document.getElementById('finishContinue').addEventListener('click', () => {
+  document.getElementById('finishOverlay').classList.remove('show');
+  if (lastSessionId) openNoteModal(lastSessionId);
+});
 function finishTimer() {
   clearInterval(timerInterval);
   timerRunning = false;
   timerDone = true;
   timerElapsed = timerTotalSec;
-  audioEl.pause();
+  if (!audioEl.paused) fadeAudioTo(0, 4500, true);
   if (tg) tg.HapticFeedback?.notificationOccurred('success');
   renderStreak();
   renderTimer();
@@ -1774,7 +1855,7 @@ function finishTimer() {
 
   renderChakraPicker();
   if (profileTab === 'stats') renderProfileStats();
-  setTimeout(() => openNoteModal(entry.id), 500);
+  showFinishMoment(mins, isNewStreakDay);
 }
 function confirmTimerReset() {
   return !(timerRunning || (timerElapsed > 0 && !timerDone)) ||
@@ -1791,7 +1872,7 @@ function resetTimer(newTotalSec) {
   updateMainIcon();
   lastHintState = null;
   if (canAnimateOrb()) startOrbAnimation();
-  if (audioEl && !audioEl.paused) audioEl.pause();
+  if (audioEl && !audioEl.paused) { stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME; }
   return true;
 }
 
@@ -1800,6 +1881,7 @@ const playerTrackStatus = document.getElementById('playerTrackStatus');
 const prevTrackButton = document.getElementById('btnPrevTrack');
 const nextTrackButton = document.getElementById('btnNextTrack');
 let playerRequest = 0;
+audioEl.volume = MUSIC_VOLUME;
 function updateTrackStatus(message) {
   const selected = allTracks[trackIndex];
   playerTrackStatus.textContent = message || (selected ? `♫ ${selected.title}${audioEl.paused ? '' : ' · играет'}` : 'Музыка не выбрана');
@@ -1807,7 +1889,7 @@ function updateTrackStatus(message) {
 }
 function clearTrack() {
   ++playerRequest;
-  audioEl.pause();
+  stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME;
   audioEl.removeAttribute('src');
   audioEl.load();
   trackIndex = 0;
@@ -1819,8 +1901,11 @@ async function playSelectedTrack() {
     audioEl.src = allTracks[trackIndex].src;
   }
   const request = ++playerRequest;
+  stopAudioFade();
+  audioEl.volume = 0;
   try {
     await audioEl.play();
+    if (request === playerRequest) fadeAudioTo(MUSIC_VOLUME, 3500);
     if (request === playerRequest) updateTrackStatus();
   } catch (err) {
     if (request === playerRequest) {
@@ -1834,7 +1919,7 @@ function loadTrack(i, autoplay = false) {
   if (!allTracks.length) { clearTrack(); return; }
   ++playerRequest;
   trackIndex = ((i % allTracks.length) + allTracks.length) % allTracks.length;
-  audioEl.pause();
+  stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME;
   audioEl.src = allTracks[trackIndex].src;
   audioEl.load();
   updateTrackStatus();
@@ -1845,7 +1930,7 @@ document.getElementById('btnMain').addEventListener('click', () => {
   if (timerRunning) {
     pauseTimer();
     ++playerRequest;
-    audioEl.pause();
+    if (!audioEl.paused) fadeAudioTo(0, 700, true);
     updateTrackStatus();
   } else {
     startTimer();
@@ -1875,7 +1960,14 @@ updateMainIcon();
 /* ---------- Заметка ---------- */
 const noteModal = document.getElementById('noteModal');
 const noteInput = document.getElementById('noteInput');
+let chosenMood = '';
+document.querySelectorAll('.mood-choice').forEach(btn => btn.addEventListener('click', () => {
+  chosenMood = btn.dataset.mood;
+  document.querySelectorAll('.mood-choice').forEach(b => b.classList.toggle('selected', b === btn));
+}));
 function openNoteModal(sessionId) {
+  chosenMood = '';
+  document.querySelectorAll('.mood-choice').forEach(b => b.classList.remove('selected'));
   noteInput.value = '';
   noteModal.classList.add('show');
   setTimeout(() => noteInput.focus(), 250);
@@ -1888,9 +1980,13 @@ function closeNoteModal() {
 document.getElementById('noteSkip').addEventListener('click', closeNoteModal);
 document.getElementById('noteSave').addEventListener('click', () => {
   const text = noteInput.value.trim();
-  if (text && lastSessionId) {
+  if (lastSessionId) {
     const s = sessionLog.find(x => x.id === lastSessionId);
-    if (s) { s.note = text; saveSessionLog(); showToast('📝 Заметка сохранена','success'); }
+    if (s && (text || chosenMood)) {
+      s.note = text; s.mood = chosenMood;
+      saveSessionLog();
+      showToast('Ощущения сохранены 🌿','success');
+    }
   }
   closeNoteModal();
 });
@@ -2029,6 +2125,7 @@ function renderSessionsInto(target) {
         <span class="cdot"></span>${chakraName}
       </div>
       ${s.intention && s.intention !== '—' ? `<div class="session-intent">«${escapeHtml(s.intention)}»</div>` : ''}
+      ${s.mood ? `<div class="mood-entry">${({calm:'🌿 Спокойно',lighter:'✨ Легче',same:'🌙 Без изменений',other:'💭 По-разному'})[s.mood] || ''}</div>` : ''}
       ${s.note ? `<div class="session-note">${escapeHtml(s.note)}</div>` : ''}
     </div>`;
   }).join('');
