@@ -42,10 +42,8 @@ test('Unique IDs, correct controls, no blocked zoom',()=>{
   for(const m of script.matchAll(/getElementById\(\s*['"]([^'"]+)['"]\s*\)/g)){
     assert(known.has(m[1]),'Missing DOM element '+m[1]);
   }
-  for(const id of ['practiceHeader','rhythmHeader','timeHeader']){
-    assert(html.includes('id="'+id+'" aria-expanded="false"'));
-  }
-  for(const id of ['welcomeGoalModal','welcomeGoalGrid','scanChimeButton','exportJournalBtn',
+  for(const id of ['welcomeGoalModal','welcomeGoalGrid','changeChakraBtn','chakraNameWrap',
+    'chakraName','chakraDesc','practiceTip','durationWheel','btnMain','exportJournalBtn',
     'importJournalBtn','journalImportFile','journalImportConfirm','journalExportModal',
     'journalImportModal','practiceRecoveryModal','finishOverlay','myTracksList','audioEl']){
     assert(known.has(id),'Missing '+id);
@@ -82,19 +80,16 @@ test('Every HTML container closes correctly; practice and profile cannot overlap
     assert(ids.get(id).includes(ancestor),
       '#'+id+' escaped its expected parent #'+ancestor+'; actual ancestors: '+ids.get(id).join(','));
   }
-  for(const id of ['btnMain','homeChakraName','durationWheel','homeTimerRemaining',
-    'playerTrackStatus','btnTracks','btnPrevTrack','btnNextTrack','btnAddTrack']){
+  for(const id of ['btnMain','chakraNameWrap','changeChakraBtn','chakraDesc',
+    'practiceTip','durationWheel','homeTimerRemaining','playerTrackStatus',
+    'btnTracks','btnPrevTrack','btnNextTrack','btnAddTrack']){
     inside(id,'screen-practice');
-  }
-  for(const id of ['goalGrid','chakraNameWrap','practiceBlock','rhythmBlock','timeBlock',
-    'timerDisplay','settingsMusicLibrary','settingsMusicUpload']){
-    inside(id,'screen-settings');
   }
   inside('welcomeGoalGrid','welcomeGoalModal');
   inside('profileBody','screen-profile');
   inside('streakNum','screen-profile');
   inside('exportJournalBtn','screen-profile');
-  for(const id of ['screen-practice','screen-settings','screen-profile']) {
+  for(const id of ['screen-practice','screen-profile']) {
     assert.equal(ids.get(id).length,0,'Screen must be a direct child of body');
   }
   assert(!ids.get('screen-profile').includes('screen-practice'),
@@ -147,18 +142,18 @@ test('Timer deadlines, audio fallback and repeat session',()=>{
     assert(script.includes(key),'Missing '+key);
   }
 });
-test('Controls and defaults remain consistent',()=>{
-  for(const id of ['rIn','rOut','rHold','rEmpty']){
-    const m=html.match(new RegExp('<input[^>]+id="'+id+'"[^>]+>'));
-    assert(m&&m[0].includes('max="20"'),'Mismatch '+id);
+test('Two-screen navigation and chakra choice reuse startup modal',()=>{
+  const nav=[...html.matchAll(/data-screen="([^"]+)"/g)].map(m=>m[1]);
+  assert.deepEqual(nav,['practice','profile']);
+  assert(!html.includes('screen-settings') && !html.includes('customRhythmModal'));
+  assert(!html.includes('timeExactInput') && !script.includes('timeExactInput'));
+  assert(!html.includes('immersiveToggle'));
+  for(const fn of ['commitPracticeMinutes','showWelcomeGoal',
+    'selectMeditationGoal','openGoalSelection','closeGoalWelcome','renderTimer']){
+    assert(script.includes('function '+fn+'('),'Missing '+fn);
   }
-  for(const key of ['commitPracticeMinutes(',
-    "storageGetP('scanChime')",'function playScanChime()',
-    'motionPreference.matches','function showWelcomeGoal()',
-    'function selectMeditationGoal('])assert(script.includes(key));
-  assert(!html.includes('timeExactInput') && !script.includes('timeExactInput'),
-    'The exact minutes field should be removed');
-  assert(!html.includes('immersiveToggle'), 'The old immersive mode button should not exist');
+  for(const key of ["storageGetP('scanChime')",'function playScanChime()',
+    'motionPreference.matches'])assert(script.includes(key));
   assert(css.includes('prefers-reduced-motion'));
 });
 console.log('Smoke suite running against '+(modular?'modular':'inline')+' version');
