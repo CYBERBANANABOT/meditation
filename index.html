@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Медитации</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
@@ -356,6 +356,19 @@
     font-size: 14px; opacity: .6; padding: 0 2px;
   }
   .setting-block.hidden { display: none; }
+  [hidden] { display:none !important; }
+  .setting-header { width:100%; background:transparent; border:0; color:inherit; font:inherit; text-align:left; }
+  .setting-header:focus-visible, .quiet-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+  .quiet-toggle { width:100%; padding:10px 12px; margin-top:8px; border:1px solid rgba(164,99,242,.3);
+    border-radius:10px; background:rgba(164,99,242,.08); color:#e7d8f7; cursor:pointer; font:inherit; font-size:12px; text-align:left; }
+  .time-exact-label { display:flex; align-items:center; justify-content:space-between; gap:12px;
+    color:#a7a9be; font-size:12px; padding:12px 2px 2px; }
+  #timeExactInput { width:86px; padding:8px 10px; border:1px solid rgba(164,99,242,.35);
+    border-radius:9px; background:#1c1c38; color:#fff; font:inherit; font-size:16px; text-align:center; }
+  @media (prefers-reduced-motion: reduce) {
+    .screen.active { animation:none; }
+    * { scroll-behavior:auto !important; }
+  }
 
   /* ============ Слайдеры ============ */
   .slider-wrap {
@@ -926,38 +939,41 @@
   <div class="player">
     <button id="immersiveToggle" class="immersive-toggle" type="button" aria-pressed="false">⛶ Режим погружения</button>
     <canvas id="orb" width="600" height="600"></canvas>
-    <div class="breath-hint" id="breathHint"></div>
+    <div class="breath-hint" id="breathHint" role="status" aria-live="off"></div>
 
     <div class="setting-block" id="practiceBlock">
-      <div class="setting-header" id="practiceHeader">
+      <button type="button" class="setting-header" id="practiceHeader" aria-expanded="false" aria-controls="practicePicker">
         <span class="setting-label">Практика</span>
         <span class="setting-value">
           <b id="practiceValue">Дыхание</b>
           <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </span>
-      </div>
+      </button>
       <div class="setting-options slider-mode" id="practicePicker">
         <div class="slider-wrap">
-          <input type="range" class="custom-range" id="practiceSlider" min="0" max="1" step="1" value="0">
+          <input type="range" class="custom-range" id="practiceSlider" aria-label="Тип медитации" min="0" max="1" step="1" value="0">
           <div class="slider-marks">
             <span id="practiceMark0" class="active">Дыхание</span>
             <span id="practiceMark1">Скан тела</span>
           </div>
         </div>
+          </div>
+<button type="button" id="scanChimeButton" class="quiet-toggle" aria-pressed="false" hidden>♪ Сигнал смены этапов: выкл.</button>
+        </div>
       </div>
     </div>
 
     <div class="setting-block" id="rhythmBlock">
-      <div class="setting-header" id="rhythmHeader">
+      <button type="button" class="setting-header" id="rhythmHeader" aria-expanded="false" aria-controls="rhythmPicker">
         <span class="setting-label">Дыхание</span>
         <span class="setting-value">
           <b id="rhythmValue">4-4</b>
           <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </span>
-      </div>
+      </button>
       <div class="setting-options slider-mode" id="rhythmPicker">
         <div class="slider-wrap">
-          <input type="range" class="custom-range" id="rhythmSlider" min="0" max="0" step="1" value="0">
+          <input type="range" class="custom-range" id="rhythmSlider" aria-label="Ритм дыхания" min="0" max="0" step="1" value="0">
           <div class="slider-marks" id="rhythmMarks"></div>
         </div>
         <div class="rhythm-actions">
@@ -968,20 +984,20 @@
     </div>
 
     <div class="setting-block" id="timeBlock">
-      <div class="setting-header" id="timeHeader">
+      <button type="button" class="setting-header" id="timeHeader" aria-expanded="false" aria-controls="presets">
         <span class="setting-label">Длительность</span>
         <span class="setting-value">
           <b id="timeValue">10 мин</b>
           <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         </span>
-      </div>
+      </button>
       <div class="setting-options slider-mode" id="presets">
         <div class="slider-wrap">
           <div class="slider-head">
             <span class="hint-mini">Минуты</span>
             <span class="big-val" id="timeBigVal">10</span>
           </div>
-          <input type="range" class="custom-range" id="timeSlider" min="1" max="180" step="1" value="10">
+          <input type="range" class="custom-range" id="timeSlider" aria-label="Длительность медитации в минутах" min="1" max="180" step="1" value="10">
           <div class="slider-marks">
             <span>1 мин</span>
             <span>90 мин</span>
@@ -994,6 +1010,10 @@
           <button data-min="15">15</button>
           <button data-min="30">30</button>
           <button data-min="60">60</button>
+          </div>
+<label class="time-exact-label" for="timeExactInput">Точно, минут
+  <input type="number" inputmode="numeric" id="timeExactInput" min="1" max="180" step="1" value="10">
+</label>
         </div>
       </div>
     </div>
@@ -1001,19 +1021,19 @@
     <div class="timer-display" id="timerDisplay">10:00</div>
 
     <div class="control-bar">
-      <button class="ctrl-side" id="btnTracks" title="Треки">
+      <button class="ctrl-side" id="btnTracks" aria-label="Выбрать музыку" title="Треки">
         <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
       </button>
-      <button class="ctrl-side" id="btnPrevTrack" title="Прошлый">
+      <button class="ctrl-side" id="btnPrevTrack" aria-label="Предыдущий трек" title="Прошлый">
         <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
       </button>
-      <button class="ctrl-play" id="btnMain" title="Старт">
+      <button class="ctrl-play" id="btnMain" aria-label="Начать или приостановить медитацию" title="Старт">
         <svg id="mainIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </button>
-      <button class="ctrl-side" id="btnNextTrack" title="Следующий">
+      <button class="ctrl-side" id="btnNextTrack" aria-label="Следующий трек" title="Следующий">
         <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
       </button>
-      <button class="ctrl-side" id="btnAddTrack" title="Добавить трек">
+      <button class="ctrl-side" id="btnAddTrack" aria-label="Добавить свою музыку" title="Добавить трек">
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       </button>
     </div>
@@ -1035,6 +1055,9 @@
     <div id="streakWeek" class="streak-week"></div>
   </div>
 
+  <div class="profile-actions">
+    <button type="button" id="exportJournalBtn" class="quiet-toggle">↓ Сохранить мой дневник</button>
+  </div>
   <div class="profile-tabs">
     <button class="profile-tab active" data-ptab="stats">Статистика</button>
     <button class="profile-tab" data-ptab="history">История</button>
@@ -1126,22 +1149,22 @@
     </div>
     <div class="custom-rhythm-row">
       <label>Вдох</label>
-      <input type="number" id="rIn" min="1" max="30" value="4">
+      <input type="number" id="rIn" min="1" max="20" value="4">
       <span class="hint">сек</span>
     </div>
     <div class="custom-rhythm-row">
       <label>Задержка</label>
-      <input type="number" id="rHold" min="0" max="30" value="0">
+      <input type="number" id="rHold" min="0" max="20" value="0">
       <span class="hint">сек</span>
     </div>
     <div class="custom-rhythm-row">
       <label>Выдох</label>
-      <input type="number" id="rOut" min="1" max="30" value="4">
+      <input type="number" id="rOut" min="1" max="20" value="4">
       <span class="hint">сек</span>
     </div>
     <div class="custom-rhythm-row">
       <label>Пауза</label>
-      <input type="number" id="rEmpty" min="0" max="30" value="0">
+      <input type="number" id="rEmpty" min="0" max="20" value="0">
       <span class="hint">сек</span>
     </div>
     <div class="rhythm-preview" id="rhythmPreview">Цикл: <b>8 сек</b></div>
@@ -1412,6 +1435,42 @@ function rebuildAllRhythms() {
 }
 
 /* ---------- Скан тела ---------- */
+let scanChimeEnabled = false;
+let scanAudibleStep = -1;
+let scanChimeContext = null;
+function armScanChime() {
+  if (!scanChimeEnabled) return;
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context) return;
+  try {
+    if (!scanChimeContext) scanChimeContext = new Context();
+    if (scanChimeContext.state === 'suspended') {
+      void scanChimeContext.resume().catch(() => {});
+    }
+  } catch(e) { console.warn('Chime unavailable:',e); }
+}
+function playScanChime() {
+  if (!scanChimeEnabled || document.hidden || !timerRunning) return;
+  try {
+    armScanChime();
+    if (!scanChimeContext || scanChimeContext.state !== 'running') return;
+    const ctx = scanChimeContext;
+    const at = ctx.currentTime;
+    const tone = ctx.createOscillator();
+    const volume = ctx.createGain();
+    tone.type = 'sine';
+    tone.frequency.setValueAtTime(740,at);
+    tone.frequency.exponentialRampToValueAtTime(590,at+0.38);
+    volume.gain.setValueAtTime(0.0001,at);
+    volume.gain.exponentialRampToValueAtTime(0.018,at+0.025);
+    volume.gain.exponentialRampToValueAtTime(0.0001,at+0.46);
+    tone.connect(volume).connect(ctx.destination);
+    tone.start(at);
+    tone.stop(at+0.48);
+    tone.onended = () => { tone.disconnect(); volume.disconnect(); };
+  } catch(e) { console.warn('Chime playback:',e); }
+}
+
 const SCAN_PARTS = ['Стопы','Голени','Колени','Бёдра','Живот','Грудь','Кисти рук','Плечи','Шея','Лицо','Макушка','Всё тело'];
 let practiceMode = 'breath';
 
@@ -1548,15 +1607,12 @@ let currentPresetMin = 10;
 let sessionLog = [];
 let lastSessionId = null;
 
-function isChakraUnlocked(idx, progress) {
-  return idx >= 0 && idx < CHAKRAS.length;
-}
 function findCurrentUnlocked(savedKey, progress) {
   return CHAKRAS.some(c => c.key === savedKey) ? savedKey : CHAKRAS[0].key;
 }
 
 /* ---------- Уровни ---------- */
-function getTotalXP() {
+function getTotalMeditationMinutes() {
   return Object.values(chakraProgress).reduce((s, v) => s + (v || 0), 0);
 }
 
@@ -1661,6 +1717,7 @@ const NEBULAS = [
 const nebulaPhases = NEBULAS.map(()=>Math.random()*Math.PI*2);
 
 function drawUniverse(level, progress, t) {
+  if (motionPreference.matches) t = 0;
   const w = orb.width, h = orb.height;
   const cx = w/2, cy = h/2;
   const R = w*0.42, R_MAX = R*1.18;
@@ -1832,6 +1889,10 @@ function animateOrb(now) {
   // makes the visualization look broken. It does not affect the practice timer.
   const ambientSeconds = now / 1000;
   const res = breathing(isIdle ? ambientSeconds : secondsInCycle);
+  if (!isIdle && res.phaseName === 'scan') {
+    if (scanAudibleStep >= 0 && scanAudibleStep !== res.scanIdx) playScanChime();
+    scanAudibleStep = res.scanIdx;
+  } else scanAudibleStep = -1;
 
   if (isIdle) {
     if (lastHintState !== 'idle') { lastHintState = 'idle'; breathHint.textContent = ''; }
@@ -1867,7 +1928,11 @@ function animateOrb(now) {
 }
 if (motionPreference.addEventListener) motionPreference.addEventListener('change', startOrbAnimation);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { saveActivePractice(); stopOrbAnimation(); }
+  if (document.hidden) {
+    if (timerRunning && currentElapsed() >= timerTotalSec) finishTimer();
+    saveActivePractice();
+    stopOrbAnimation();
+  }
   else {
     if (timerRunning && currentElapsed() >= timerTotalSec) finishTimer();
     else if (typeof renderTimer === 'function') renderTimer();
@@ -1937,6 +2002,20 @@ let timerStartMs = null;
 let timerRunning = false;
 let timerDone = false;
 let timerInterval = null;
+let timerDeadlineTimeout = null;
+function clearTimerDeadline() {
+  if (timerDeadlineTimeout !== null) clearTimeout(timerDeadlineTimeout);
+  timerDeadlineTimeout = null;
+}
+function armTimerDeadline() {
+  clearTimerDeadline();
+  if (!timerRunning) return;
+  timerDeadlineTimeout = setTimeout(() => {
+    if (!timerRunning) return;
+    if (currentElapsed() >= timerTotalSec) finishTimer();
+    else armTimerDeadline();
+  }, Math.max(30,Math.ceil((timerTotalSec-currentElapsed())*1000)));
+}
 const timerDisplay = document.getElementById('timerDisplay');
 const mainIcon = document.getElementById('mainIcon');
 const ICON_PLAY = 'M8 5v14l11-7z';
@@ -1962,6 +2041,8 @@ function startTimer() {
   if (timerRunning || timerDone) return;
   timerRunning = true;
   timerStartMs = performance.now();
+  armScanChime();
+  armTimerDeadline();
   timerInterval = setInterval(() => {
     if (currentElapsed() >= timerTotalSec) finishTimer();
     else {
@@ -1976,6 +2057,7 @@ function startTimer() {
 window.addEventListener('pagehide', saveActivePractice);
 function pauseTimer() {
   if (!timerRunning) return;
+  clearTimerDeadline();
   timerElapsed += (performance.now() - timerStartMs)/1000;
   timerRunning = false;
   saveActivePractice();
@@ -1990,6 +2072,11 @@ const MUSIC_VOLUME = 0.82;
 function stopAudioFade() { fadeToken++; }
 function fadeAudioTo(target, ms = 3500, pauseAtEnd = false) {
   const token = ++fadeToken;
+  if (document.hidden) {
+    audioEl.volume = target;
+    if (pauseAtEnd) { audioEl.pause(); audioEl.volume = MUSIC_VOLUME; }
+    return;
+  }
   const beginning = audioEl.volume;
   const started = performance.now();
   function tick(now) {
@@ -2013,12 +2100,17 @@ document.getElementById('finishContinue').addEventListener('click', () => {
 });
 function finishTimer() {
   if (timerDone) return;
+  clearTimerDeadline();
   clearSavedPractice();
   clearInterval(timerInterval);
   timerRunning = false;
   timerDone = true;
   timerElapsed = timerTotalSec;
-  if (!audioEl.paused) fadeAudioTo(0, 4500, true);
+  if (!audioEl.paused) {
+    if (document.hidden) {
+      stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME;
+    } else fadeAudioTo(0, 4500, true);
+  }
   if (tg) tg.HapticFeedback?.notificationOccurred('success');
   renderStreak();
   renderTimer();
@@ -2053,6 +2145,7 @@ function confirmTimerReset() {
     confirm('Текущая медитация будет сброшена. Продолжить?');
 }
 function resetTimer(newTotalSec, preserveRecovery = false) {
+    clearTimerDeadline();
     if (!preserveRecovery) clearSavedPractice();
     clearInterval(timerInterval);
   timerRunning = false;
@@ -2063,6 +2156,7 @@ function resetTimer(newTotalSec, preserveRecovery = false) {
   renderTimer();
   updateMainIcon();
   lastHintState = null;
+  scanAudibleStep = -1;
   if (canAnimateOrb()) startOrbAnimation();
   if (audioEl && !audioEl.paused) { stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME; }
   return true;
@@ -2145,9 +2239,22 @@ prevTrackButton.addEventListener('click', () => {
   } else loadTrack(trackIndex - 1, timerRunning);
 });
 audioEl.addEventListener('play', () => updateTrackStatus());
+audioEl.addEventListener('waiting', () => {
+  if (!audioEl.paused) updateTrackStatus('♫ Загрузка музыки…');
+});
+audioEl.addEventListener('stalled', () => {
+  if (!audioEl.paused) updateTrackStatus('♫ Ожидание сети…');
+});
+audioEl.addEventListener('playing', () => updateTrackStatus());
+audioEl.addEventListener('timeupdate', () => {
+  if (timerRunning && currentElapsed() >= timerTotalSec) finishTimer();
+});
 audioEl.addEventListener('pause', () => updateTrackStatus());
 audioEl.addEventListener('error', () => {
-  if (allTracks.length) updateTrackStatus('Не удаётся прочитать аудиофайл');
+    if (allTracks.length) {
+      updateTrackStatus('Не удаётся прочитать аудиофайл');
+      showToast('Проблема с музыкой. Практика продолжится без звука');
+    }
 });
 updateTrackStatus();
 renderTimer();
@@ -2238,6 +2345,27 @@ document.querySelectorAll('.bottom-tab').forEach(btn => {
 });
 
 /* ---------- Профиль ---------- */
+document.getElementById('exportJournalBtn').addEventListener('click', () => {
+  try {
+    const data = {
+      format: 'meditation-journal', version: 1, exportedAt: new Date().toISOString(),
+      sessions: sessionLog, streak
+    };
+    const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'meditation-journal-' + todayStr() + '.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url),60000);
+    showToast('Дневник подготовлен к сохранению','success');
+  } catch(e) {
+    console.warn('Journal export:',e);
+    showToast('Не удалось экспортировать дневник');
+  }
+});
 let profileTab = 'stats';
 
 document.querySelectorAll('.profile-tab').forEach(tab => {
@@ -2256,7 +2384,7 @@ function renderProfile() {
 }
 
 function renderProfileStats() {
-  const totalMinutes = getTotalXP();
+  const totalMinutes = getTotalMeditationMinutes();
   const avgMin = sessionsCount ? Math.round(totalMinutes / sessionsCount) : 0;
   const body = document.getElementById('profileBody');
   body.innerHTML = `
@@ -2271,31 +2399,6 @@ function renderProfileStats() {
 function getVisibleStreakCount() {
   if (!streak.lastDate) return 0;
   return (streak.lastDate === todayStr() || streak.lastDate === yesterdayStr()) ? streak.count : 0;
-}
-
-function renderProgress() {
-  const progressEl = document.getElementById('chakraProgress');
-  if (!progressEl) return;
-  const totalEl = document.getElementById('chakraTotal');
-
-  progressEl.innerHTML = CHAKRAS.map(c => `
-    <div class="chakra-bar" style="--c:${c.color}" title="${c.name}">
-      <div class="chakra-bar-fill" id="bar-${c.key}" style="height:0%"></div>
-    </div>
-  `).join('');
-
-  const values = CHAKRAS.map(c => chakraProgress[c.key] || 0);
-  const max = Math.max(30, ...values);
-  CHAKRAS.forEach(c => {
-    const mins = chakraProgress[c.key] || 0;
-    const pct = Math.min(100, (mins/max)*100);
-    const el = document.getElementById('bar-'+c.key);
-    if (el) el.style.height = pct + '%';
-  });
-  if (totalEl) {
-    const current = chakraProgress[currentChakra] || 0;
-    totalEl.innerHTML = `Накоплено: <b>${current} мин</b>`;
-  }
 }
 
 
@@ -2471,9 +2574,6 @@ function openGuide(chakraKey) {
     storageSet('userIntentions', JSON.stringify(userIntentions));
     resetSessionIntention(chakraKey);
     openGuide(chakraKey);
-    if (chakraKey === currentChakra) {
-
-    }
     showToast('✨ Фраза добавлена', 'success');
   });
 
@@ -2485,9 +2585,6 @@ function openGuide(chakraKey) {
       storageSet('userIntentions', JSON.stringify(userIntentions));
       resetSessionIntention(chakraKey);
       openGuide(chakraKey);
-      if (chakraKey === currentChakra) {
-
-      }
     });
   });
 }
@@ -2503,6 +2600,18 @@ const practiceMark0 = document.getElementById('practiceMark0');
 const practiceMark1 = document.getElementById('practiceMark1');
 
 const PRACTICE_MODES = ['breath', 'scan'];
+document.getElementById('scanChimeButton').addEventListener('click', () => {
+  scanChimeEnabled = !scanChimeEnabled;
+  storageSet('scanChime',scanChimeEnabled ? '1' : '0');
+  armScanChime();
+  renderPracticeUI();
+});
+
+function syncSettingsExpanded() {
+  for (const [header, block] of [
+    ['practiceHeader',practiceBlock],['rhythmHeader',rhythmBlock],['timeHeader',timeBlock]
+  ]) document.getElementById(header).setAttribute('aria-expanded',String(block.classList.contains('open')));
+}
 
 function renderPracticeUI() {
   const idx = PRACTICE_MODES.indexOf(practiceMode);
@@ -2511,6 +2620,10 @@ function renderPracticeUI() {
   practiceMark0.classList.toggle('active', practiceMode === 'breath');
   practiceMark1.classList.toggle('active', practiceMode === 'scan');
   rhythmBlock.classList.toggle('hidden', practiceMode === 'scan');
+  const chime = document.getElementById('scanChimeButton');
+  chime.hidden = practiceMode !== 'scan';
+  chime.textContent = '♪ Сигнал смены этапов: ' + (scanChimeEnabled ? 'вкл.' : 'выкл.');
+  chime.setAttribute('aria-pressed', String(scanChimeEnabled));
 }
 
 practiceHeader.addEventListener('click', () => {
@@ -2519,6 +2632,7 @@ practiceHeader.addEventListener('click', () => {
     rhythmBlock.classList.remove('open');
     timeBlock.classList.remove('open');
   }
+  syncSettingsExpanded();
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
 
@@ -2572,6 +2686,7 @@ rhythmHeader.addEventListener('click', () => {
     timeBlock.classList.remove('open');
     practiceBlock.classList.remove('open');
   }
+  syncSettingsExpanded();
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
 
@@ -2671,6 +2786,7 @@ const timeHeader = document.getElementById('timeHeader');
 const timeValue = document.getElementById('timeValue');
 const timeBigVal = document.getElementById('timeBigVal');
 const timeSlider = document.getElementById('timeSlider');
+const timeExactInput = document.getElementById('timeExactInput');
 const quickPresets = document.getElementById('quickPresets');
 
 const MIN_TIME = 1;
@@ -2679,6 +2795,7 @@ const MAX_TIME = 180;
 function updateTimeUI(min) {
   timeValue.textContent = `${min} мин`;
   timeBigVal.textContent = min;
+  timeExactInput.value = String(min);
   quickPresets.querySelectorAll('button').forEach(b => {
     b.classList.toggle('active', parseInt(b.dataset.min) === min);
   });
@@ -2698,6 +2815,7 @@ timeHeader.addEventListener('click', () => {
     rhythmBlock.classList.remove('open');
     practiceBlock.classList.remove('open');
   }
+  syncSettingsExpanded();
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
 
@@ -2706,25 +2824,32 @@ timeSlider.addEventListener('input', () => {
   updateTimeUI(v);
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
+function commitPracticeMinutes(min) {
+  if (!Number.isInteger(min) || min < MIN_TIME || min > MAX_TIME) {
+    showToast('Выбери длительность от 1 до 180 минут');
+    renderPresets();
+    return;
+  }
+  if (min === currentPresetMin) { renderPresets(); return; }
+  if (!confirmTimerReset()) { renderPresets(); return; }
+  currentPresetMin = min;
+  storageSet('activePreset', String(min));
+  resetTimer(min * 60);
+  renderPresets();
+}
 timeSlider.addEventListener('change', () => {
-  const v = Math.min(MAX_TIME, Math.max(MIN_TIME, parseInt(timeSlider.value) || MIN_TIME));
-  if (v === currentPresetMin) return;
-  if (!confirmTimerReset()) { renderPresets(); return; }
-  currentPresetMin = v;
-  storageSet('activePreset', String(v));
-  resetTimer(v * 60);
-  renderPresets();
+  commitPracticeMinutes(Number(timeSlider.value));
 });
-
-quickPresets.addEventListener('click', e => {
-  const btn = e.target.closest('button[data-min]');
-  if (!btn) return;
-  const v = parseInt(btn.dataset.min);
-  if (!confirmTimerReset()) { renderPresets(); return; }
-  currentPresetMin = v;
-  storageSet('activePreset', String(v));
-  resetTimer(v * 60);
-  renderPresets();
+timeExactInput.addEventListener('change', () => {
+  commitPracticeMinutes(Number(timeExactInput.value));
+});
+timeExactInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter') timeExactInput.blur();
+});
+quickPresets.addEventListener('click', event => {
+  const button = event.target.closest('button[data-min]');
+  if (!button) return;
+  commitPracticeMinutes(Number(button.dataset.min));
   if (tg) tg.HapticFeedback?.selectionChanged();
 });
 
@@ -2792,7 +2917,7 @@ fileInput.addEventListener('change', async (e) => {
   if (!files.length) return;
   let added = 0;
   for (const file of files) {
-    if (!file.type.startsWith('audio/')) { showToast('Можно добавлять только аудиофайлы'); continue; }
+    if (!file.type.startsWith('audio/') && !/\.(mp3|m4a|aac|ogg|wav|flac)$/i.test(file.name)) { showToast('Можно добавлять только аудиофайлы'); continue; }
     if (file.size > 40 * 1024 * 1024) { showToast('Трек больше 40 МБ. Выбери файл поменьше'); continue; }
     try {
       const id = await dbAddTrack(file.name, file);
@@ -2922,7 +3047,7 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
 /* ---------- Инициализация ---------- */
 (async () => {
 
-  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, logVal, pmVal, uiVal, urVal] = await Promise.all([
+  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, logVal, pmVal, uiVal, urVal, chimeVal] = await Promise.all([
     storageGetP('streak'),
     storageGetP('chakraProgress'),
     storageGetP('activeChakra'),
@@ -2932,7 +3057,8 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
     loadSessionLog(),
     storageGetP('practiceMode'),
     storageGetP('userIntentions'),
-    storageGetP('userRhythms')
+    storageGetP('userRhythms'),
+    storageGetP('scanChime')
   ]);
 
   if (streakVal) { try { streak = JSON.parse(streakVal); } catch(e){} }
@@ -2942,6 +3068,7 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
   if (uiVal) { try { userIntentions = JSON.parse(uiVal) || {}; } catch(e){} }
   if (urVal) { try { userRhythms = JSON.parse(urVal) || []; } catch(e){} }
   if (pmVal === 'scan' || pmVal === 'breath') practiceMode = pmVal;
+  scanChimeEnabled = chimeVal === '1';
   if (apVal) {
     const n = parseInt(apVal);
     if (n >= MIN_TIME && n <= MAX_TIME) currentPresetMin = n;
