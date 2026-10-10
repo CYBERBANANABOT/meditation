@@ -18,7 +18,12 @@ jobs:
       - name: Check JavaScript syntax
         shell: bash
         run: |
-          if test -f assets/app.js; then
+          if test -f assets/ui.js; then
+            for file in assets/core.js assets/visualizer.js assets/session.js assets/ui.js; do
+              test -s "$file"
+              node --check "$file"
+            done
+          elif test -f assets/app.js; then
             node --check assets/app.js
           else
             python3 - <<'PY'
