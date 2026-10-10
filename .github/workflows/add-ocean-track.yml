@@ -1,0 +1,216 @@
+name: Add ocean meditation track
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/add-ocean-track.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install audio tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Download authentic licensed ocean waves
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 180 \
+            --user-agent "MeditationMiniApp/1.0 (GitHub project CYBERBANANABOT/meditation)" \
+            -o /tmp/ocean-waves.ogg \
+            'https://commons.wikimedia.org/wiki/Special:Redirect/file/Oceanwavescrushing.ogg'
+          test "$(stat -c%s /tmp/ocean-waves.ogg)" -gt 200000
+      - name: Produce relaxed 36-minute piano plus ocean recording
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+
+          def run(*cmd):
+              subprocess.run(list(cmd), check=True)
+
+          def duration(path):
+              return float(subprocess.check_output(
+                  ['ffprobe','-v','error','-show_entries','format=duration',
+                   '-of','default=noprint_wrappers=1:nokey=1',str(path)], text=True).strip())
+
+          waves = Path('/tmp/ocean-waves.ogg')
+          music = Path('assets/peace-of-mind.mp3')
+          out = Path('assets/ocean-harmony.mp3')
+          assert waves.stat().st_size > 200000, 'Wave file too small'
+          ocean_duration = duration(waves)
+          music_duration = duration(music)
+          assert 95 < ocean_duration < 180, f'Unexpected ocean audio length: {ocean_duration}'
+          assert 2100 < music_duration < 2300, f'Unexpected music length: {music_duration}'
+
+          # Overlap the final seven seconds of the shore recording with the
+          # first seven seconds. The next loop starts precisely where the
+          # overlapping introductory segment ends, avoiding an audible seam.
+          crossfade = 7.0
+          cut = ocean_duration - crossfade
+          smooth_wave_filter = (
+              f'[0:a]asplit=3[begin][center][end];'
+              f'[begin]atrim=start=0:end={crossfade},asetpts=PTS-STARTPTS[head];'
+              f'[center]atrim=start={crossfade}:end={cut},asetpts=PTS-STARTPTS[mid];'
+              f'[end]atrim=start={cut}:end={ocean_duration},asetpts=PTS-STARTPTS[tail];'
+              f'[tail][head]acrossfade=d={crossfade}:c1=tri:c2=tri[join];'
+              f'[mid][join]concat=n=2:v=0:a=1,aresample=44100[loop]'
+          )
+          smooth_waves = Path('/tmp/seamless-waves.wav')
+          run('ffmpeg','-nostdin','-hide_banner','-loglevel','error','-y',
+              '-i',str(waves),'-filter_complex',smooth_wave_filter,
+              '-map','[loop]','-ac','2','-ar','44100','-c:a','pcm_s16le',str(smooth_waves))
+          assert duration(smooth_waves) > 90
+
+          # The piano stays audible while genuine coastal waves are
+          # prominently present, with a soft beginning and finish.
+          end_fade = music_duration - 5
+          final_mix_filter = (
+              '[0:a]highpass=f=75,lowpass=f=5400,volume=0.40[sea];'
+              '[1:a]volume=0.68[piano];'
+              '[piano][sea]amix=inputs=2:duration=first:normalize=0,'
+              'alimiter=limit=0.92,'
+              'afade=t=in:st=0:d=4,'
+              f'afade=t=out:st={end_fade}:d=5[mixed]'
+          )
+          run('ffmpeg','-nostdin','-hide_banner','-loglevel','error','-y',
+              '-stream_loop','-1','-i',str(smooth_waves),
+              '-i',str(music),
+              '-filter_complex',final_mix_filter,'-map','[mixed]',
+              '-c:a','libmp3lame','-b:a','96k','-ar','44100','-ac','2',
+              '-metadata','title=Ocean Harmony / Океанская гармония',
+              '-metadata','artist=Kevin MacLeod (piano); Luftrum (ocean recording)',
+              '-metadata','comment=Music CC BY 4.0; Sea CC BY 3.0. Details: assets/MUSIC-LICENSE.md',
+              str(out))
+          final_duration = duration(out)
+          assert abs(final_duration - music_duration) < 3, (final_duration, music_duration)
+          assert 10000000 < out.stat().st_size < 40000000, out.stat().st_size
+          print('Ocean track:', out.stat().st_size, 'bytes;', final_duration, 'seconds')
+          PY
+      - name: Add second built-in track and attribution; validate JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          import tempfile
+
+          file = Path('index.html')
+          content = file.read_text(encoding='utf-8')
+
+          def change(before, after):
+              global content
+              count = content.count(before)
+              if count != 1:
+                  raise ValueError(f'Expected one exact match, got {count}: {before[:100]}')
+              content = content.replace(before, after, 1)
+
+          change(
+              "allTracks = [{title:'Спокойствие · фортепиано', src:'assets/peace-of-mind.mp3', _builtin:true}, ...userTracks.map(t => {",
+              """allTracks = [
+                  {title:'Спокойствие · фортепиано', src:'assets/peace-of-mind.mp3', _builtin:true},
+                  {title:'Океанская гармония · музыка и волны', src:'assets/ocean-harmony.mp3', _builtin:true},
+                  ...userTracks.map(t => {"""
+          )
+          change(
+              """  myTracksList.innerHTML = `<div class="track-item" style="border:1px solid rgba(164,99,242,.26)"><span class="name">✦ Спокойствие · фортепиано</span><span class="size">36 мин · длинная композиция</span></div>` + userTracks.map(t => `""",
+              """  myTracksList.innerHTML = allTracks.filter(t => t._builtin).map((t, i) => `
+              <button type="button" class="track-item builtin-track ${trackIndex === i ? 'selected' : ''}" data-index="${i}" aria-pressed="${trackIndex === i}">
+                <span class="name">✦ ${escapeHtml(t.title)}</span><span class="size">36 мин</span>
+              </button>
+              `).join('') + userTracks.map(t => `"""
+          )
+          change(
+              "  .track-item .name {",
+              """  .track-item.builtin-track { width:100%; border:1px solid rgba(164,99,242,.25); text-align:left; font:inherit; cursor:pointer; }
+              .track-item.builtin-track.selected { border-color:var(--accent); background:#2b203d; }
+              .track-item.builtin-track:focus-visible { outline:2px solid #d4aaff; outline-offset:2px; }
+              .track-item .name {"""
+          )
+          change(
+              "  myTracksList.querySelectorAll('.del').forEach(btn => {",
+              """  myTracksList.querySelectorAll('.builtin-track').forEach(btn => {
+                btn.addEventListener('click', () => {
+                  const nextIndex = Number(btn.dataset.index);
+                  if (nextIndex !== trackIndex) loadTrack(nextIndex, timerRunning);
+                  tracksModal.classList.remove('show');
+                });
+              });
+
+              myTracksList.querySelectorAll('.del').forEach(btn => {"""
+          )
+          change(
+              "      const selectedId = allTracks[trackIndex]?._id;",
+              """      const selectedId = allTracks[trackIndex]?._id;
+                    const selectedSrc = allTracks[trackIndex]?.src;"""
+          )
+          change(
+              "        trackIndex = wasBuiltin ? 0 : Math.max(0, allTracks.findIndex(t => t._id === selectedId));",
+              "        trackIndex = wasBuiltin ? Math.max(0, allTracks.findIndex(t => t.src === selectedSrc)) : Math.max(0, allTracks.findIndex(t => t._id === selectedId));"
+          )
+          change(
+              "    if (allTracks.length === 1 + added) loadTrack(0, false);",
+              "    if (allTracks.length === 2 + added) loadTrack(0, false);"
+          )
+          change(
+              'Добавлено плавное вступление.</p>',
+              '''Добавлено плавное вступление. Океан: <a href="https://commons.wikimedia.org/wiki/File:Oceanwavescrushing.ogg" target="_blank" rel="noopener noreferrer">Luftrum (запись прибоя)</a> · <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener noreferrer">CC BY 3.0</a>. Смешано с музыкой, обработано, закольцовано с плавным переходом.</p>'''
+          )
+
+          scripts = [m for m in re.findall(r'<script\b[^>]*>([\s\S]*?)</script>',content,flags=re.I) if m.strip()]
+          assert len(scripts)==1, f'Unexpected inline JavaScript count: {len(scripts)}'
+          with tempfile.TemporaryDirectory() as tmp:
+              path=Path(tmp)/'app.js'
+              path.write_text(scripts[0],encoding='utf-8')
+              subprocess.run(['node','--check',str(path)],check=True)
+          assert content.count('assets/ocean-harmony.mp3') == 1
+          assert '...userTracks.map(t =>' in content
+          file.write_text(content,encoding='utf-8')
+
+          license=Path('assets/MUSIC-LICENSE.md')
+          license.write_text(license.read_text(encoding='utf-8') + """
+          ## Ocean Harmony / Океанская гармония
+
+          The second built-in track is a mix of the same Kevin MacLeod recording above (CC BY 4.0) with a real field recording of sea waves:
+
+          - Waves: **Oceanwavescrushing.ogg**, recording by **Luftrum** near Røsnæs / Kalundborg Fjord, Denmark.
+          - Original recording: https://commons.wikimedia.org/wiki/File:Oceanwavescrushing.ogg
+          - Wave recording license: **Creative Commons Attribution 3.0 Unported** — https://creativecommons.org/licenses/by/3.0/
+          - Music: **Peace of Mind** by **Kevin MacLeod**, CC BY 4.0 — same credit and source as above.
+          - Modifications: Ocean recording has its ends crossfaded to create a smooth loop; low and high frequencies are filtered and volume is adjusted. Waves and piano are mixed together, limited to avoid clipping, MP3-encoded, and faded in/out.
+
+          This attribution does not imply either creator endorses the app.
+          """, encoding='utf-8')
+
+          readme=Path('README.md')
+          doc=readme.read_text(encoding='utf-8')
+          assert 'Стандартный трек —' in doc
+          doc += """
+          Дополнительно доступна **«Океанская гармония»** — версия с настоящим звуком морского прибоя. Источник и лицензия записи волн: [assets/MUSIC-LICENSE.md](assets/MUSIC-LICENSE.md). Для выбора встроенного трека открой список музыки в плеере.
+          """
+          readme.write_text(doc,encoding='utf-8')
+          print('Passed JS syntax, new track and existing user track checks')
+          PY
+      - name: Publish tested audio and UI to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ocean-harmony.mp3 assets/MUSIC-LICENSE.md README.md index.html
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m "Add Ocean Harmony meditation track with real seaside waves"
+          git pull --rebase origin main
+          git push origin HEAD:main
