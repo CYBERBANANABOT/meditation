@@ -51,6 +51,44 @@ test('Unique IDs, correct controls, no blocked zoom',()=>{
   }
   assert(!html.includes('user-scalable=no'));
 });
+
+test('Every HTML container closes correctly; practice and profile cannot overlap',()=>{
+  const voidTags=new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+  const stack=[];
+  const ids=new Map();
+  const re=/<\/?([a-z][a-z0-9:-]*)\b[^>]*>/gi;
+  for (const m of html.matchAll(re)){
+    const source=m[0],name=m[1].toLowerCase();
+    if(source.startsWith('</')){
+      const last=stack.pop();
+      assert(last,'Unmatched closing tag '+source);
+      assert.equal(last.tag,name,'Bad nesting at '+source+'; current parent #'+(last.id||'?'));
+      continue;
+    }
+    const id=(source.match(/\bid="([^"]+)"/)||[])[1]||null;
+    if(id) ids.set(id,[...stack.map(x=>x.id).filter(Boolean)]);
+    if(!voidTags.has(name) && !source.endsWith('/>'))stack.push({tag:name,id});
+  }
+  assert.equal(stack.length,0,'Unclosed tags: '+JSON.stringify(stack.slice(-8)));
+  function inside(id,ancestor){
+    assert(ids.get(id),'Missing '+id);
+    assert(ids.get(id).includes(ancestor),
+      '#'+id+' escaped its expected parent #'+ancestor+'; actual ancestors: '+ids.get(id).join(','));
+  }
+  for(const id of ['practiceBlock','rhythmBlock','timeBlock','btnMain','btnTracks']){
+    inside(id,'screen-practice');
+  }
+  inside('btnMain','screen-practice');
+  inside('practiceStreakNote','screen-practice');
+  inside('profileBody','screen-profile');
+  inside('streakNum','screen-profile');
+  inside('exportJournalBtn','screen-profile');
+  for(const id of ['screen-practice','screen-profile']) {
+    assert.equal(ids.get(id).length,0,'Screen must be a direct child of body');
+  }
+  assert(!ids.get('screen-profile').includes('screen-practice'),
+    'Profile must not be nested inside meditation screen');
+});
 test('All twelve body-scan stages fit the requested duration',()=>{
   const c=functions(['scanStepAt'],{SCAN_PARTS:Array.from({length:12})});
   for(const minutes of [1,2,5,10,30,60,90,180]){
