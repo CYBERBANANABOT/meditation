@@ -51,6 +51,12 @@ test('Unique IDs, correct controls, no blocked zoom',()=>{
     assert(known.has(id),'Missing '+id);
   }
   assert(!html.includes('user-scalable=no'));
+  assert(html.includes('id="durationWheel" role="listbox"'));
+  assert(script.includes('scroll-snap-type:y mandatory') === false);
+  assert(css.includes('scroll-snap-type:y mandatory'));
+  for(const fn of ['wheelValueFromPosition','syncDurationWheel','scheduleWheelCommit']){
+    assert(script.includes('function '+fn+'('), 'Missing duration wheel logic '+fn);
+  }
 });
 
 test('Every HTML container closes correctly; practice and profile cannot overlap',()=>{
@@ -76,9 +82,12 @@ test('Every HTML container closes correctly; practice and profile cannot overlap
     assert(ids.get(id).includes(ancestor),
       '#'+id+' escaped its expected parent #'+ancestor+'; actual ancestors: '+ids.get(id).join(','));
   }
-  inside('btnMain','screen-practice');
+  for(const id of ['btnMain','homeChakraName','durationWheel','homeTimerRemaining',
+    'playerTrackStatus','btnTracks','btnPrevTrack','btnNextTrack','btnAddTrack']){
+    inside(id,'screen-practice');
+  }
   for(const id of ['goalGrid','chakraNameWrap','practiceBlock','rhythmBlock','timeBlock',
-    'timerDisplay','btnTracks','btnPrevTrack','btnNextTrack','btnAddTrack']){
+    'timerDisplay','settingsMusicLibrary','settingsMusicUpload']){
     inside(id,'screen-settings');
   }
   inside('welcomeGoalGrid','welcomeGoalModal');
