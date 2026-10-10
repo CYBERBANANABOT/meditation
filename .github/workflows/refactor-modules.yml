@@ -1,4 +1,5 @@
 name: Modularize the stable meditation app
+# HTML containers generated at runtime are verified by the regression suite.
 
 on:
   push:
