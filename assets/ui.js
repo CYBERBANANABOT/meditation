@@ -83,25 +83,141 @@ document.querySelectorAll('.bottom-tab').forEach(btn => {
 });
 
 /* ---------- Профиль ---------- */
+// Browser downloads from blob: URLs can be silently blocked inside Telegram
+// WebViews. Never report a file as saved without user confirmation.
+const journalExportModal = document.getElementById('journalExportModal');
+const journalExportText = document.getElementById('journalExportText');
+const journalExportShare = document.getElementById('journalExportShare');
+const journalExportCopy = document.getElementById('journalExportCopy');
+const journalExportDownload = document.getElementById('journalExportDownload');
+const journalExportStatus = document.getElementById('journalExportStatus');
+let journalExportFilename = '';
+
+function journalBackupText() {
+  return JSON.stringify({
+    format: 'meditation-journal',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    sessions: sessionLog,
+    streak
+  }, null, 2);
+}
+function journalBackupFile() {
+  return new File([journalExportText.value], journalExportFilename, {
+    type: 'application/json'
+  });
+}
+function selectJournalBackup() {
+  journalExportText.focus();
+  journalExportText.select();
+  journalExportText.setSelectionRange(0, journalExportText.value.length);
+}
+function setJournalExportStatus(message) {
+  journalExportStatus.textContent = message;
+}
 document.getElementById('exportJournalBtn').addEventListener('click', () => {
   try {
-    const data = {
-      format: 'meditation-journal', version: 1, exportedAt: new Date().toISOString(),
-      sessions: sessionLog, streak
-    };
-    const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'meditation-journal-' + todayStr() + '.json';
+    journalExportFilename = 'meditation-journal-' + todayStr() + '.json';
+    journalExportText.value = journalBackupText();
+    setJournalExportStatus('');
+    let canShareFile = false;
+    try {
+      canShareFile = typeof File === 'function' &&
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [journalBackupFile()] });
+    } catch (error) {
+      console.warn('Native file sharing unavailable:', error);
+    }
+    journalExportShare.hidden = !canShareFile;
+    // Telegram may discard downloads of blob: URLs. Don't suggest that
+    // clicking a link inside the Mini App guarantees a saved file.
+    journalExportDownload.hidden = !!tg;
+    document.getElementById('journalExportHelp').textContent = canShareFile
+      ? 'Нажми «Сохранить или отправить файл» и выбери «Файлы» или другое приложение. Можно также скопировать резервную копию.'
+      : tg
+        ? 'Telegram не поддерживает прямое скачивание на этом устройстве. Скопируй дневник и вставь его в заметки или текстовый файл с расширением .json.'
+        : 'Скачай JSON-файл или скопируй резервную копию. Не удаляй текст, пока не сохранишь его.';
+    journalExportModal.classList.add('show');
+    if (canShareFile) journalExportShare.focus();
+    else journalExportCopy.focus();
+  } catch (error) {
+    console.warn('Journal backup preparation failed:',error);
+    showToast('Не удалось подготовить копию дневника');
+  }
+});
+journalExportShare.addEventListener('click', () => {
+  if (typeof navigator.share !== 'function') {
+    setJournalExportStatus('Это устройство не поддерживает отправку файла. Используй копирование.');
+    return;
+  }
+  try {
+    // Trigger the native menu synchronously from the user's click.
+    const pending = navigator.share({
+      files: [journalBackupFile()],
+      title: 'Мой дневник медитаций'
+    });
+    Promise.resolve(pending).then(
+      () => setJournalExportStatus('Меню отправки закрыто. Проверь, что файл появился в выбранном приложении.'),
+      err => {
+        if (err?.name === 'AbortError') {
+          setJournalExportStatus('Отправка отменена. Дневник остаётся в приложении.');
+        } else {
+          console.warn('Could not share journal file:',err);
+          setJournalExportStatus('Отправить файл не получилось. Используй «Скопировать дневник».');
+        }
+      }
+    );
+  } catch(error) {
+    console.warn('Could not share journal file:',error);
+    setJournalExportStatus('Отправить файл не получилось. Используй «Скопировать дневник».');
+  }
+});
+journalExportCopy.addEventListener('click', async () => {
+  const backup=journalExportText.value;
+  let copied=false;
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(backup);
+      copied=true;
+    } catch(error) {
+      console.warn('Clipboard permission denied, trying selection fallback:',error);
+    }
+  }
+  if (!copied) {
+    selectJournalBackup();
+    try { copied=!!document.execCommand?.('copy'); }
+    catch(error) { console.warn('Legacy clipboard unavailable:',error); }
+  }
+  if (copied) {
+    setJournalExportStatus('Дневник скопирован. Теперь вставь его в заметки или текстовый файл и сохрани.');
+    showToast('Дневник скопирован', 'success');
+  } else {
+    selectJournalBackup();
+    setJournalExportStatus('Автоматическое копирование заблокировано. Текст выделен — удерживай его и выбери «Копировать».');
+  }
+});
+document.getElementById('journalExportSelect').addEventListener('click', () => {
+  selectJournalBackup();
+  setJournalExportStatus('Текст выделен. Нажми «Копировать» в системном меню.');
+});
+journalExportDownload.addEventListener('click', () => {
+  let url=null;
+  try {
+    const blob=new Blob([journalExportText.value],{type:'application/json;charset=utf-8'});
+    url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;
+    link.download=journalExportFilename;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    setTimeout(() => URL.revokeObjectURL(url),60000);
-    showToast('Дневник подготовлен к сохранению','success');
-  } catch(e) {
-    console.warn('Journal export:',e);
-    showToast('Не удалось экспортировать дневник');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    setJournalExportStatus('Проверь папку загрузок. Если файл не появился, воспользуйся копированием.');
+  } catch(error) {
+    console.warn('Unable to download journal:',error);
+    if(url) URL.revokeObjectURL(url);
+    setJournalExportStatus('Скачать файл не удалось. Воспользуйся копированием.');
   }
 });
 let profileTab = 'stats';
