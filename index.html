@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Медитации</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="./assets/style.css?v=20261011c">
+<link rel="stylesheet" href="./assets/style.css?v=20261011d">
 </head>
 <body>
 
@@ -189,6 +189,25 @@
   </div>
 </div>
 
+<div class="modal" id="journalExportModal" role="dialog" aria-modal="true" aria-labelledby="journalExportTitle">
+  <div class="modal-content" style="max-width:460px;">
+    <div class="modal-header">
+      <h2 id="journalExportTitle">Сохранить дневник</h2>
+      <button type="button" class="modal-close" data-close="journalExportModal" aria-label="Закрыть">✕</button>
+    </div>
+    <p class="journal-export-help" id="journalExportHelp">Выбери способ сохранить свои записи. Данные остаются только на твоём устройстве.</p>
+    <div class="journal-export-actions">
+      <button type="button" class="primary" id="journalExportShare" hidden>↗ Сохранить или отправить файл</button>
+      <button type="button" class="primary" id="journalExportCopy">Скопировать дневник</button>
+      <button type="button" class="ghost" id="journalExportDownload">↓ Скачать JSON-файл</button>
+    </div>
+    <p class="journal-export-status" id="journalExportStatus" role="status" aria-live="polite"></p>
+    <label class="journal-export-label" for="journalExportText">Резервная копия в формате JSON</label>
+    <textarea id="journalExportText" class="journal-export-text" readonly spellcheck="false" autocapitalize="off" aria-label="Текст резервной копии дневника"></textarea>
+    <button type="button" class="ghost journal-export-select" id="journalExportSelect">Выделить весь текст для копирования</button>
+  </div>
+</div>
+
 <div class="modal" id="noteModal">
   <div class="modal-content" style="max-width: 400px;">
     <div class="modal-header"><h2>Как прошло?</h2></div>
@@ -273,9 +292,9 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="./assets/core.js?v=20261011c"></script>
-<script src="./assets/visualizer.js?v=20261011c"></script>
-<script src="./assets/session.js?v=20261011c"></script>
-<script src="./assets/ui.js?v=20261011c"></script>
+<script src="./assets/core.js?v=20261011d"></script>
+<script src="./assets/visualizer.js?v=20261011d"></script>
+<script src="./assets/session.js?v=20261011d"></script>
+<script src="./assets/ui.js?v=20261011d"></script>
 </body>
 </html>
