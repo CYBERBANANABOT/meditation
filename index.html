@@ -1020,11 +1020,7 @@
       <h2>Мои треки</h2>
       <button class="modal-close" data-close="tracksModal">✕</button>
     </div>
-    <label class="add-file-label">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-      Добавить mp3
-      <input type="file" id="fileInput" accept="audio/*" multiple>
-    </label>
+
     <div class="track-list" id="myTracksList"></div>
   </div>
 </div>
@@ -1063,6 +1059,7 @@
   </div>
 </div>
 
+<input type="file" id="fileInput" accept="audio/*,.mp3,.m4a,.ogg,.wav,.flac" multiple hidden>
 <audio id="audioEl" preload="metadata" loop></audio>
 <div class="toast" id="toast"></div>
 
@@ -1415,7 +1412,9 @@ const octx = orb.getContext('2d', { alpha: true });
 const breathHint = document.getElementById('breathHint');
 // Canvas renders only when the practice screen is actually visible.
 // Cap internal resolution for phone GPUs (previously 600x600 on every phone).
-const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+const motionPreference = typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : { matches: false };
 let orbFrameId = null;
 let orbLastDraw = -Infinity;
 let orbForceDraw = true;
@@ -1642,8 +1641,11 @@ function animateOrb(now) {
   orbDisplayed = true;
   const t = now/1000;
   const secondsInCycle = currentElapsed();
-  const res = breathing(secondsInCycle);
   const isIdle = !timerRunning && !timerDone && timerElapsed === 0;
+  // Keep the ambient universe alive before a session; a frozen 0-level sphere
+  // makes the visualization look broken. It does not affect the practice timer.
+  const ambientSeconds = now / 1000;
+  const res = breathing(isIdle ? ambientSeconds : secondsInCycle);
 
   if (isIdle) {
     if (lastHintState !== 'idle') { lastHintState = 'idle'; breathHint.textContent = ''; }
@@ -1666,7 +1668,7 @@ function animateOrb(now) {
     }
   }
 
-  let finalLevel = isIdle ? 0 : res.level;
+  let finalLevel = isIdle ? 0.12 + res.level * 0.75 : res.level;
   if (!isIdle && (res.phaseName === 'inhale' || res.phaseName === 'exhale')) {
     const micro = Math.sin(t*2*Math.PI/7.3)*0.025 + Math.sin(t*2*Math.PI/4.1)*0.015;
     finalLevel = Math.max(0, Math.min(1, res.level + micro));
@@ -1677,7 +1679,6 @@ function animateOrb(now) {
   // A static preview is enough when the user requests reduced motion.
   if (!motionPreference.matches) orbFrameId = requestAnimationFrame(animateOrb);
 }
-startOrbAnimation();
 if (motionPreference.addEventListener) motionPreference.addEventListener('change', startOrbAnimation);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) stopOrbAnimation();
@@ -2418,7 +2419,7 @@ const myTracksList = document.getElementById('myTracksList');
 
 function renderTracksModal() {
   if (!userTracks.length) {
-    myTracksList.innerHTML = `<div class="intent-empty">Пока нет треков. Нажми «Добавить mp3» — файлы сохранятся на устройстве.</div>`;
+    myTracksList.innerHTML = `<div class="intent-empty">Пока нет треков. Добавь музыку кнопкой «+» справа от основного плеера.</div>`;
     return;
   }
   myTracksList.innerHTML = userTracks.map(t => `
@@ -2622,6 +2623,9 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
   else updateTrackStatus();
 })();
 
+
+// Start the visualizer after every state variable and handler is initialized.
+startOrbAnimation();
 </script>
 </body>
 </html>
