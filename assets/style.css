@@ -1076,3 +1076,106 @@
   .screen-practice #orb { width:min(100%, 290px, 39dvh); }
   .screen-practice .player { min-height: 65dvh; }
 }
+
+/* Meditation screen: chakra, iOS-style minute picker and compact audio controls. */
+.screen-practice .player {
+  min-height:0;
+  padding:clamp(8px,1.8vh,16px) 12px 16px;
+  gap:0;
+}
+.screen-practice #orb { width:min(100%, 315px, 34dvh); margin:0 auto; }
+.screen-practice .breath-hint {
+  margin:3px 0 5px;
+  font-size:12px;
+  letter-spacing:1.8px;
+}
+.home-chakra {
+  display:inline-flex; gap:8px; align-items:center; justify-content:center;
+  font-size:14px; font-weight:600; line-height:1.4; letter-spacing:.35px;
+  padding:5px 13px; margin:0 auto 6px; color:#e4d8f7;
+}
+.home-chakra-dot { display:inline-block; width:7px; height:7px;
+  background:var(--accent); border-radius:50%; box-shadow:0 0 12px var(--accent-glow);
+}
+.home-duration { text-align:center; width:100%; margin:0 auto 8px; }
+.home-duration-label { display:block; text-transform:uppercase;
+  letter-spacing:1.6px; font-size:10px; color:#a6a0b9; margin-bottom:1px; }
+.duration-wheel-frame { width:164px; height:126px; margin:0 auto;
+  position:relative; isolation:isolate; overflow:hidden; }
+.duration-wheel-highlight {
+  position:absolute; z-index:0; left:9px; right:9px; top:42px; height:42px;
+  border-top:1px solid rgba(190,160,230,.34);
+  border-bottom:1px solid rgba(190,160,230,.34);
+  background:linear-gradient(90deg,rgba(164,99,242,.07),rgba(164,99,242,.16),rgba(164,99,242,.07));
+  border-radius:10px; pointer-events:none;
+}
+.duration-wheel {
+  position:relative; z-index:1; overflow-y:auto; overflow-x:hidden;
+  overscroll-behavior-y:contain; scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch; touch-action:pan-y;
+  height:126px; width:100%; padding:42px 0; margin:0;
+  scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 27%, #000 73%, transparent 100%);
+  mask-image:linear-gradient(to bottom, transparent 0%, #000 27%, #000 73%, transparent 100%);
+}
+.duration-wheel::-webkit-scrollbar { display:none; }
+.duration-wheel-option {
+  width:100%; height:42px; min-height:42px; display:flex; align-items:center;
+  justify-content:center; box-sizing:border-box; padding-right:27px;
+  font:inherit; font-variant-numeric:tabular-nums; font-size:23px; font-weight:450;
+  line-height:1; color:#82798f; scroll-snap-align:center;
+  scroll-snap-stop:normal; cursor:pointer; user-select:none;
+  transition:font-size .12s ease, color .12s ease;
+}
+.duration-wheel-option[aria-selected="true"] {
+  color:#f2e8ff; font-size:31px; font-weight:640;
+  text-shadow:0 0 15px rgba(180,135,240,.34);
+}
+.duration-wheel-unit {
+  position:absolute; z-index:2; pointer-events:none; right:26px; top:50%;
+  transform:translateY(-50%); color:#bdafd0; font-size:12px; font-weight:600;
+}
+.duration-wheel:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:12px; }
+.home-duration.is-running .duration-wheel { opacity:.48; pointer-events:none; }
+.home-duration.is-running .duration-wheel-option { cursor:default; }
+.home-time-remaining { font-size:12px; color:#c6b2e4; min-height:15px; margin:1px 0 0; }
+.home-time-remaining[hidden] { display:none; }
+.home-music {
+  width:min(100%,290px); display:flex; gap:10px; align-items:center;
+  justify-content:center; padding:2px 4px; margin:0 auto 2px;
+}
+.home-music-menu,.home-music-add {
+  display:grid; place-items:center; flex:0 0 36px;
+  width:36px; height:36px; padding:7px; background:transparent;
+  border:1px solid rgba(164,99,242,.2); border-radius:12px;
+  color:#b6a9cc; cursor:pointer;
+}
+.home-music svg { width:19px; height:19px; fill:currentColor; }
+.home-music .player-track-status {
+  min-width:0; flex:1; width:auto; padding:0;
+  color:#afa5bf; font-size:11px; min-height:16px;
+  margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.home-music-menu:focus-visible,.home-music-add:focus-visible {
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+.screen-practice .control-bar.home-controls {
+  width:230px; max-width:100%; margin:0 auto; padding:2px 4px; gap:18px;
+  display:flex; justify-content:center; align-items:center;
+}
+.home-controls .ctrl-side { width:47px; height:47px; padding:10px;
+  border-radius:50%; flex:0 0 47px;
+}
+.home-controls .ctrl-side svg { width:24px; height:24px; }
+.screen-practice .home-controls .ctrl-play { width:68px; height:68px; flex:0 0 68px; }
+#settingsMusicLibrary,#settingsMusicUpload { margin-top:7px; }
+@media (max-height:680px) {
+  .screen-practice #orb { width:min(100%,285px,30dvh); }
+  .screen-practice .player {padding-top:8px; padding-bottom:9px;}
+  .home-duration { margin-bottom:3px; }
+  .home-chakra {margin-bottom:0;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .duration-wheel-option {transition:none;}
+}
+
