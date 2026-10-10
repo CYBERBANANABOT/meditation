@@ -1,0 +1,53 @@
+name: Import licensed meditation piano recording
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/import-licensed-music.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  import-music:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Download and validate licensed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --max-time 180 \
+            --output /tmp/peace-of-mind-original.mp3 \
+            'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Peace%20of%20Mind.mp3'
+          test "$(stat -c%s /tmp/peace-of-mind-original.mp3)" -gt 1000000
+          DURATION="$(ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1 /tmp/peace-of-mind-original.mp3)"
+          echo "Source recording duration: ${DURATION} seconds"
+          awk -v d="$DURATION" 'BEGIN { if (d < 2100 || d > 2300) exit 1 }'
+      - name: Create application MP3 (gentle volume, no clipping)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg -nostdin -hide_banner -loglevel error -y \
+            -i /tmp/peace-of-mind-original.mp3 \
+            -map 0:a:0 -vn -ac 2 -ar 44100 -c:a libmp3lame -b:a 96k \
+            -af "afade=t=in:st=0:d=4" \
+            -metadata title="Peace of Mind" \
+            -metadata artist="Kevin MacLeod" \
+            -metadata comment="CC BY 4.0, https://creativecommons.org/licenses/by/4.0/" \
+            assets/peace-of-mind.mp3
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 assets/peace-of-mind.mp3
+      - name: Publish recording directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/peace-of-mind.mp3
+          git diff --cached --quiet && exit 0
+          git commit -m "Bundle CC BY 4.0 Peace of Mind meditation piano recording"
+          git pull --rebase origin main
+          git push origin HEAD:main
