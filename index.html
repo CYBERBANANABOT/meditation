@@ -1316,10 +1316,10 @@ function rebuildAllTracks() {
   for (const [id, url] of trackUrls) {
     if (!ids.has(id)) { URL.revokeObjectURL(url); trackUrls.delete(id); }
   }
-  allTracks = userTracks.map(t => {
+  allTracks = [{title:'Тихий космос · встроенный звук', _builtin:true}, ...userTracks.map(t => {
     if (!trackUrls.has(t.id)) trackUrls.set(t.id, URL.createObjectURL(t.blob));
     return {title:t.name, src:trackUrls.get(t.id), _user:true, _id:t.id};
-  });
+  })];
 }
 
 /* ---------- Ритмы ---------- */
@@ -1871,7 +1871,8 @@ function finishTimer() {
   timerRunning = false;
   timerDone = true;
   timerElapsed = timerTotalSec;
-  if (!audioEl.paused) fadeAudioTo(0, 4500, true);
+  if (builtinSelected()) fadeAmbient(0,4500,true);
+  else if (!audioEl.paused) fadeAudioTo(0, 4500, true);
   if (tg) tg.HapticFeedback?.notificationOccurred('success');
   renderStreak();
   renderTimer();
@@ -1917,9 +1918,72 @@ function resetTimer(newTotalSec) {
   updateMainIcon();
   lastHintState = null;
   if (canAnimateOrb()) startOrbAnimation();
+  stopAmbient();
   if (audioEl && !audioEl.paused) { stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME; }
   return true;
 }
+
+
+// Built-in gentle soundscape: generated locally, no MP3 download or network needed.
+// Web Audio is initialized only on a user action (Telegram/iOS requirement).
+let ambientContext = null, ambientGain = null, ambientNodes = [];
+let ambientFadeTimer = null, ambientFadeGeneration = 0;
+async function ensureAmbient() {
+  if (!ambientContext) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) throw new Error('Web Audio не поддерживается');
+    const ctx = new AC();
+    ambientContext = ctx;
+    const master = ctx.createGain();
+    master.gain.value = 0;
+    master.connect(ctx.destination);
+    ambientGain = master;
+    const frames = Math.round(ctx.sampleRate * 9);
+    const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let noise = 0;
+    for (let i=0;i<frames;i++) {
+      noise = (noise + 0.028 * (Math.random()*2-1)) * 0.995;
+      data[i] = Math.max(-1, Math.min(1, noise));
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer; source.loop = true;
+    const high = ctx.createBiquadFilter(); high.type='highpass'; high.frequency.value=85;
+    const low = ctx.createBiquadFilter(); low.type='lowpass'; low.frequency.value=580;
+    const noiseGain = ctx.createGain(); noiseGain.gain.value=0.20;
+    source.connect(high); high.connect(low); low.connect(noiseGain); noiseGain.connect(master);
+    source.start();
+    ambientNodes.push(source, high, low, noiseGain);
+    for (const [freq,level] of [[174.61,0.025],[261.63,0.014],[130.81,0.015]]) {
+      const tone=ctx.createOscillator(), g=ctx.createGain();
+      tone.type='sine'; tone.frequency.value=freq; g.gain.value=level;
+      tone.connect(g); g.connect(master); tone.start();
+      ambientNodes.push(tone,g);
+    }
+  }
+  await ambientContext.resume();
+}
+function fadeAmbient(target, ms=3500, pauseAtEnd=false) {
+  if (!ambientContext || !ambientGain) return;
+  const gen=++ambientFadeGeneration;
+  clearTimeout(ambientFadeTimer);
+  const now=ambientContext.currentTime;
+  ambientGain.gain.cancelScheduledValues(now);
+  ambientGain.gain.setValueAtTime(ambientGain.gain.value,now);
+  ambientGain.gain.linearRampToValueAtTime(target,now+ms/1000);
+  if (pauseAtEnd) ambientFadeTimer=setTimeout(() => {
+    if (gen===ambientFadeGeneration && ambientContext) void ambientContext.suspend();
+  },ms+80);
+}
+function stopAmbient() {
+  ++ambientFadeGeneration;
+  clearTimeout(ambientFadeTimer);
+  if (!ambientContext) return;
+  ambientGain.gain.cancelScheduledValues(ambientContext.currentTime);
+  ambientGain.gain.value=0;
+  void ambientContext.suspend();
+}
+function builtinSelected(){return !!allTracks[trackIndex]?._builtin;}
 
 const audioEl = document.getElementById('audioEl');
 const playerTrackStatus = document.getElementById('playerTrackStatus');
@@ -1929,12 +1993,12 @@ let playerRequest = 0;
 audioEl.volume = MUSIC_VOLUME;
 function updateTrackStatus(message) {
   const selected = allTracks[trackIndex];
-  playerTrackStatus.textContent = message || (selected ? `♫ ${selected.title}${audioEl.paused ? '' : ' · играет'}` : 'Музыка не выбрана');
+  playerTrackStatus.textContent = message || (selected ? `♫ ${selected.title}${(selected._builtin ? !ambientContext || ambientContext.state !== 'running' || ambientGain?.gain.value===0 : audioEl.paused) ? '' : ' · играет'}` : 'Музыка не выбрана');
   prevTrackButton.disabled = nextTrackButton.disabled = allTracks.length === 0;
 }
 function clearTrack() {
   ++playerRequest;
-  stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME;
+  stopAudioFade(); stopAmbient(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME;
   audioEl.removeAttribute('src');
   audioEl.load();
   trackIndex = 0;
@@ -1942,6 +2006,11 @@ function clearTrack() {
 }
 async function playSelectedTrack() {
   if (!allTracks.length) { updateTrackStatus(); return; }
+  if (builtinSelected()) {
+    try { await ensureAmbient(); fadeAmbient(0.82,3500); updateTrackStatus(); }
+    catch(err) { console.warn('Не удалось включить встроенный звук',err); showToast('Не удалось включить встроенный звук'); }
+    return;
+  }
   if (!audioEl.getAttribute('src') || audioEl.getAttribute('src') !== allTracks[trackIndex].src) {
     audioEl.src = allTracks[trackIndex].src;
   }
@@ -1964,9 +2033,9 @@ function loadTrack(i, autoplay = false) {
   if (!allTracks.length) { clearTrack(); return; }
   ++playerRequest;
   trackIndex = ((i % allTracks.length) + allTracks.length) % allTracks.length;
-  stopAudioFade(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME;
-  audioEl.src = allTracks[trackIndex].src;
-  audioEl.load();
+  stopAudioFade(); stopAmbient(); audioEl.pause(); audioEl.volume = MUSIC_VOLUME;
+  if (allTracks[trackIndex]._builtin) { audioEl.removeAttribute('src'); audioEl.load(); }
+  else { audioEl.src = allTracks[trackIndex].src; audioEl.load(); }
   updateTrackStatus();
   if (autoplay) void playSelectedTrack();
 }
@@ -1975,7 +2044,8 @@ document.getElementById('btnMain').addEventListener('click', () => {
   if (timerRunning) {
     pauseTimer();
     ++playerRequest;
-    if (!audioEl.paused) fadeAudioTo(0, 700, true);
+    if (builtinSelected()) fadeAmbient(0,700,true);
+    else if (!audioEl.paused) fadeAudioTo(0, 700, true);
     updateTrackStatus();
   } else {
     startTimer();
@@ -1988,7 +2058,7 @@ nextTrackButton.addEventListener('click', () => {
 });
 prevTrackButton.addEventListener('click', () => {
   if (!allTracks.length) return;
-  if (audioEl.currentTime > 3) {
+  if (!builtinSelected() && audioEl.currentTime > 3) {
     audioEl.currentTime = 0;
     if (timerRunning && audioEl.paused) void playSelectedTrack();
   } else loadTrack(trackIndex - 1, timerRunning);
@@ -2560,11 +2630,7 @@ const fileInput = document.getElementById('fileInput');
 const myTracksList = document.getElementById('myTracksList');
 
 function renderTracksModal() {
-  if (!userTracks.length) {
-    myTracksList.innerHTML = `<div class="intent-empty">Пока нет треков. Добавь музыку кнопкой «+» справа от основного плеера.</div>`;
-    return;
-  }
-  myTracksList.innerHTML = userTracks.map(t => `
+  myTracksList.innerHTML = `<div class="track-item" style="border:1px solid rgba(164,99,242,.26)"><span class="name">✦ Тихий космос · встроенный звук</span><span class="size">∞</span></div>` + userTracks.map(t => `
     <div class="track-item">
       <span class="name">${escapeHtml(t.name)}</span>
       <span class="size">${formatBytes(t.blob.size)}</span>
@@ -2577,6 +2643,7 @@ function renderTracksModal() {
       const id = parseInt(btn.dataset.id);
       if (!confirm('Удалить этот трек?')) return;
       const selectedId = allTracks[trackIndex]?._id;
+      const wasBuiltin = builtinSelected();
       const deletingSelected = selectedId === id;
       if (deletingSelected) { ++playerRequest; audioEl.pause(); audioEl.removeAttribute('src'); audioEl.load(); }
       try { await dbDeleteTrack(id); } catch(err) {
@@ -2588,7 +2655,7 @@ function renderTracksModal() {
       if (!allTracks.length) clearTrack();
       else if (deletingSelected) loadTrack(Math.min(trackIndex, allTracks.length-1), timerRunning);
       else {
-        trackIndex = Math.max(0, allTracks.findIndex(t => t._id === selectedId));
+        trackIndex = wasBuiltin ? 0 : Math.max(0, allTracks.findIndex(t => t._id === selectedId));
         updateTrackStatus();
       }
       renderTracksModal();
@@ -2618,7 +2685,7 @@ fileInput.addEventListener('change', async (e) => {
   }
   if (added > 0) {
     rebuildAllTracks();
-    if (allTracks.length === added) loadTrack(0, false);
+    if (allTracks.length === 1 + added) loadTrack(0, false);
     updateTrackStatus();
     renderTracksModal();
     showToast(`✨ Добавлено треков: ${added}`, 'success');
