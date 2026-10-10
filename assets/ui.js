@@ -175,19 +175,21 @@ journalExportShare.addEventListener('click', () => {
 });
 journalExportCopy.addEventListener('click', async () => {
   const backup=journalExportText.value;
+  // Try synchronous selection-copy first, while the Telegram WebView still
+  // grants transient user activation for this tap. Async clipboard APIs may
+  // be unavailable or require permission in embedded browsers.
+  selectJournalBackup();
   let copied=false;
-  if (navigator.clipboard?.writeText) {
+  try { copied=!!document.execCommand?.('copy'); }
+  catch(error) { console.warn('Selection copy unavailable:',error); }
+  if (!copied && navigator.clipboard?.writeText) {
+    setJournalExportStatus('Копирование…');
     try {
       await navigator.clipboard.writeText(backup);
       copied=true;
     } catch(error) {
-      console.warn('Clipboard permission denied, trying selection fallback:',error);
+      console.warn('Clipboard permission denied; text remains selected:',error);
     }
-  }
-  if (!copied) {
-    selectJournalBackup();
-    try { copied=!!document.execCommand?.('copy'); }
-    catch(error) { console.warn('Legacy clipboard unavailable:',error); }
   }
   if (copied) {
     setJournalExportStatus('Дневник скопирован. Теперь вставь его в заметки или текстовый файл и сохрани.');
