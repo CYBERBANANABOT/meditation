@@ -1006,46 +1006,6 @@
   padding: 5px;
 }
 .screen-practice .ctrl-play { width: 76px; height: 76px; }
-.screen-settings { max-width: 700px; margin:0 auto; width:100%; min-width:0; }
-.settings-intro { padding: 8px 4px 18px; }
-.settings-intro h2 { font-size:25px; font-weight:650; margin:5px 0 6px; }
-.settings-intro p { font-size:13px; line-height:1.55; color:#a7a9be; }
-.screen-settings .goal-section { margin-bottom:12px; }
-.screen-settings .chakra-info {
-  padding: 12px 8px;
-  margin-bottom: 18px;
-}
-.settings-panel {
-  background:#10101e;
-  border:1px solid rgba(164,99,242,.13);
-  padding:15px 14px;
-  margin-bottom:14px;
-  border-radius:18px;
-}
-.settings-panel h3 {
-  font-size:13px; letter-spacing:.5px; font-weight:650;
-  color:#e9e0f4; margin-bottom:12px;
-}
-.settings-panel .setting-block:last-child { margin-bottom:0; }
-.settings-panel .timer-display { font-size:32px; margin:10px 0; }
-.settings-description { color:#a7a9be; font-size:12px; line-height:1.5; margin-bottom:12px; }
-.settings-audio-controls {
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:7px;
-  width:100%;
-}
-.settings-audio-controls .ctrl-side {
-  min-width:0; width:100%; min-height:66px; border:1px solid #33304b;
-  border-radius:14px; background:#1c1b31; padding:10px 4px;
-  display:flex; flex-direction:column; gap:5px; justify-content:center;
-  font:inherit; font-size:11px; line-height:1.3; color:#d8d0e6;
-}
-.settings-audio-controls .ctrl-side svg { width:23px; height:23px; flex:none; }
-.settings-audio-controls .ctrl-side span { display:block; }
-.settings-panel .player-track-status {
-  margin:12px 0 0; white-space:normal; overflow-wrap:anywhere; min-height:20px;
-}
 .welcome-goal-content {
   max-width:420px; padding:24px 20px;
   background:radial-gradient(circle at 50% 0,rgba(164,99,242,.15),transparent 65%),#131324;
@@ -1069,8 +1029,6 @@
   .welcome-goal-content .goal-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .welcome-goal-content .goal-option { padding:10px 7px; }
   .welcome-goal-content .goal-option strong { font-size:12px; }
-  .settings-panel {padding:13px 10px;}
-  .settings-audio-controls {gap:5px;}
 }
 @media (max-height:590px) {
   .screen-practice #orb { width:min(100%, 290px, 39dvh); }
@@ -1088,14 +1046,6 @@
   margin:3px 0 5px;
   font-size:12px;
   letter-spacing:1.8px;
-}
-.home-chakra {
-  display:inline-flex; gap:8px; align-items:center; justify-content:center;
-  font-size:14px; font-weight:600; line-height:1.4; letter-spacing:.35px;
-  padding:5px 13px; margin:0 auto 6px; color:#e4d8f7;
-}
-.home-chakra-dot { display:inline-block; width:7px; height:7px;
-  background:var(--accent); border-radius:50%; box-shadow:0 0 12px var(--accent-glow);
 }
 .home-duration { text-align:center; width:100%; margin:0 auto 8px; }
 .home-duration-label { display:block; text-transform:uppercase;
@@ -1168,14 +1118,87 @@
 }
 .home-controls .ctrl-side svg { width:24px; height:24px; }
 .screen-practice .home-controls .ctrl-play { width:68px; height:68px; flex:0 0 68px; }
-#settingsMusicLibrary,#settingsMusicUpload { margin-top:7px; }
 @media (max-height:680px) {
   .screen-practice #orb { width:min(100%,285px,30dvh); }
   .screen-practice .player {padding-top:8px; padding-bottom:9px;}
   .home-duration { margin-bottom:3px; }
-  .home-chakra {margin-bottom:0;}
 }
 @media (prefers-reduced-motion:reduce) {
   .duration-wheel-option {transition:none;}
 }
 
+
+/* The original chakra guidance card is back on the meditation screen. */
+.screen-practice.active {
+  justify-content:flex-start;
+  min-height:calc(100dvh - 116px);
+}
+.screen-practice .home-chakra-info {
+  width:100%;
+  max-width:700px;
+  margin:0 auto 10px;
+  text-align:center;
+  flex-shrink:0;
+}
+.home-chakra-heading {
+  display:grid; grid-template-columns:40px minmax(0,1fr) 40px;
+  align-items:center; justify-items:center;
+  max-width:360px; margin:0 auto;
+}
+.home-chakra-heading .chakra-name {
+  appearance:none; -webkit-appearance:none;
+  border:none; background:transparent;
+  font-family:inherit; line-height:1.3;
+  justify-self:center; min-height:40px;
+  font-size:clamp(19px,5.5vw,24px); padding:4px 6px;
+}
+.home-chakra-heading .chakra-name:focus-visible,
+.home-chakra-heading .chakra-switch:focus-visible {
+  outline:2px solid var(--accent); outline-offset:3px;
+}
+.chakra-switch {
+  appearance:none; -webkit-appearance:none;
+  display:grid; place-items:center; width:31px; height:31px;
+  border-radius:10px; border:1px solid rgba(164,99,242,.3);
+  background:rgba(164,99,242,.09);
+  color:#c4b1e2; cursor:pointer;
+  transition:background .2s,border-color .2s;
+}
+.chakra-switch:active { background:rgba(164,99,242,.25); }
+.chakra-switch svg {
+  display:block; width:17px; height:17px; fill:none;
+  stroke:currentColor; stroke-width:1.8;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.home-chakra-balance {width:31px; height:31px;}
+.screen-practice .chakra-desc {
+  margin:1px 0 0; font-size:12px;
+  line-height:1.45; overflow-wrap:anywhere;
+}
+.screen-practice .practice-tip {
+  margin:10px 0 0;
+  padding:13px 15px;
+  border-radius:15px; font-size:13px;
+  line-height:1.6; overflow-wrap:anywhere;
+}
+.screen-practice .practice-tip b {
+  margin-bottom:5px; font-size:11px;
+}
+.screen-practice .player {
+  min-height:0; margin:0 auto;
+  padding-top:6px;
+  justify-content:flex-start;
+  flex:0 0 auto;
+}
+.screen-practice #orb {
+  width:min(100%,290px,32dvh);
+}
+@media (max-height:740px) {
+  .screen-practice .practice-tip {padding:10px 12px; font-size:12px; line-height:1.5;}
+  .screen-practice #orb {width:min(100%,255px,28dvh);}
+}
+@media (max-height:590px) {
+  .screen-practice #orb {width:min(100%,230px,25dvh);}
+  .screen-practice .player {min-height:0;}
+  .screen-practice .practice-tip {line-height:1.4;}
+}
