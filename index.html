@@ -838,6 +838,8 @@
   #orb { max-width:100%; height:auto; aspect-ratio:1; }
   .screen-practice { max-width:700px; margin:0 auto; }
   .screen-profile { max-width:700px; margin:0 auto; }
+  .player-track-status { text-align:center; color:#a7a9be; font-size:12px; margin:12px 0 0; min-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ctrl-side:disabled { opacity:.3; cursor:default; }
 </style>
 </head>
 <body>
@@ -951,6 +953,7 @@
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       </button>
     </div>
+    <div class="player-track-status" id="playerTrackStatus" role="status" aria-live="polite">Музыка не выбрана</div>
 
   </div>
   <div class="practice-streak-note" id="practiceStreakNote" aria-live="polite">🌿 Просто практикуй в своём ритме</div>
@@ -1060,7 +1063,7 @@
   </div>
 </div>
 
-<audio id="audioEl" preload="none" loop></audio>
+<audio id="audioEl" preload="metadata" loop></audio>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1408,9 +1411,44 @@ function formatRuDate(dateStr) {
    ВСЕЛЕННАЯ
    ============================================================ */
 const orb = document.getElementById('orb');
-const octx = orb.getContext('2d');
+const octx = orb.getContext('2d', { alpha: true });
 const breathHint = document.getElementById('breathHint');
-let lastTime = performance.now();
+// Canvas renders only when the practice screen is actually visible.
+// Cap internal resolution for phone GPUs (previously 600x600 on every phone).
+const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+let orbFrameId = null;
+let orbLastDraw = -Infinity;
+let orbForceDraw = true;
+let orbDisplayed = false;
+function resizeOrbCanvas() {
+  const cssSize = orb.getBoundingClientRect().width || 300;
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+  const target = Math.max(240, Math.min(600, Math.round(cssSize * pixelRatio)));
+  if (orb.width !== target || orb.height !== target) {
+    orb.width = target;
+    orb.height = target;
+    orbForceDraw = true;
+  }
+}
+function canAnimateOrb() {
+  return !document.hidden && document.getElementById('screen-practice').classList.contains('active');
+}
+function stopOrbAnimation() {
+  if (orbFrameId !== null) cancelAnimationFrame(orbFrameId);
+  orbFrameId = null;
+  orbDisplayed = false;
+}
+function startOrbAnimation() {
+  if (!canAnimateOrb()) { stopOrbAnimation(); return; }
+  resizeOrbCanvas();
+  orbForceDraw = true;
+  orbLastDraw = -Infinity;
+  if (orbFrameId === null) orbFrameId = requestAnimationFrame(animateOrb);
+}
+window.addEventListener('resize', () => {
+  if (canAnimateOrb()) startOrbAnimation();
+});
+
 
 const STARS = (() => {
   const arr = [];
@@ -1591,7 +1629,17 @@ const PHASE_LABELS = {
 let lastHintState = null;
 
 function animateOrb(now) {
-  lastTime = now;
+  orbFrameId = null;
+  if (!canAnimateOrb()) { orbDisplayed = false; return; }
+  // 30 FPS while practicing, 12 FPS at rest; accessibility mode is static.
+  const fps = motionPreference.matches ? 0 : (timerRunning ? 30 : 12);
+  if (!orbForceDraw && (fps === 0 || now - orbLastDraw < 1000 / fps)) {
+    if (fps !== 0) orbFrameId = requestAnimationFrame(animateOrb);
+    return;
+  }
+  orbForceDraw = false;
+  orbLastDraw = now;
+  orbDisplayed = true;
   const t = now/1000;
   const secondsInCycle = currentElapsed();
   const res = breathing(secondsInCycle);
@@ -1626,9 +1674,19 @@ function animateOrb(now) {
 
   const progress = timerTotalSec > 0 ? Math.min(1, currentElapsed()/timerTotalSec) : 0;
   drawUniverse(finalLevel, progress, t);
-  requestAnimationFrame(animateOrb);
+  // A static preview is enough when the user requests reduced motion.
+  if (!motionPreference.matches) orbFrameId = requestAnimationFrame(animateOrb);
 }
-requestAnimationFrame(animateOrb);
+startOrbAnimation();
+if (motionPreference.addEventListener) motionPreference.addEventListener('change', startOrbAnimation);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopOrbAnimation();
+  else {
+    if (timerRunning && currentElapsed() >= timerTotalSec) finishTimer();
+    else if (typeof renderTimer === 'function') renderTimer();
+    startOrbAnimation();
+  }
+});
 
 /* ---------- Таймер ---------- */
 let timerTotalSec = 600;
@@ -1667,6 +1725,7 @@ function startTimer() {
     else renderTimer();
   }, 200);
   updateMainIcon();
+  if (canAnimateOrb()) startOrbAnimation();
 }
 function pauseTimer() {
   if (!timerRunning) return;
@@ -1675,6 +1734,7 @@ function pauseTimer() {
   clearInterval(timerInterval);
   renderTimer();
   updateMainIcon();
+  if (canAnimateOrb()) startOrbAnimation();
 }
 function finishTimer() {
   clearInterval(timerInterval);
@@ -1686,6 +1746,7 @@ function finishTimer() {
   renderStreak();
   renderTimer();
   updateMainIcon();
+  if (canAnimateOrb()) startOrbAnimation();
 
   const mins = Math.round(timerTotalSec/60);
   chakraProgress[currentChakra] = (chakraProgress[currentChakra] || 0) + mins;
@@ -1727,39 +1788,85 @@ function resetTimer(newTotalSec) {
   renderTimer();
   updateMainIcon();
   lastHintState = null;
+  if (canAnimateOrb()) startOrbAnimation();
   if (audioEl && !audioEl.paused) audioEl.pause();
   return true;
 }
 
 const audioEl = document.getElementById('audioEl');
-
+const playerTrackStatus = document.getElementById('playerTrackStatus');
+const prevTrackButton = document.getElementById('btnPrevTrack');
+const nextTrackButton = document.getElementById('btnNextTrack');
+let playerRequest = 0;
+function updateTrackStatus(message) {
+  const selected = allTracks[trackIndex];
+  playerTrackStatus.textContent = message || (selected ? `♫ ${selected.title}${audioEl.paused ? '' : ' · играет'}` : 'Музыка не выбрана');
+  prevTrackButton.disabled = nextTrackButton.disabled = allTracks.length === 0;
+}
+function clearTrack() {
+  ++playerRequest;
+  audioEl.pause();
+  audioEl.removeAttribute('src');
+  audioEl.load();
+  trackIndex = 0;
+  updateTrackStatus();
+}
+async function playSelectedTrack() {
+  if (!allTracks.length) { updateTrackStatus(); return; }
+  if (!audioEl.getAttribute('src') || audioEl.getAttribute('src') !== allTracks[trackIndex].src) {
+    audioEl.src = allTracks[trackIndex].src;
+  }
+  const request = ++playerRequest;
+  try {
+    await audioEl.play();
+    if (request === playerRequest) updateTrackStatus();
+  } catch (err) {
+    if (request === playerRequest) {
+      console.warn('Ошибка воспроизведения аудио:', err);
+      updateTrackStatus('Не удалось воспроизвести: проверь формат или разрешение звука');
+      showToast('Не удалось включить аудио. Проверь формат файла.');
+    }
+  }
+}
+function loadTrack(i, autoplay = false) {
+  if (!allTracks.length) { clearTrack(); return; }
+  ++playerRequest;
+  trackIndex = ((i % allTracks.length) + allTracks.length) % allTracks.length;
+  audioEl.pause();
+  audioEl.src = allTracks[trackIndex].src;
+  audioEl.load();
+  updateTrackStatus();
+  if (autoplay) void playSelectedTrack();
+}
 document.getElementById('btnMain').addEventListener('click', () => {
   if (timerDone) return;
   if (timerRunning) {
     pauseTimer();
-    if (!audioEl.paused) audioEl.pause();
+    ++playerRequest;
+    audioEl.pause();
+    updateTrackStatus();
   } else {
     startTimer();
-    if (!audioEl.src && allTracks.length) loadTrack(trackIndex, false);
-    if (audioEl.src && audioEl.paused && allTracks.length) audioEl.play().catch(()=>{});
+    if (allTracks.length) void playSelectedTrack();
   }
 });
-document.getElementById('btnNextTrack').addEventListener('click', () => {
-  if (!allTracks.length) { showToast('Сначала добавь треки'); return; }
-  loadTrack(trackIndex + 1, !audioEl.paused);
-});
-document.getElementById('btnPrevTrack').addEventListener('click', () => {
-  if (!allTracks.length) { showToast('Сначала добавь треки'); return; }
-  if (audioEl.currentTime > 3) audioEl.currentTime = 0;
-  else loadTrack(trackIndex - 1, !audioEl.paused);
-});
-function loadTrack(i, autoplay) {
+nextTrackButton.addEventListener('click', () => {
   if (!allTracks.length) return;
-  trackIndex = (i + allTracks.length) % allTracks.length;
-  const t = allTracks[trackIndex];
-  audioEl.src = t.src;
-  if (autoplay) audioEl.play().catch(()=>{});
-}
+  loadTrack(trackIndex + 1, timerRunning);
+});
+prevTrackButton.addEventListener('click', () => {
+  if (!allTracks.length) return;
+  if (audioEl.currentTime > 3) {
+    audioEl.currentTime = 0;
+    if (timerRunning && audioEl.paused) void playSelectedTrack();
+  } else loadTrack(trackIndex - 1, timerRunning);
+});
+audioEl.addEventListener('play', () => updateTrackStatus());
+audioEl.addEventListener('pause', () => updateTrackStatus());
+audioEl.addEventListener('error', () => {
+  if (allTracks.length) updateTrackStatus('Не удаётся прочитать аудиофайл');
+});
+updateTrackStatus();
 renderTimer();
 updateMainIcon();
 
@@ -1802,6 +1909,8 @@ document.querySelectorAll('.bottom-tab').forEach(btn => {
     btn.classList.add('active');
     const screen = btn.dataset.screen;
     document.getElementById('screen-' + screen).classList.add('active');
+    if (screen === 'practice') startOrbAnimation();
+    else stopOrbAnimation();
 
     if (screen === 'profile') {
           renderStreak();
@@ -2324,17 +2433,20 @@ function renderTracksModal() {
     btn.addEventListener('click', async () => {
       const id = parseInt(btn.dataset.id);
       if (!confirm('Удалить этот трек?')) return;
-      const wasPlaying = !audioEl.paused;
-      const playingId = allTracks[trackIndex]?._id;
-      if (playingId === id) { audioEl.pause(); audioEl.removeAttribute('src'); audioEl.load(); }
-      try { await dbDeleteTrack(id); } catch(err) { showToast('Не удалось удалить трек'); return; }
+      const selectedId = allTracks[trackIndex]?._id;
+      const deletingSelected = selectedId === id;
+      if (deletingSelected) { ++playerRequest; audioEl.pause(); audioEl.removeAttribute('src'); audioEl.load(); }
+      try { await dbDeleteTrack(id); } catch(err) {
+        if (deletingSelected && allTracks.length) loadTrack(trackIndex, timerRunning);
+        showToast('Не удалось удалить трек'); return;
+      }
       userTracks = userTracks.filter(t => t.id !== id);
       rebuildAllTracks();
-      if (playingId === id) {
-        trackIndex = Math.min(trackIndex, Math.max(0, allTracks.length - 1));
-        if (allTracks.length) loadTrack(trackIndex, wasPlaying);
-      } else {
-        trackIndex = Math.max(0, allTracks.findIndex(t => t._id === playingId));
+      if (!allTracks.length) clearTrack();
+      else if (deletingSelected) loadTrack(Math.min(trackIndex, allTracks.length-1), timerRunning);
+      else {
+        trackIndex = Math.max(0, allTracks.findIndex(t => t._id === selectedId));
+        updateTrackStatus();
       }
       renderTracksModal();
       showToast('Трек удалён');
@@ -2363,6 +2475,8 @@ fileInput.addEventListener('change', async (e) => {
   }
   if (added > 0) {
     rebuildAllTracks();
+    if (allTracks.length === added) loadTrack(0, false);
+    updateTrackStatus();
     renderTracksModal();
     showToast(`✨ Добавлено треков: ${added}`, 'success');
   }
@@ -2505,6 +2619,7 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
   renderProfile();
 
   if (allTracks.length) loadTrack(0, false);
+  else updateTrackStatus();
 })();
 
 </script>
