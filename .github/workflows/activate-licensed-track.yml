@@ -57,7 +57,7 @@ jobs:
               raise ValueError('An outdated track reference remains')
           if text.count('assets/peace-of-mind.mp3') != 1:
               raise ValueError('Incorrect new asset reference count')
-          scripts = [m for m in re.findall(r'<script\\b[^>]*>([\\s\\S]*?)</script>', text, flags=re.I) if m.strip()]
+          scripts = [m for m in re.findall(r'<script\b[^>]*>([\s\S]*?)</script>', text, flags=re.I) if m.strip()]
           if len(scripts) != 1:
               raise ValueError(f'Expected one inline script, found {len(scripts)}')
           with tempfile.TemporaryDirectory() as tmp:
