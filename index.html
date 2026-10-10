@@ -834,13 +834,16 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.success { border-color: var(--accent); }
+  .personal-note { color:#999bb1; font-size:13px; line-height:1.6; text-align:center; margin:20px 8px 12px; }
+  #orb { max-width:100%; height:auto; aspect-ratio:1; }
+  .screen-practice { max-width:700px; margin:0 auto; }
+  .screen-profile { max-width:700px; margin:0 auto; }
 </style>
 </head>
 <body>
 
 <!-- ==================== ЭКРАН ПРАКТИКА ==================== -->
 <div class="screen screen-practice active" id="screen-practice">
-  <div class="daily-tasks" id="dailyTasks"></div>
   <div class="chakra-picker" id="chakraPicker"></div>
 
   <div class="chakra-info">
@@ -950,7 +953,7 @@
     </div>
 
   </div>
-  <div class="practice-streak-note" id="practiceStreakNote" aria-live="polite">🔥 Каждая завершённая медитация засчитывает день автоматически</div>
+  <div class="practice-streak-note" id="practiceStreakNote" aria-live="polite">🌿 Просто практикуй в своём ритме</div>
 </div>
 
 <!-- ==================== ЭКРАН ПРОФИЛЬ ==================== -->
@@ -965,15 +968,8 @@
     <div id="streakWeek" class="streak-week"></div>
   </div>
 
-  <div class="stats-bar">
-    <div class="level-badge">Ур.<b id="levelNum">1</b></div>
-    <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
-    <div class="xp-text" id="xpText">0 / 100</div>
-  </div>
-
   <div class="profile-tabs">
     <button class="profile-tab active" data-ptab="stats">Статистика</button>
-    <button class="profile-tab" data-ptab="achievements">Достижения</button>
     <button class="profile-tab" data-ptab="history">История</button>
   </div>
 
@@ -1226,7 +1222,6 @@ const CHAKRAS = [
       meaning:'Седьмая чакра. Центр единства, связи с чем-то большим, чистого сознания.',
       feel:'Почувствуй пространство над головой. Представь фиолетовый свет, раскрывающийся как тысячелепестковый лотос.' } }
 ];
-const UNLOCK_THRESHOLD_MIN = 15;
 let currentChakra = 'muladhara';
 
 /* ---------- Треки ---------- */
@@ -1384,136 +1379,22 @@ function showToast(text, type = 'info') {
 let chakraProgress = {};
 let streak = { count: 0, lastDate: null };
 let sessionsCount = 0;
-let unlockedAchievements = [];
-let dailyState = null;
 let currentPresetMin = 10;
 let sessionLog = [];
 let lastSessionId = null;
 
 function isChakraUnlocked(idx, progress) {
-  if (idx === 0) return true;
-  return (progress[CHAKRAS[idx-1].key] || 0) >= UNLOCK_THRESHOLD_MIN;
+  return idx >= 0 && idx < CHAKRAS.length;
 }
 function findCurrentUnlocked(savedKey, progress) {
-  if (savedKey) {
-    const idx = CHAKRAS.findIndex(c => c.key === savedKey);
-    if (idx >= 0 && isChakraUnlocked(idx, progress)) return savedKey;
-  }
-  for (let i = CHAKRAS.length - 1; i >= 0; i--) {
-    if (isChakraUnlocked(i, progress)) return CHAKRAS[i].key;
-  }
-  return CHAKRAS[0].key;
+  return CHAKRAS.some(c => c.key === savedKey) ? savedKey : CHAKRAS[0].key;
 }
 
 /* ---------- Уровни ---------- */
 function getTotalXP() {
   return Object.values(chakraProgress).reduce((s, v) => s + (v || 0), 0);
 }
-function renderLevel() {
-  const xp = getTotalXP();
-  const level = Math.floor(xp / 100) + 1;
-  const inLevel = xp % 100;
-  document.getElementById('levelNum').textContent = level;
-  document.getElementById('xpText').textContent = `${inLevel} / 100`;
-  document.getElementById('xpFill').style.width = inLevel + '%';
-}
 
-/* ---------- Достижения ---------- */
-const ACHIEVEMENTS = [
-  { id:'first',      icon:'🌱', title:'Первая практика',  desc:'Заверши первую медитацию', check:s=>s.sessions>=1 },
-  { id:'sessions10', icon:'🔥', title:'10 практик',        desc:'Заверши 10 сессий',        check:s=>s.sessions>=10 },
-  { id:'sessions50', icon:'💫', title:'50 практик',        desc:'Заверши 50 сессий',        check:s=>s.sessions>=50 },
-  { id:'streak7',    icon:'📅', title:'Неделя подряд',     desc:'7 дней стрика',            check:s=>s.streak>=7 },
-  { id:'streak30',   icon:'🏆', title:'Месяц подряд',      desc:'30 дней стрика',           check:s=>s.streak>=30 },
-  { id:'streak100',  icon:'👑', title:'100 дней',          desc:'100 дней стрика',          check:s=>s.streak>=100 },
-  { id:'xp60',       icon:'⏱', title:'Час практики',      desc:'60 минут всего',           check:s=>s.xp>=60 },
-  { id:'xp300',      icon:'⏳', title:'5 часов',           desc:'300 минут всего',          check:s=>s.xp>=300 },
-  { id:'xp1000',     icon:'🌟', title:'1000 минут',        desc:'16 часов практики',        check:s=>s.xp>=1000 },
-  { id:'allChakras', icon:'💎', title:'Все чакры',         desc:'По 10 мин на каждой',      check:s=>CHAKRAS.every(c=>(s.chakraProgress[c.key]||0)>=10) },
-  { id:'level5',     icon:'⚡', title:'Уровень 5',         desc:'500 XP',                   check:s=>s.level>=5 },
-  { id:'level10',    icon:'🔮', title:'Уровень 10',        desc:'1000 XP',                  check:s=>s.level>=10 }
-];
-function checkAchievements(showToasts) {
-  const xp = getTotalXP();
-  const level = Math.floor(xp / 100) + 1;
-  const currentStreak = [todayStr(), yesterdayStr()].includes(streak.lastDate) ? (Number(streak.count) || 0) : 0;
-  const state = { xp, level, sessions: sessionsCount, streak: currentStreak, chakraProgress };
-  const newOnes = [];
-  ACHIEVEMENTS.forEach(a => {
-    if (unlockedAchievements.includes(a.id)) return;
-    if (a.check(state)) { unlockedAchievements.push(a.id); newOnes.push(a); }
-  });
-  if (newOnes.length > 0) {
-    storageSet('achievements', JSON.stringify(unlockedAchievements));
-    if (showToasts) newOnes.forEach((a,i) => setTimeout(()=>showToast(`${a.icon} ${a.title}`,'success'), i*900));
-  }
-}
-
-/* ---------- Ежедневные задания ---------- */
-function generateDailyTasks(dateStr) {
-  const h = hashString('daily:' + dateStr);
-  const t1 = [5,7,10][h % 3];
-  const availableChakras = CHAKRAS.filter((c, i) => isChakraUnlocked(i, chakraProgress));
-  const chakraIdx = Math.floor(h / 8) % availableChakras.length;
-  const chakraMins = [3,5][Math.floor(h / 256) % 2];
-  const rhythmIdx = Math.floor(h / 4096) % allRhythms.length;
-  return [
-    { id:'min',    type:'minutes', target:t1,         progress:0, done:false },
-    { id:'chakra', type:'chakra',  target:chakraMins, progress:0, done:false, chakraKey: availableChakras[chakraIdx].key },
-    { id:'rhythm', type:'rhythm',  target:1,          progress:0, done:false, rhythmKey: allRhythms[rhythmIdx].key }
-  ];
-}
-function ensureDailyState() {
-  const today = todayStr();
-  if (dailyState?.date === today && Array.isArray(dailyState.tasks)) {
-    for (const task of dailyState.tasks) {
-      if (task.type === 'chakra' && !task.done) {
-        const i = CHAKRAS.findIndex(c => c.key === task.chakraKey);
-        if (i < 0 || !isChakraUnlocked(i, chakraProgress)) {
-          task.chakraKey = CHAKRAS.find((c, j) => isChakraUnlocked(j, chakraProgress)).key;
-          storageSet('dailyProgress', JSON.stringify(dailyState));
-        }
-      }
-    }
-  }
-  if (!dailyState || dailyState.date !== today) {
-    dailyState = { date: today, tasks: generateDailyTasks(today) };
-    storageSet('dailyProgress', JSON.stringify(dailyState));
-  }
-}
-function renderDailyTasks() {
-  ensureDailyState();
-  const el = document.getElementById('dailyTasks');
-  const chakraMap = Object.fromEntries(CHAKRAS.map(c => [c.key, c.name]));
-  const rhythmMap = Object.fromEntries(allRhythms.map(r => [r.key, r.label]));
-  const done = dailyState.tasks.filter(t => t.done).length;
-  el.innerHTML = `
-    <div class="daily-header"><span>Задания дня</span><span class="count">${done} / ${dailyState.tasks.length}</span></div>
-    ${dailyState.tasks.map(t => {
-      let text = '', prog = '';
-      if (t.type === 'minutes') { text = `Помедитируй ${t.target} минут`; prog = `${t.progress} / ${t.target}`; }
-      else if (t.type === 'chakra') { text = `Сессия на ${chakraMap[t.chakraKey] || '—'}`; prog = `${t.progress} / ${t.target} мин`; }
-      else if (t.type === 'rhythm') { text = `Дыхание ${rhythmMap[t.rhythmKey] || '—'}`; prog = t.progress >= 1 ? '✓' : '—'; }
-      return `<div class="daily-item ${t.done?'done':''}">
-        <div class="daily-check">${t.done?'<svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>':''}</div>
-        <div class="daily-text">${text}</div>
-        <div class="daily-progress">${prog}</div>
-      </div>`;
-    }).join('')}
-  `;
-}
-function updateDailyProgress(mins, chakraKey, rhythmKey) {
-  ensureDailyState();
-  dailyState.tasks.forEach(t => {
-    if (t.done) return;
-    if (t.type === 'minutes') t.progress = Math.min(t.target, t.progress + mins);
-    else if (t.type === 'chakra' && t.chakraKey === chakraKey) t.progress = Math.min(t.target, t.progress + mins);
-    else if (t.type === 'rhythm' && t.rhythmKey === rhythmKey) t.progress = 1;
-    if (t.progress >= t.target) t.done = true;
-  });
-  storageSet('dailyProgress', JSON.stringify(dailyState));
-  renderDailyTasks();
-}
 
 function formatRuDate(dateStr) {
   const [y,m,d] = dateStr.split('-').map(Number);
@@ -1828,11 +1709,8 @@ function finishTimer() {
   renderStreak();
   if (isNewStreakDay) showToast(`🔥 День засчитан! Серия: ${streak.count}`, 'success');
 
-  updateDailyProgress(mins, currentChakra, currentRhythm.key);
   renderChakraPicker();
-  renderLevel();
   if (profileTab === 'stats') renderProfileStats();
-  checkAchievements(true);
   setTimeout(() => openNoteModal(entry.id), 500);
 }
 function confirmTimerReset() {
@@ -1926,8 +1804,7 @@ document.querySelectorAll('.bottom-tab').forEach(btn => {
     document.getElementById('screen-' + screen).classList.add('active');
 
     if (screen === 'profile') {
-      renderLevel();
-      renderStreak();
+          renderStreak();
       renderProfile();
     }
     if (tg) tg.HapticFeedback?.selectionChanged();
@@ -1949,47 +1826,25 @@ document.querySelectorAll('.profile-tab').forEach(tab => {
 
 function renderProfile() {
   if (profileTab === 'stats') renderProfileStats();
-  else if (profileTab === 'achievements') renderProfileAchievements();
   else if (profileTab === 'history') renderProfileHistory();
 }
 
 function renderProfileStats() {
-  const xp = getTotalXP();
-  const avgMin = sessionsCount > 0 ? Math.round(xp/sessionsCount) : 0;
-  let favChakra = CHAKRAS[0];
-  let favMins = 0;
-  CHAKRAS.forEach(c => {
-    const m = chakraProgress[c.key] || 0;
-    if (m > favMins) { favMins = m; favChakra = c; }
-  });
-  const favName = favMins > 0 ? favChakra.name : '—';
-  const favColor = favMins > 0 ? favChakra.color : '#a7a9be';
-
+  const totalMinutes = getTotalXP();
+  const avgMin = sessionsCount ? Math.round(totalMinutes / sessionsCount) : 0;
   const body = document.getElementById('profileBody');
   body.innerHTML = `
     <div class="stat-summary">
-      <div class="stat-card">
-        <div class="stat-label">Всего практики</div>
-        <div class="stat-value">${xp}<span>мин</span></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Сессий</div>
-        <div class="stat-value">${sessionsCount}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Средняя сессия</div>
-        <div class="stat-value">${avgMin}<span>мин</span></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Любимая чакра</div>
-        <div class="stat-value" style="color:${favColor};font-size:15px;">${favName}</div>
-      </div>
+      <div class="stat-card"><div class="stat-label">Всего практики</div><div class="stat-value">${totalMinutes}<span> мин</span></div></div>
+      <div class="stat-card"><div class="stat-label">Медитаций</div><div class="stat-value">${sessionsCount}</div></div>
+      <div class="stat-card"><div class="stat-label">В среднем</div><div class="stat-value">${avgMin}<span> мин</span></div></div>
+      <div class="stat-card"><div class="stat-label">Дней подряд</div><div class="stat-value">${getVisibleStreakCount()}</div></div>
     </div>
-    <div class="profile-section-title">Прогресс по чакрам</div>
-    <div class="chakra-progress" id="chakraProgress"></div>
-    <div class="chakra-total" id="chakraTotal">Накоплено: <b>0 мин</b></div>
-  `;
-  renderProgress();
+    <p class="personal-note">Каждая минута практики имеет значение. Здесь не нужно ничего достигать.</p>`;
+}
+function getVisibleStreakCount() {
+  if (!streak.lastDate) return 0;
+  return (streak.lastDate === todayStr() || streak.lastDate === yesterdayStr()) ? streak.count : 0;
 }
 
 function renderProgress() {
@@ -2017,21 +1872,7 @@ function renderProgress() {
   }
 }
 
-function renderProfileAchievements() {
-  const body = document.getElementById('profileBody');
-  body.innerHTML = `
-    <div class="achievements-grid">
-      ${ACHIEVEMENTS.map(a => {
-        const u = unlockedAchievements.includes(a.id);
-        return `<div class="achievement-card ${u?'unlocked':'locked'}">
-          <div class="achievement-icon">${u?a.icon:'🔒'}</div>
-          <div class="achievement-title">${a.title}</div>
-          <div class="achievement-desc">${a.desc}</div>
-        </div>`;
-      }).join('')}
-    </div>
-  `;
-}
+
 
 let historySubTab = 'sessions';
 let calYear, calMonth, calSelectedDate = null;
@@ -2338,7 +2179,6 @@ delRhythmBtn.addEventListener('click', () => {
   currentRhythm = BUILTIN_RHYTHMS[0];
   storageSet('activeRhythm', currentRhythm.key);
   renderRhythmPicker();
-  renderDailyTasks();
   resetTimer(currentPresetMin * 60);
 });
 
@@ -2394,7 +2234,6 @@ document.getElementById('saveRhythmBtn').addEventListener('click', () => {
   currentRhythm = userRhythms[userRhythms.length - 1];
   storageSet('activeRhythm', currentRhythm.key);
   renderRhythmPicker();
-  renderDailyTasks();
   resetTimer(currentPresetMin * 60);
   document.getElementById('customRhythmModal').classList.remove('show');
   showToast(`✨ Ритм ${label} добавлен`, 'success');
@@ -2599,13 +2438,6 @@ function updateChakraUI() {
 picker.addEventListener('click', e => {
   const chip = e.target.closest('.chakra-chip');
   if (!chip) return;
-  const idx = parseInt(chip.dataset.idx);
-  if (!isChakraUnlocked(idx, chakraProgress)) {
-    const prev = CHAKRAS[idx-1];
-    const prevMins = chakraProgress[prev.key] || 0;
-    showToast(`🔒 Нужно ${UNLOCK_THRESHOLD_MIN} мин на «${prev.name}» (сейчас ${prevMins})`);
-    return;
-  }
   if (chip.dataset.key === currentChakra) return;
   if (!confirmTimerReset()) return;
   currentChakra = chip.dataset.key;
@@ -2620,15 +2452,13 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
 /* ---------- Инициализация ---------- */
 (async () => {
 
-  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, achVal, dailyVal, logVal, pmVal, uiVal, urVal] = await Promise.all([
+  const [streakVal, cpVal, acVal, arVal, apVal, sessVal, logVal, pmVal, uiVal, urVal] = await Promise.all([
     storageGetP('streak'),
     storageGetP('chakraProgress'),
     storageGetP('activeChakra'),
     storageGetP('activeRhythm'),
     storageGetP('activePreset'),
     storageGetP('sessionsCount'),
-    storageGetP('achievements'),
-    storageGetP('dailyProgress'),
     loadSessionLog(),
     storageGetP('practiceMode'),
     storageGetP('userIntentions'),
@@ -2638,8 +2468,6 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
   if (streakVal) { try { streak = JSON.parse(streakVal); } catch(e){} }
   if (cpVal) { try { chakraProgress = JSON.parse(cpVal); } catch(e){} }
   if (sessVal) sessionsCount = parseInt(sessVal) || 0;
-  if (achVal) { try { unlockedAchievements = JSON.parse(achVal) || []; } catch(e){} }
-  if (dailyVal) { try { dailyState = JSON.parse(dailyVal); } catch(e){} }
   if (Array.isArray(logVal)) sessionLog = logVal;
   if (uiVal) { try { userIntentions = JSON.parse(uiVal) || {}; } catch(e){} }
   if (urVal) { try { userRhythms = JSON.parse(urVal) || []; } catch(e){} }
@@ -2672,11 +2500,8 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
   renderPracticeUI();
   resetTimer(currentPresetMin * 60);
   renderStreak();
-  renderLevel();
   renderChakraPicker();
   updateChakraUI();
-  renderDailyTasks();
-  checkAchievements(false);
   renderProfile();
 
   if (allTracks.length) loadTrack(0, false);
