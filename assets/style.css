@@ -920,3 +920,27 @@
   .welcome-thought-close {display:block; width:100%; background:var(--accent); color:#fff; font:inherit; font-weight:650; font-size:15px; border:0; border-radius:13px; padding:14px; cursor:pointer;}
   .welcome-thought-close:focus-visible {outline:2px solid #fff;outline-offset:3px;}
   @media(max-width:350px){.goal-grid{grid-template-columns:1fr;}}
+
+/* Portable journal backup: readable and selectable inside Telegram WebViews. */
+.journal-export-help { color:#b9b3ca; font-size:13px; line-height:1.55; margin:8px 0 15px; }
+.journal-export-actions { display:flex; flex-direction:column; gap:8px; }
+.journal-export-actions button, .journal-export-select {
+  width:100%; min-height:42px; border-radius:11px; padding:10px 12px;
+  cursor:pointer; font:inherit; font-size:13px; font-weight:600;
+}
+.journal-export-actions .primary { background:var(--accent); color:#fff; border:0; }
+.journal-export-actions .ghost, .journal-export-select {
+  background:#1c1c38; color:#e2dcef; border:1px solid #30304c;
+}
+.journal-export-status { margin:12px 0; color:#cdb9ee; font-size:12px; line-height:1.5; }
+.journal-export-status:empty { display:none; }
+.journal-export-label { display:block; font-size:11px; color:#a7a9be; margin:12px 0 6px; }
+.journal-export-text {
+  display:block; width:100%; min-height:112px; max-height:24vh; resize:vertical;
+  border:1px solid #35304a; border-radius:10px; padding:10px;
+  background:#0b0b18; color:#d0c9dc; font-size:11px; line-height:1.45;
+  user-select:text; -webkit-user-select:text;
+  font-family:ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.journal-export-select { margin-top:8px; font-size:12px; }
+
