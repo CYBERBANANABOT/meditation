@@ -30,17 +30,29 @@ const fs=require('node:fs');
       assert(!(await page.locator('#welcomeThoughtModal').isVisible()));
       assert.deepEqual(errors,[],'Browser errors while starting: '+errors.join(';'));
 
-      // The home screen must contain just the universe, hint and one play button.
+      // Home screen: chakra label, native-feeling scroll wheel and music player.
       assert(await page.locator('#screen-practice').isVisible());
-      assert.equal(await page.locator('#screen-practice button').count(),1,'Extra buttons on the home screen');
+      assert.equal(await page.locator('#screen-practice button').count(),5);
       assert(await page.locator('#orb').isVisible());
       assert(await page.locator('#breathHint').isVisible());
-      assert(!(await page.locator('#screen-practice #timerDisplay').count()),'Timer should live in Settings');
+      assert.equal(await page.locator('#homeChakraName').textContent(),'Свадхистана');
+      assert.equal(await page.locator('#durationWheel [role="option"]').count(),180);
+      assert.equal(await page.locator('#durationWheel [aria-selected="true"]').textContent(),'10');
+      assert(await page.locator('#playerTrackStatus').isVisible());
+      assert(!(await page.locator('#screen-practice #timerDisplay').count()));
       const main = await page.locator('#btnMain').boundingBox();
       const orb = await page.locator('#orb').boundingBox();
       assert(main&&orb);
       assert(orb.x>=0&&orb.x+orb.width<=viewport.width+1,'Universe overflows viewport');
-      assert(main.x>=0&&main.x+main.width<=viewport.width+1,'Play button overflows viewport');
+      const ids=['btnPrevTrack','btnMain','btnNextTrack'];
+      const controls=await Promise.all(ids.map(id=>page.locator('#'+id).boundingBox()));
+      for(let i=0;i<controls.length;i++){
+        const box=controls[i];
+        assert(box && box.x>=0 && box.x+box.width<=viewport.width+1,'Player control outside viewport '+ids[i]);
+        if(i) assert(controls[i-1].x+controls[i-1].width<=box.x+1,'Player controls overlap');
+      }
+      const homeWidth=await page.evaluate(()=>document.documentElement.scrollWidth);
+      assert(homeWidth<=viewport.width+1,'Horizontal overflow on home '+homeWidth);
       await page.screenshot({path:'artifacts/layout/practice-'+viewport.width+'.png'});
 
       assert.equal(await page.locator('.bottom-tab').count(),3);
@@ -53,6 +65,7 @@ const fs=require('node:fs');
       assert.equal(await page.locator('#goalGrid [data-goal="clarity"]').getAttribute('aria-pressed'),'true');
       assert(!(await page.locator('#timeExactInput').count()),'Exact minutes field still appears');
       assert(await page.locator('#timerDisplay').isVisible(),'Timer display should be in Settings');
+      assert.equal(await page.locator('#homeChakraName').textContent(),'Аджна');
 
       await page.locator('#practiceHeader').click();
       assert(await page.locator('#practicePicker').isVisible());
@@ -65,24 +78,47 @@ const fs=require('node:fs');
       await page.locator('#timeSlider').dispatchEvent('change');
       assert.equal(await page.locator('#timeValue').textContent(),'17 мин');
       assert.equal(await page.locator('#timerDisplay').textContent(),'17:00');
-      assert(await page.locator('#btnTracks').isVisible());
-      await page.locator('#btnTracks').click();
+      assert(await page.locator('#settingsMusicLibrary').isVisible());
+      await page.locator('#settingsMusicLibrary').click();
       assert(await page.locator('#tracksModal').isVisible());
       await page.locator('#tracksModal [data-close]').click();
       assert(!(await page.locator('#tracksModal').isVisible()));
-      assert.equal(await page.locator('.settings-audio-controls button').count(),4);
       const settingsRect=await page.locator('#screen-settings').boundingBox();
       assert(settingsRect && settingsRect.x>=-1 && settingsRect.x+settingsRect.width<=viewport.width+1);
       await page.screenshot({path:'artifacts/layout/settings-'+viewport.width+'.png'});
 
       await page.locator('.bottom-tab[data-screen="practice"]').click();
       assert(await page.locator('#screen-practice').isVisible());
+      assert.equal(await page.locator('#durationWheel [aria-selected="true"]').textContent(),'17');
+      assert.equal(await page.locator('#homeChakraName').textContent(),'Аджна');
+      await page.locator('#btnTracks').click();
+      assert(await page.locator('#tracksModal').isVisible());
+      await page.locator('#tracksModal [data-close]').click();
+      await page.locator('#durationWheel').evaluate(el=>{el.scrollTop = 24*42});
+      await page.waitForFunction(()=>currentPresetMin===25,null,{timeout:4500});
+      assert.equal(await page.locator('#durationWheel [aria-selected="true"]').textContent(),'25');
+      assert.equal(await page.locator('#timerDisplay').textContent(),'25:00');
+      if(viewport.width===390){
+        await page.locator('#durationWheel').evaluate(el=>{el.scrollTop = 179*42});
+        await page.waitForFunction(()=>currentPresetMin===180,null,{timeout:4500});
+        assert.equal(await page.locator('#durationWheel [aria-selected="true"]').textContent(),'180');
+        await page.locator('#durationWheel').evaluate(el=>{el.scrollTop = 0});
+        await page.waitForFunction(()=>currentPresetMin===1,null,{timeout:4500});
+        assert.equal(await page.locator('#durationWheel [aria-selected="true"]').textContent(),'1');
+        await page.locator('#durationWheel').press('ArrowDown');
+        await page.waitForFunction(()=>currentPresetMin===2,null,{timeout:4500});
+        assert.equal(await page.locator('#durationWheel [aria-selected="true"]').textContent(),'2');
+      }
+      const initialTimer=await page.locator('#timerDisplay').textContent();
       await page.locator('#btnMain').click();
       assert(await page.evaluate(()=>timerRunning),'Timer did not start');
-      await page.waitForFunction(()=>document.getElementById('timerDisplay').textContent !== '17:00',
-        null,{timeout:3500});
+      assert.equal(await page.locator('#durationWheel').getAttribute('aria-disabled'),'true');
+      await page.waitForFunction(initial=>document.getElementById('timerDisplay').textContent !== initial,
+        initialTimer,{timeout:3500});
+      assert(await page.locator('#homeTimerRemaining').isVisible(),'Remaining time should be visible during practice');
       await page.locator('#btnMain').click();
       assert(!(await page.evaluate(()=>timerRunning)),'Timer did not pause');
+      assert.equal(await page.locator('#durationWheel').getAttribute('aria-disabled'),'false');
       // Restoring a paused session after the screen is changed must preserve elapsed time.
       await page.locator('.bottom-tab[data-screen="profile"]').click();
       assert(await page.locator('#screen-profile').isVisible());
@@ -149,7 +185,7 @@ const fs=require('node:fs');
       }
       await page.locator('[data-close="journalImportModal"]').click();
       assert.deepEqual(errors,[],'JavaScript errors at '+viewport.width+': '+errors.join('; '));
-      console.log('PASS '+viewport.width+'x'+viewport.height+' entry-flow, minimalist home, settings, music, timer, profile, diary');
+      console.log('PASS '+viewport.width+'x'+viewport.height+' chakra, wheel, player, settings, countdown, profile, diary');
       await context.close();
     }
   }finally{
