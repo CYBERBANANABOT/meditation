@@ -102,7 +102,7 @@ const fs=require('node:fs');
       if(viewport.width===390){
         assert(await page.locator('#journalExportShare').isVisible(),'Native share button not shown when supported');
         await page.locator('#journalExportShare').click();
-        await page.waitForFunction(()=>!!window.__journalFileName);
+        await page.waitForFunction(()=>typeof window.__journalSharedText === 'string');
         assert((await page.evaluate(()=>window.__journalFileName)).endsWith('.json'));
         assert.equal(JSON.parse(await page.evaluate(()=>window.__journalSharedText)).format,'meditation-journal');
       } else {
