@@ -33,9 +33,15 @@ const fs=require('node:fs');
       assert.equal(await page.locator('#screen-settings').count(),0);
       assert.equal(await page.locator('#chakraName').textContent(),'Аджна');
       assert((await page.locator('#chakraDesc').textContent()).includes('прояснить мысли'));
-      assert((await page.locator('#practiceTip').textContent()).includes('Как практиковать'));
-      assert((await page.locator('#practiceTip').textContent()).includes('Наблюдай за возникающими'));
+      assert.equal(await page.locator('#practiceTip').count(),0,'Instructions must stay in chakra details');
+      assert.equal(await page.locator('.home-duration-label').count(),0,'Minute caption must be removed');
       assert(await page.locator('#changeChakraBtn').isVisible());
+      const changeButton = await page.locator('#changeChakraBtn').boundingBox();
+      const chakraTitle = await page.locator('#chakraNameWrap').boundingBox();
+      assert(changeButton && chakraTitle &&
+        chakraTitle.x - (changeButton.x + changeButton.width) >= -1 &&
+        chakraTitle.x - (changeButton.x + changeButton.width) <= 8,
+        'Change chakra button must be immediately left of the chakra title');
       const info=await page.locator('.home-chakra-info').boundingBox(),
         orb=await page.locator('#orb').boundingBox();
       assert(info&&orb&&info.y+info.height<=orb.y+2,'Chakra instruction must be above universe');
@@ -55,11 +61,12 @@ const fs=require('node:fs');
       assert(!(await page.locator('#welcomeThoughtModal').isVisible()),
         'Changing chakra later must not replay welcome thought');
       assert.equal(await page.locator('#chakraName').textContent(),'Свадхистана');
-      assert((await page.locator('#practiceTip').textContent()).includes('Обрати внимание'));
 
       // The info icon continues to open details about the active chakra.
       await page.locator('#chakraNameWrap').click();
       assert(await page.locator('#guideModal').isVisible());
+      assert((await page.locator('#guideBody').textContent()).includes('Простая практика'),
+        'Guidance should still be available inside About Chakra');
       await page.locator('#guideModal [data-close]').first().click();
 
       // Cancel a second chakra selection without changing it.
