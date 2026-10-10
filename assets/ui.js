@@ -510,6 +510,7 @@ const DURATION_WHEEL_ITEM_HEIGHT = 42;
 let wheelPreviewMinutes = null;
 let wheelSettleTimer = null;
 let wheelSelectedOption = null;
+let wheelLastHapticTime = -Infinity;
 durationWheel.innerHTML = Array.from({length: 180}, (_, i) =>
   `<div class="duration-wheel-option" role="option" data-min="${i + 1}" aria-selected="false">${i + 1}</div>`
 ).join('');
@@ -546,12 +547,16 @@ function scheduleWheelCommit() {
 durationWheel.addEventListener('scroll', () => {
   if (timerRunning) {
     clearTimeout(wheelSettleTimer);
+    if (wheelValueFromPosition() !== currentPresetMin) syncDurationWheel(currentPresetMin);
     return;
   }
   const next = wheelValueFromPosition();
   if (next !== wheelPreviewMinutes) {
     setWheelHighlight(next);
-    if (tg) tg.HapticFeedback?.selectionChanged();
+    if (tg && performance.now() - wheelLastHapticTime > 75) {
+      wheelLastHapticTime = performance.now();
+      tg.HapticFeedback?.selectionChanged();
+    }
   }
   scheduleWheelCommit();
 }, {passive:true});
