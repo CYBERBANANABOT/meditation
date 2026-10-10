@@ -7,6 +7,7 @@
     color: #fffffe;
     min-height: 100vh;
     padding: 20px 16px 100px;
+    overflow-x: hidden;
     user-select: none;
   }
   .screen { display: none; }
@@ -233,10 +234,12 @@
   }
   .stat-summary {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
   .stat-card {
+    min-width: 0;
+    overflow-wrap: anywhere;
     background: #131324;
     border-radius: 12px;
     padding: 14px;
@@ -472,20 +475,20 @@
   .timer-display.warn { color: #e53170; }
   .control-bar {
     display: flex; justify-content: center; align-items: center;
-    gap: 16px; margin-bottom: 8px; padding: 4px 0;
+    gap: clamp(4px, 1.8vw, 12px); margin-bottom: 8px; padding: 4px 0;
     flex-wrap: nowrap;
   }
   .ctrl-side {
     background: transparent; border: none; color: #a7a9be;
-    cursor: pointer; padding: 8px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: clamp(4px, 1.2vw, 8px); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex: 0 1 auto; min-width: 0;
     transition: .15s;
   }
   .ctrl-side:active { background: rgba(255,255,255,.08); }
-  .ctrl-side svg { width: 24px; height: 24px; fill: currentColor; }
+  .ctrl-side svg { width: clamp(20px, 5.8vw, 24px); height: clamp(20px, 5.8vw, 24px); flex-shrink: 0; fill: currentColor; }
   .ctrl-play {
     background: var(--accent); border: none; color: #fff;
-    cursor: pointer; width: 76px; height: 76px; border-radius: 50%;
+    cursor: pointer; width: clamp(62px, 18vw, 76px); height: clamp(62px, 18vw, 76px); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 6px 22px var(--accent-glow);
     transition: background .3s, box-shadow .3s, transform .1s;
@@ -857,6 +860,17 @@
   #orb { max-width:100%; height:auto; aspect-ratio:1; }
   .screen-practice { max-width:700px; margin:0 auto; }
   .screen-profile { max-width:700px; margin:0 auto; }
+  .screen-profile, .screen-practice { width: 100%; min-width: 0; }
+  .streak-heading > div:last-child { min-width: 0; }
+  .streak-number { font-size: clamp(28px, 8vw, 39px); }
+  @media (max-width: 380px) {
+    .player { padding-left: 12px; padding-right: 12px; }
+    .control-bar { gap: 5px; }
+    .ctrl-side { padding: 5px; flex: 1 1 0; }
+    .ctrl-side svg { width: 22px; height: 22px; }
+    .streak-card { padding: 18px 12px; }
+    .streak-flame { width: 54px; height: 54px; font-size: 31px; }
+  }
   .player-track-status { text-align:center; color:#a7a9be; font-size:12px; margin:12px 0 0; min-height:18px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ctrl-side:disabled { opacity:.3; cursor:default; }
   .player { position:relative; }
