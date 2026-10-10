@@ -1,0 +1,129 @@
+name: Fix body scan timer synchronization
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-body-scan-timing.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update scan stages to match the practice duration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('index.html')
+          html = p.read_text(encoding='utf-8')
+          before = """/* ---------- Скан тела ---------- */
+          const SCAN_PARTS = ['Стопы','Голени','Колени','Бёдра','Живот','Грудь','Кисти рук','Плечи','Шея','Лицо','Макушка','Всё тело'];
+          const SCAN_PART_DUR = 25;
+          let practiceMode = 'breath';
+          """
+          after = """/* ---------- Скан тела ---------- */
+          const SCAN_PARTS = ['Стопы','Голени','Колени','Бёдра','Живот','Грудь','Кисти рук','Плечи','Шея','Лицо','Макушка','Всё тело'];
+          let practiceMode = 'breath';
+
+          // Divide the selected timer duration evenly between all 12 scan steps.
+          // Elapsed time (not frame count) keeps the scan in sync after pauses
+          // or background-tab switches. Clamp at the end; never wrap to step 1.
+          function scanStepAt(elapsedSeconds, durationSeconds) {
+            const total = Math.max(1, durationSeconds);
+            const stepSeconds = total / SCAN_PARTS.length;
+            const elapsed = Math.max(0, Math.min(elapsedSeconds, total));
+            const partIdx = Math.min(SCAN_PARTS.length - 1, Math.floor(elapsed / stepSeconds));
+            const local = Math.max(0, Math.min(1, (elapsed - partIdx * stepSeconds) / stepSeconds));
+            return { partIdx, local };
+          }
+          """
+          assert html.count(before)==1, 'Scan configuration did not match current main'
+          html=html.replace(before,after,1)
+          old_scan="""  if (practiceMode === 'scan') {
+              const totalDur = SCAN_PARTS.length * SCAN_PART_DUR;
+              const time = ((secondsInCycle % totalDur) + totalDur) % totalDur;
+              const partIdx = Math.floor(time / SCAN_PART_DUR);
+              const local = (time % SCAN_PART_DUR) / SCAN_PART_DUR;
+              const breathePhase = (time / 8) * Math.PI * 2;
+              const level = (1 - Math.cos(breathePhase)) / 2;
+              return { level, phaseName: 'scan', scanPart: SCAN_PARTS[partIdx], scanIdx: partIdx, scanLocal: local };
+            }
+          """
+          new_scan="""  if (practiceMode === 'scan') {
+              const { partIdx, local } = scanStepAt(secondsInCycle, timerTotalSec);
+              // The universe keeps its smooth breathing rhythm independent
+              // of the 12-stage progression and selected session length.
+              const breathePhase = (secondsInCycle / 8) * Math.PI * 2;
+              const level = (1 - Math.cos(breathePhase)) / 2;
+              return { level, phaseName: 'scan', scanPart: SCAN_PARTS[partIdx], scanIdx: partIdx, scanLocal: local };
+            }
+          """
+          assert html.count(old_scan)==1, 'Old fixed-length scan logic not found'
+          html=html.replace(old_scan,new_scan,1)
+          assert 'SCAN_PART_DUR' not in html
+          assert html.count('scanStepAt(secondsInCycle, timerTotalSec)')==1
+          assert html.count("assets/peace-of-mind.mp3")==1
+          assert "allTracks.length === 1 + added" in html
+          assert 'requestAnimationFrame(animateOrb)' in html
+          p.write_text(html,encoding='utf-8')
+          print('Applied timer-derived body scan stage duration; rest unchanged')
+          PY
+      - name: Verify entire JavaScript and scan boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html=Path('index.html').read_text(encoding='utf-8')
+          scripts=[s for s in re.findall(r'<script\b[^>]*>([\s\S]*?)</script>',html,flags=re.I) if s.strip()]
+          assert len(scripts)==1, f'Expected one inline application script, got {len(scripts)}'
+          Path('/tmp/meditation-application.js').write_text(scripts[0],encoding='utf-8')
+          PY
+          node --check /tmp/meditation-application.js
+          node <<'JS'
+          const fs=require('fs'), vm=require('vm'), assert=require('assert');
+          const code=fs.readFileSync('/tmp/meditation-application.js','utf8');
+          const helper=code.match(/function scanStepAt\([^]*?\n\}/);
+          assert(helper, 'Scan helper not found');
+          const context={SCAN_PARTS:Array.from({length:12})};
+          vm.runInNewContext(helper[0]+'; this.step = scanStepAt;',context);
+          const scan=context.step;
+          for (const duration of [60,120,300,600,1800,10800]) {
+            const stage=duration/12;
+            assert.equal(scan(0,duration).partIdx,0);
+            assert.equal(scan(duration-0.0001,duration).partIdx,11);
+            assert.equal(scan(duration,duration).partIdx,11,'Do not wrap after completion');
+            assert.equal(scan(duration+5,duration).partIdx,11);
+            for(let i=0;i<12;i++){
+              assert.equal(scan((i+0.5)*stage,duration).partIdx,i,'Wrong scan stage');
+              assert.equal(scan(i*stage,duration).partIdx,i,'Wrong boundary');
+              assert.ok(Math.abs(scan((i+0.5)*stage,duration).local-0.5)<1e-8);
+            }
+            assert.ok(Math.abs(scan(duration,duration).local-1)<1e-8);
+          }
+          const snapshot=scan(17.5,60);
+          assert.equal(snapshot.partIdx,3);
+          assert.equal(scan(17.5,60).partIdx,snapshot.partIdx,'Pause must preserve stage');
+          assert.equal(scan(27.5,60).partIdx,5,'Resume must use elapsed time');
+          console.log('PASS: 12/12 scan steps at 1, 2, 5, 10, 30, 180 minutes; completion & pause/resume');
+          JS
+      - name: Publish one validated index change to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m "Synchronize all 12 body scan stages with meditation timer"
+          git pull --rebase origin main
+          git push origin HEAD:main
