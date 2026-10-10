@@ -80,6 +80,42 @@ const fs=require('node:fs');
       await page.screenshot({path:dir+'/profile-'+viewport.width+'.png'});
       await page.locator('.profile-tab[data-ptab="history"]').click();
       assert(await page.locator('#historyContent').isVisible(),'History tab not usable');
+      if(viewport.width===390){
+        await page.evaluate(()=>{
+          window.__journalFileName = null;
+          Object.defineProperty(navigator,'canShare',{configurable:true,value:opts=>opts.files?.length===1});
+          Object.defineProperty(navigator,'share',{configurable:true,value:async opts=>{
+            window.__journalFileName = opts.files[0].name;
+            window.__journalSharedText = await opts.files[0].text();
+          }});
+        });
+      }
+      await page.locator('#exportJournalBtn').click();
+      assert(await page.locator('#journalExportModal').isVisible(),'Export dialog did not open');
+      const archive=JSON.parse(await page.locator('#journalExportText').inputValue());
+      assert.equal(archive.format,'meditation-journal');
+      assert(Array.isArray(archive.sessions),'Export omits sessions');
+      assert(archive.streak,'Export omits streak');
+      assert(await page.locator('#journalExportText').inputValue()!=='','Backup text must be available');
+      assert(!(await page.locator('#journalExportDownload').isVisible()),
+        'Telegram should not show unreliable blob downloads');
+      if(viewport.width===390){
+        assert(await page.locator('#journalExportShare').isVisible(),'Native share button not shown when supported');
+        await page.locator('#journalExportShare').click();
+        await page.waitForFunction(()=>!!window.__journalFileName);
+        assert((await page.evaluate(()=>window.__journalFileName)).endsWith('.json'));
+        assert.equal(JSON.parse(await page.evaluate(()=>window.__journalSharedText)).format,'meditation-journal');
+      } else {
+        assert(!(await page.locator('#journalExportShare').isVisible()),'Unsupported native share should be hidden');
+      }
+      await page.locator('#journalExportCopy').click();
+      assert(await page.locator('#journalExportStatus').textContent(),'Copy must show clear feedback');
+      await page.locator('#journalExportSelect').click();
+      const selected=await page.locator('#journalExportText').evaluate(el=>
+        el.selectionStart===0 && el.selectionEnd===el.value.length);
+      assert(selected,'Manual copy fallback should select full journal text');
+      await page.locator('[data-close="journalExportModal"]').click();
+      assert(!(await page.locator('#journalExportModal').isVisible()),'Export dialog should close');
       console.log('PASS viewport '+viewport.width+'x'+viewport.height,
         'player controls',practice.buttons.map(b=>Math.round(b.x)+'+'+Math.round(b.w)).join(' '),
         'profile width',Math.round(profile.profile.width),'stats',profile.cards.length,'page errors',errors.length);
