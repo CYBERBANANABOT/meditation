@@ -351,6 +351,8 @@ jobs:
           assert "if (timerDone) resetTimer(currentPresetMin * 60)" in code
           assert "window.addEventListener('pagehide', saveActivePractice)" in code
           assert 'scanStepAt(secondsInCycle, timerTotalSec)' in code
+          # Restore literal JS template delimiters after embedding in this workflow.
+          code = code.replace(chr(92) + '`', '`').replace(chr(92) + '${', '${')
           path.write_text(code,encoding='utf-8')
           print('Patched timer, recovery, journal merge, history retention')
           PY
