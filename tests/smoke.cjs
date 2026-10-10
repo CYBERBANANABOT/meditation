@@ -2,9 +2,11 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {test}=require('node:test');
 const html=fs.readFileSync('index.html','utf8');
-const modular=fs.existsSync('assets/app.js');
-const script=modular?fs.readFileSync('assets/app.js','utf8'):
-  (html.match(/<script>\s*([\s\S]*?)<\/script>/)||[])[1];
+const modules=['core','visualizer','session','ui'].map(name=>'assets/'+name+'.js');
+const modular=modules.every(file=>fs.existsSync(file));
+const script=modular?modules.map(file=>fs.readFileSync(file,'utf8')).join('\n'):
+  (fs.existsSync('assets/app.js')?fs.readFileSync('assets/app.js','utf8'):
+  (html.match(/<script>\s*([\s\S]*?)<\/script>/)||[])[1]);
 const css=fs.existsSync('assets/style.css')?fs.readFileSync('assets/style.css','utf8'):
   (html.match(/<style>([\s\S]*?)<\/style>/)||[])[1];
 assert(script&&css,'App CSS and JS must exist');
