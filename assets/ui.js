@@ -39,7 +39,7 @@ document.querySelectorAll('[data-close]').forEach(btn => {
 });
 document.querySelectorAll('.modal').forEach(m => {
   m.addEventListener('click', e => {
-      if (e.target === m && m.id !== 'practiceRecoveryModal') m.classList.remove('show');
+      if (e.target === m && !['practiceRecoveryModal','welcomeGoalModal'].includes(m.id)) m.classList.remove('show');
     });
 });
 
@@ -307,204 +307,9 @@ function openGuide(chakraKey) {
   });
 }
 
-/* ============================================================
-   НАСТРОЙКИ ПРАКТИКИ (СЛАЙДЕРЫ)
-   ============================================================ */
-const practiceBlock = document.getElementById('practiceBlock');
-const practiceHeader = document.getElementById('practiceHeader');
-const practiceValue = document.getElementById('practiceValue');
-const practiceSlider = document.getElementById('practiceSlider');
-const practiceMark0 = document.getElementById('practiceMark0');
-const practiceMark1 = document.getElementById('practiceMark1');
-
-const PRACTICE_MODES = ['breath', 'scan'];
-document.getElementById('scanChimeButton').addEventListener('click', () => {
-  scanChimeEnabled = !scanChimeEnabled;
-  storageSet('scanChime',scanChimeEnabled ? '1' : '0');
-  armScanChime();
-  renderPracticeUI();
-});
-
-function syncSettingsExpanded() {
-  for (const [header, block] of [
-    ['practiceHeader',practiceBlock],['rhythmHeader',rhythmBlock],['timeHeader',timeBlock]
-  ]) document.getElementById(header).setAttribute('aria-expanded',String(block.classList.contains('open')));
-}
-
-function renderPracticeUI() {
-  const idx = PRACTICE_MODES.indexOf(practiceMode);
-  practiceSlider.value = idx >= 0 ? idx : 0;
-  practiceValue.textContent = practiceMode === 'scan' ? 'Скан тела' : 'Дыхание';
-  practiceMark0.classList.toggle('active', practiceMode === 'breath');
-  practiceMark1.classList.toggle('active', practiceMode === 'scan');
-  rhythmBlock.classList.toggle('hidden', practiceMode === 'scan');
-  const chime = document.getElementById('scanChimeButton');
-  chime.hidden = practiceMode !== 'scan';
-  chime.textContent = '♪ Сигнал смены этапов: ' + (scanChimeEnabled ? 'вкл.' : 'выкл.');
-  chime.setAttribute('aria-pressed', String(scanChimeEnabled));
-}
-
-practiceHeader.addEventListener('click', () => {
-  practiceBlock.classList.toggle('open');
-  if (practiceBlock.classList.contains('open')) {
-    rhythmBlock.classList.remove('open');
-    timeBlock.classList.remove('open');
-  }
-  syncSettingsExpanded();
-  if (tg) tg.HapticFeedback?.selectionChanged();
-});
-
-practiceSlider.addEventListener('input', () => {
-  const newMode = PRACTICE_MODES[parseInt(practiceSlider.value)] || 'breath';
-  practiceMark0.classList.toggle('active', newMode === 'breath');
-  practiceMark1.classList.toggle('active', newMode === 'scan');
-  practiceValue.textContent = newMode === 'scan' ? 'Скан тела' : 'Дыхание';
-  if (tg) tg.HapticFeedback?.selectionChanged();
-});
-practiceSlider.addEventListener('change', () => {
-  const newMode = PRACTICE_MODES[parseInt(practiceSlider.value)] || 'breath';
-  if (newMode === practiceMode) return;
-  if (!confirmTimerReset()) { renderPracticeUI(); return; }
-  practiceMode = newMode;
-  storageSet('practiceMode', practiceMode);
-  resetTimer(currentPresetMin * 60);
-  renderPracticeUI();
-});
-
-/* ---------- Ритм дыхания (слайдер) ---------- */
-const rhythmBlock = document.getElementById('rhythmBlock');
-const rhythmHeader = document.getElementById('rhythmHeader');
-const rhythmValue = document.getElementById('rhythmValue');
-const rhythmSlider = document.getElementById('rhythmSlider');
-const rhythmMarks = document.getElementById('rhythmMarks');
-const delRhythmBtn = document.getElementById('delRhythmBtn');
-const addRhythmBtn = document.getElementById('addRhythmBtn');
-
-function renderRhythmPicker() {
-  if (!allRhythms.length) return;
-  const idx = Math.max(0, allRhythms.findIndex(r => r.key === currentRhythm.key));
-  rhythmSlider.min = 0;
-  rhythmSlider.max = Math.max(0, allRhythms.length - 1);
-  rhythmSlider.step = 1;
-  rhythmSlider.value = idx;
-
-  rhythmValue.textContent = currentRhythm.label;
-
-  rhythmMarks.innerHTML = allRhythms.map((r, i) =>
-    `<span class="${i === idx ? 'active' : ''}">${r.label}</span>`
-  ).join('');
-
-  const isCustom = currentRhythm.key.startsWith('custom-');
-  delRhythmBtn.style.display = isCustom ? 'block' : 'none';
-}
-
-rhythmHeader.addEventListener('click', () => {
-  rhythmBlock.classList.toggle('open');
-  if (rhythmBlock.classList.contains('open')) {
-    timeBlock.classList.remove('open');
-    practiceBlock.classList.remove('open');
-  }
-  syncSettingsExpanded();
-  if (tg) tg.HapticFeedback?.selectionChanged();
-});
-
-rhythmSlider.addEventListener('input', () => {
-  const i = parseInt(rhythmSlider.value) || 0;
-  const r = allRhythms[i];
-  if (!r) return;
-  rhythmValue.textContent = r.label;
-  rhythmMarks.querySelectorAll('span').forEach((s, k) => s.classList.toggle('active', k === i));
-  if (tg) tg.HapticFeedback?.selectionChanged();
-});
-rhythmSlider.addEventListener('change', () => {
-  const i = parseInt(rhythmSlider.value) || 0;
-  const r = allRhythms[i];
-  if (!r || r.key === currentRhythm.key) return;
-  if (!confirmTimerReset()) { renderRhythmPicker(); return; }
-  currentRhythm = r;
-  storageSet('activeRhythm', currentRhythm.key);
-  resetTimer(currentPresetMin * 60);
-  renderRhythmPicker();
-});
-
-addRhythmBtn.addEventListener('click', () => openCustomRhythmModal());
-delRhythmBtn.addEventListener('click', () => {
-  if (!currentRhythm.key.startsWith('custom-')) return;
-  if (!confirm('Удалить этот ритм?')) return;
-  const key = currentRhythm.key;
-  userRhythms = userRhythms.filter(r => r.key !== key);
-  storageSet('userRhythms', JSON.stringify(userRhythms));
-  rebuildAllRhythms();
-  currentRhythm = BUILTIN_RHYTHMS[0];
-  storageSet('activeRhythm', currentRhythm.key);
-  renderRhythmPicker();
-  resetTimer(currentPresetMin * 60);
-});
-
-function openCustomRhythmModal() {
-  document.getElementById('rIn').value = 4;
-  document.getElementById('rHold').value = 0;
-  document.getElementById('rOut').value = 4;
-  document.getElementById('rEmpty').value = 0;
-  updateRhythmPreview();
-  document.getElementById('customRhythmModal').classList.add('show');
-}
-function updateRhythmPreview() {
-  const inSec = Math.max(1, parseInt(document.getElementById('rIn').value) || 4);
-  const holdSec = Math.max(0, parseInt(document.getElementById('rHold').value) || 0);
-  const outSec = Math.max(1, parseInt(document.getElementById('rOut').value) || 4);
-  const emptySec = Math.max(0, parseInt(document.getElementById('rEmpty').value) || 0);
-  const total = inSec + holdSec + outSec + emptySec;
-  const parts = [];
-  if (holdSec > 0) parts.push(`${inSec}-${holdSec}-${outSec}`); else parts.push(`${inSec}-${outSec}`);
-  if (emptySec > 0) parts[0] += `-${emptySec}`;
-  document.getElementById('rhythmPreview').innerHTML = `${parts[0]} · Цикл: <b>${total} сек</b>`;
-}
-['rIn','rHold','rOut','rEmpty'].forEach(id => {
-  document.getElementById(id).addEventListener('input', updateRhythmPreview);
-});
-document.getElementById('saveRhythmBtn').addEventListener('click', () => {
-  const inSec = Number(document.getElementById('rIn').value);
-  const holdSec = Number(document.getElementById('rHold').value);
-  const outSec = Number(document.getElementById('rOut').value);
-  const emptySec = Number(document.getElementById('rEmpty').value);
-  if (![inSec,holdSec,outSec,emptySec].every(Number.isInteger) ||
-      inSec < 1 || inSec > 20 || outSec < 1 || outSec > 20 ||
-      holdSec < 0 || holdSec > 20 || emptySec < 0 || emptySec > 20) {
-    showToast('Укажи целые секунды от 1 до 20 для вдоха/выдоха и от 0 до 20 для пауз');
-    return;
-  }
-
-  const phases = [{ name:'inhale', dur: inSec }];
-  if (holdSec > 0) phases.push({ name:'hold', dur: holdSec });
-  phases.push({ name:'exhale', dur: outSec });
-  if (emptySec > 0) phases.push({ name:'holdEmpty', dur: emptySec });
-
-  const labelParts = [inSec];
-  if (holdSec > 0) labelParts.push(holdSec);
-  labelParts.push(outSec);
-  if (emptySec > 0) labelParts.push(emptySec);
-  const label = labelParts.join('-');
-  const key = 'custom-' + Date.now();
-
-  userRhythms.push({ key, label, phases });
-  storageSet('userRhythms', JSON.stringify(userRhythms));
-  rebuildAllRhythms();
-  currentRhythm = userRhythms[userRhythms.length - 1];
-  storageSet('activeRhythm', currentRhythm.key);
-  renderRhythmPicker();
-  resetTimer(currentPresetMin * 60);
-  document.getElementById('customRhythmModal').classList.remove('show');
-  showToast(`✨ Ритм ${label} добавлен`, 'success');
-});
-
-/* ---------- Длительность (слайдер) ---------- */
-const timeBlock = document.getElementById('timeBlock');
-const timeHeader = document.getElementById('timeHeader');
-const timeValue = document.getElementById('timeValue');
-const timeBigVal = document.getElementById('timeBigVal');
-const timeSlider = document.getElementById('timeSlider');
-const quickPresets = document.getElementById('quickPresets');
+/* ---------- Длительность практики: барабан минут ---------- */
+const MIN_TIME = 1;
+const MAX_TIME = 180;
 const durationWheel = document.getElementById('durationWheel');
 const DURATION_WHEEL_ITEM_HEIGHT = 42;
 let wheelPreviewMinutes = null;
@@ -580,41 +385,10 @@ durationWheel.addEventListener('keydown', event => {
   scheduleWheelCommit();
 });
 
-const MIN_TIME = 1;
-const MAX_TIME = 180;
-
-function updateTimeUI(min) {
-  timeValue.textContent = `${min} мин`;
-  timeBigVal.textContent = min;
-  quickPresets.querySelectorAll('button').forEach(b => {
-    b.classList.toggle('active', parseInt(b.dataset.min) === min);
-  });
-}
-
 function renderPresets() {
-  const v = Math.min(MAX_TIME, Math.max(MIN_TIME, currentPresetMin));
-  timeSlider.min = MIN_TIME;
-  timeSlider.max = MAX_TIME;
-  timeSlider.value = v;
-  updateTimeUI(v);
-  syncDurationWheel(v);
+  const value = Math.min(MAX_TIME,Math.max(MIN_TIME,currentPresetMin));
+  syncDurationWheel(value);
 }
-
-timeHeader.addEventListener('click', () => {
-  timeBlock.classList.toggle('open');
-  if (timeBlock.classList.contains('open')) {
-    rhythmBlock.classList.remove('open');
-    practiceBlock.classList.remove('open');
-  }
-  syncSettingsExpanded();
-  if (tg) tg.HapticFeedback?.selectionChanged();
-});
-
-timeSlider.addEventListener('input', () => {
-  const v = Math.min(MAX_TIME, Math.max(MIN_TIME, parseInt(timeSlider.value) || MIN_TIME));
-  updateTimeUI(v);
-  if (tg) tg.HapticFeedback?.selectionChanged();
-});
 function commitPracticeMinutes(min) {
   if (!Number.isInteger(min) || min < MIN_TIME || min > MAX_TIME) {
     showToast('Выбери длительность от 1 до 180 минут');
@@ -624,19 +398,10 @@ function commitPracticeMinutes(min) {
   if (min === currentPresetMin) { renderPresets(); return; }
   if (!confirmTimerReset()) { renderPresets(); return; }
   currentPresetMin = min;
-  storageSet('activePreset', String(min));
+  storageSet('activePreset',String(min));
   resetTimer(min * 60);
   renderPresets();
 }
-timeSlider.addEventListener('change', () => {
-  commitPracticeMinutes(Number(timeSlider.value));
-});
-quickPresets.addEventListener('click', event => {
-  const button = event.target.closest('button[data-min]');
-  if (!button) return;
-  commitPracticeMinutes(Number(button.dataset.min));
-  if (tg) tg.HapticFeedback?.selectionChanged();
-});
 
 /* ---------- Треки ---------- */
 const tracksModal = document.getElementById('tracksModal');
@@ -696,10 +461,6 @@ document.getElementById('btnTracks').addEventListener('click', () => {
   tracksModal.classList.add('show');
 });
 document.getElementById('btnAddTrack').addEventListener('click', () => fileInput.click());
-document.getElementById('settingsMusicLibrary').addEventListener('click', () =>
-  document.getElementById('btnTracks').click());
-document.getElementById('settingsMusicUpload').addEventListener('click', () =>
-  document.getElementById('btnAddTrack').click());
 
 fileInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
@@ -770,7 +531,6 @@ const MEDITATION_GOALS = [
   {key:'presence', chakra:'sahasrara', icon:'✨', title:'Просто побыть', subtitle:'Без цели и ожиданий', instruction:'Позволь вниманию свободно замечать дыхание, звуки и ощущения. Не нужно достигать особого состояния — просто побудь здесь несколько минут.'}
 ];
 let selectedGoal = 'calm';
-const goalGrid = document.getElementById('goalGrid');
 const practiceTip = document.getElementById('practiceTip');
 const welcomeGoalGrid = document.getElementById('welcomeGoalGrid');
 const welcomeGoalModal = document.getElementById('welcomeGoalModal');
@@ -780,7 +540,6 @@ function renderGoals() {
   const markup = MEDITATION_GOALS.map(g =>
     `<button type="button" class="goal-option" data-goal="${g.key}" aria-pressed="${g.key === selectedGoal}"><strong>${g.icon} ${g.title}</strong><small>${g.subtitle}</small></button>`
   ).join('');
-  goalGrid.innerHTML = markup;
   welcomeGoalGrid.innerHTML = markup;
 }
 function getGoalForChakra(key) { return MEDITATION_GOALS.find(g => g.chakra === key); }
@@ -797,27 +556,47 @@ function selectMeditationGoal(key) {
   if (tg) tg.HapticFeedback?.selectionChanged();
   return true;
 }
-goalGrid.addEventListener('click', event => {
-  const option=event.target.closest('[data-goal]');
-  if (option) selectMeditationGoal(option.dataset.goal);
-});
+let goalSelectionFromStartup = false;
 function closeGoalWelcome() {
   welcomeGoalModal.classList.remove('show');
-  showWelcomeThought();
+  document.body.style.overflow = '';
+  if (goalSelectionFromStartup) {
+    goalSelectionFromStartup = false;
+    showWelcomeThought();
+  } else {
+    document.getElementById('changeChakraBtn').focus({preventScroll:true});
+  }
 }
 welcomeGoalGrid.addEventListener('click', event => {
-  const option=event.target.closest('[data-goal]');
+  const option = event.target.closest('[data-goal]');
   if (!option || !selectMeditationGoal(option.dataset.goal)) return;
   closeGoalWelcome();
 });
 welcomeGoalKeep.addEventListener('click', closeGoalWelcome);
-function showWelcomeGoal() {
+function openGoalSelection(fromStartup = false) {
+  goalSelectionFromStartup = fromStartup;
   renderGoals();
-  welcomeGoalKeep.textContent = 'Продолжить с прежним настроем';
+  welcomeGoalKeep.textContent = fromStartup
+    ? 'Продолжить с прежним настроем'
+    : 'Оставить текущую чакру';
   welcomeGoalModal.classList.add('show');
   document.body.style.overflow = 'hidden';
   welcomeGoalGrid.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});
 }
+function showWelcomeGoal() {
+  openGoalSelection(true);
+}
+document.getElementById('changeChakraBtn').addEventListener('click', () =>
+  openGoalSelection(false));
+welcomeGoalModal.addEventListener('click', event => {
+  if (event.target === welcomeGoalModal) closeGoalWelcome();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && welcomeGoalModal.classList.contains('show')) {
+    event.preventDefault();
+    closeGoalWelcome();
+  }
+});
 
 /* ---------- Информация о выбранной теме ---------- */
 const chakraName = document.getElementById('chakraName');
@@ -826,9 +605,6 @@ function updateChakraUI() {
   const c = CHAKRAS.find(x=>x.key===currentChakra) || CHAKRAS[0];
   chakraName.textContent = c.name;
   chakraName.style.color = c.color;
-  const homeChakraName = document.getElementById('homeChakraName');
-  homeChakraName.textContent = c.name;
-  homeChakraName.style.color = c.color;
   const goal = getGoalForChakra(currentChakra);
   chakraDesc.textContent = goal ? `Тема: ${goal.title.toLowerCase()} · ${c.name}` : c.desc;
   practiceTip.innerHTML = goal ? `<b>Как практиковать</b>${goal.instruction}` : '';
@@ -909,9 +685,7 @@ document.getElementById('chakraNameWrap').addEventListener('click', () => openGu
   selectedGoal = getGoalForChakra(currentChakra)?.key || 'calm';
 
 
-  renderRhythmPicker();
   renderPresets();
-  renderPracticeUI();
   resetTimer(currentPresetMin * 60, true);
   renderStreak();
   updateChakraUI();
