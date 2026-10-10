@@ -1630,8 +1630,8 @@ let lastHintState = null;
 function animateOrb(now) {
   orbFrameId = null;
   if (!canAnimateOrb()) { orbDisplayed = false; return; }
-  // 30 FPS while practicing, 12 FPS at rest; accessibility mode is static.
-  const fps = motionPreference.matches ? 0 : (timerRunning ? 30 : 12);
+  // 30 FPS while practicing, 20 FPS at rest, 15 FPS in reduced-motion mode.
+  const fps = motionPreference.matches ? 15 : (timerRunning ? 30 : 20);
   if (!orbForceDraw && (fps === 0 || now - orbLastDraw < 1000 / fps)) {
     if (fps !== 0) orbFrameId = requestAnimationFrame(animateOrb);
     return;
@@ -1676,8 +1676,8 @@ function animateOrb(now) {
 
   const progress = timerTotalSec > 0 ? Math.min(1, currentElapsed()/timerTotalSec) : 0;
   drawUniverse(finalLevel, progress, t);
-  // A static preview is enough when the user requests reduced motion.
-  if (!motionPreference.matches) orbFrameId = requestAnimationFrame(animateOrb);
+  // Continue animating even with reduced-motion enabled; use a gentler frame rate.
+  orbFrameId = requestAnimationFrame(animateOrb);
 }
 if (motionPreference.addEventListener) motionPreference.addEventListener('change', startOrbAnimation);
 document.addEventListener('visibilitychange', () => {
