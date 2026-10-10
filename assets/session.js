@@ -91,6 +91,15 @@ function renderTimer() {
   const left = Math.max(0, timerTotalSec - currentElapsed());
   timerDisplay.textContent = fmt(left);
   timerDisplay.classList.toggle('warn', left <= 30 && left > 0);
+  const remaining = document.getElementById('homeTimerRemaining');
+  const homeDuration = document.querySelector('.home-duration');
+  if (remaining && homeDuration) {
+    const inProgress = timerRunning || timerElapsed > 0 || timerDone;
+    remaining.hidden = !inProgress;
+    remaining.textContent = inProgress ? 'Осталось ' + fmt(left) : '';
+    homeDuration.classList.toggle('is-running', timerRunning);
+    document.getElementById('durationWheel')?.setAttribute('aria-disabled', String(timerRunning));
+  }
 }
 function updateMainIcon() {
   mainIcon.querySelector('path').setAttribute('d', timerRunning ? ICON_PAUSE : ICON_PLAY);
@@ -109,6 +118,7 @@ function startTimer() {
     }
   }, 200);
   saveActivePractice();
+  renderTimer();
   updateMainIcon();
   if (canAnimateOrb()) startOrbAnimation();
 }
