@@ -146,6 +146,8 @@ function saveJournalNativeFile() {
       if (error?.name === 'AbortError') {
         journalExportMessage('Сохранение отменено. Твои записи остались в приложении.');
       } else {
+        document.getElementById('journalExportAdvanced').open = true;
+        journalExportCopy.hidden = false;
         journalExportMessage('Не удалось открыть сохранение. Используй запасной способ ниже.');
       }
     });
