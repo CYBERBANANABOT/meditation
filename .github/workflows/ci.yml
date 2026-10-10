@@ -38,5 +38,19 @@ jobs:
           fi
       - name: Exercise timer, audio and journal regression tests
         run: node --test tests/smoke.cjs
+      - name: Test both tabs in real mobile-sized Chromium
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.55.0
+          command -v google-chrome
+          node tests/mobile-layout.cjs
+      - name: Preserve mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-layout-screenshots
+          path: artifacts/layout/
+          if-no-files-found: ignore
+          retention-days: 5
       - name: Check patch whitespace
         run: git diff --check
