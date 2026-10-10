@@ -42,12 +42,8 @@ jobs:
               new='<button type="button" class="setting-header" id="'+name+'Header" aria-expanded="false" aria-controls="'+target+'">'
               one(old,new)
               anchor='<div class="setting-options slider-mode" id="'+target+'">'
-              pos=s.index(anchor)
-              before=s[:pos]
-              last=before.rfind('        </div>\n      </div>')
-              assert last!=-1 and pos-last<90
-              # Close the button and enclosing block instead of two divs.
-              s=s[:last]+s[last:].replace('        </div>\n      </div>\n','        </button>\n      </div>\n',1)
+              one('      </div>\n      '+anchor,
+                  '      </button>\n      '+anchor)
           one('<input type="range" class="custom-range" id="practiceSlider"',
               '<input type="range" class="custom-range" id="practiceSlider" aria-label="Тип медитации"')
           one('<input type="range" class="custom-range" id="rhythmSlider"',
