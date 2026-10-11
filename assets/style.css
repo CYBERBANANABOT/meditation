@@ -1199,3 +1199,324 @@
   .screen-practice #orb { width:min(100%,210px,20dvh); }
   .screen-practice .chakra-desc { margin:0; }
 }
+
+/* Unified 2026 meditation layout: generous universe, iOS-inspired controls. */
+/* Never squeeze the animation to 20vh just to fit every control without scrolling. */
+.screen-practice.active {
+  min-height: 0;
+  display: block;
+}
+.screen-practice .home-chakra-info {
+  margin-bottom: 8px;
+}
+.screen-practice .player {
+  min-height: 0;
+  width: 100%;
+  padding: 8px 10px 20px;
+  margin: 0 auto;
+  background: radial-gradient(ellipse at 50% 34%, rgba(56,32,89,.15),#0a0a16 76%);
+  overflow: visible;
+  border-radius: 25px;
+}
+.screen-practice #orb {
+  display: block;
+  width: min(100%, clamp(285px, 44dvh, 360px));
+  height: auto;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  margin: 0 auto 6px;
+}
+.screen-practice .breath-hint {
+  margin: 4px 0 8px;
+  min-height: 19px;
+}
+.duration-wheel-option {
+  padding-right: 28px;
+}
+.duration-wheel-unit {
+  position: absolute;
+  z-index: 2;
+  right: 21px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: #beacd6;
+  pointer-events: none;
+}
+
+/* The music controls are one quiet, unified glass player. */
+.ios-player {
+  width: min(100%, 350px);
+  max-width: 100%;
+  margin: 7px auto 0;
+  padding: 11px 13px 12px;
+  border: 1px solid rgba(187,157,233,.24);
+  border-radius: 23px;
+  background: linear-gradient(155deg, rgba(43,35,65,.85), rgba(21,20,39,.94));
+  box-shadow: 0 7px 28px rgba(0,0,0,.17), inset 0 1px 0 rgba(255,255,255,.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.ios-player .home-music {
+  width: 100%;
+  margin: 0;
+  padding: 0 1px 10px;
+  justify-content: flex-start;
+  gap: 11px;
+}
+.ios-player .home-music-menu {
+  flex: 0 0 45px;
+  width: 45px;
+  height: 45px;
+  border: 1px solid rgba(207,172,250,.25);
+  border-radius: 12px;
+  background: linear-gradient(145deg,rgba(158,115,211,.29),rgba(96,67,141,.22));
+  color: #e5d0ff;
+}
+.ios-player .home-music-menu svg { width: 22px; height: 22px; }
+.ios-player .home-music-add {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(177,146,221,.10);
+  border: 1px solid rgba(177,146,221,.12);
+  color: #c6b1e2;
+}
+.ios-player .player-track-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  line-height: 1.5;
+  color: #e4d8f3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.screen-practice .ios-player .home-controls {
+  display: flex;
+  width: 100%;
+  gap: clamp(15px,6vw,35px);
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  padding: 10px 5px 0;
+  border-top: 1px solid rgba(205,178,239,.13);
+}
+.screen-practice .ios-player .ctrl-side {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 50%;
+  background: transparent;
+  color: #d2c2e6;
+  border: 0;
+  padding: 10px;
+  opacity: .95;
+}
+.screen-practice .ios-player .ctrl-side svg {
+  height: 23px;
+  width: 23px;
+}
+.screen-practice .ios-player .ctrl-play {
+  flex: 0 0 59px;
+  width: 59px;
+  height: 59px;
+  background: #b18cde;
+  color: #171223;
+  box-shadow: 0 4px 16px rgba(172,131,229,.24);
+  border: 0;
+}
+.ios-player button:focus-visible {
+  outline: 2px solid #dbbaff;
+  outline-offset: 3px;
+}
+@media (max-height: 750px) {
+  .screen-practice #orb {
+    width: min(100%, clamp(275px,42dvh,350px));
+  }
+  .screen-practice .player { padding-bottom: 14px; }
+}
+@media (max-height: 610px) {
+  .screen-practice #orb { width: min(100%,285px); }
+}
+
+/* Chakra guide: only the text panel scrolls. Header and close remain visible. */
+#guideModal {
+  padding: max(12px, env(safe-area-inset-top)) 12px
+           max(12px, env(safe-area-inset-bottom));
+}
+#guideModal .guide-modal-content {
+  display: flex;
+  flex-direction: column;
+  width: min(100%,480px);
+  max-width: 480px;
+  max-height: min(88dvh, 790px);
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(178,151,227,.27);
+  background: #141322;
+}
+#guideModal .modal-header {
+  position: relative;
+  top: auto;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 17px 18px 13px;
+  background: #141322;
+  border-bottom: 1px solid rgba(185,158,225,.17);
+  z-index: 2;
+}
+#guideModal .modal-header h2 { color: #e9def9; }
+#guideModal .modal-close { min-width: 38px; min-height: 38px; }
+#guideBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 19px 17px max(24px,env(safe-area-inset-bottom));
+  scrollbar-width: thin;
+  scrollbar-color: #514466 transparent;
+}
+#guideBody:focus { outline: none; }
+#guideBody .guide-chakra-name {
+  margin-bottom: 9px;
+  overflow-wrap: anywhere;
+}
+#guideBody .guide-section {
+  background: #211d32;
+  border: 1px solid rgba(186,159,227,.10);
+  padding: 15px;
+  margin-bottom: 11px;
+  border-radius: 14px;
+  min-width: 0;
+}
+#guideBody .guide-section p,
+#guideBody .note-subtitle {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+#guideBody .my-intent-item { min-width: 0; }
+#guideBody .my-intent-item span { min-width: 0; overflow-wrap: anywhere; }
+
+/* One consistent lavender palette across the entire profile. */
+.screen-profile {
+  --profile-accent: #b493ed;
+  --profile-surface: #171528;
+  --profile-surface-raised: #211b36;
+  --profile-border: rgba(180,152,226,.24);
+  --profile-muted: #b4a8c9;
+}
+.screen-profile .streak-card {
+  background: linear-gradient(150deg,#272039 0%,#171528 88%);
+  border: 1px solid var(--profile-border);
+  box-shadow: 0 12px 30px rgba(13,10,30,.23);
+}
+.screen-profile .streak-flame {
+  background: linear-gradient(140deg,#8866be,#b493ed);
+  box-shadow: 0 5px 20px rgba(142,108,193,.2);
+  color: #f3e9ff;
+  font-size: 35px;
+}
+.screen-profile .streak-status,
+.screen-profile .streak-text,
+.screen-profile .streak-week-title,
+.screen-profile .streak-day-label {
+  color: var(--profile-muted);
+}
+.screen-profile .streak-number { color: #f3e9ff; }
+.screen-profile .streak-day-dot { border-color: var(--profile-border); }
+.screen-profile .streak-day.done .streak-day-dot {
+  background: #9e79d5;
+  color: #fff;
+  border-color: #b493ed;
+  box-shadow: 0 4px 13px rgba(142,108,193,.22);
+}
+.screen-profile .streak-day.today .streak-day-dot {
+  outline-color: #dec4ff;
+}
+.screen-profile .stats-bar,
+.screen-profile .daily-tasks,
+.screen-profile .stat-card,
+.screen-profile .profile-tabs,
+.screen-profile .profile-subtab,
+.screen-profile .session-item,
+.screen-profile .cal-nav button,
+.screen-profile .cal-day {
+  background: var(--profile-surface);
+  border: 1px solid var(--profile-border);
+}
+.screen-profile .session-item {
+  border-left: 3px solid var(--profile-accent);
+}
+.screen-profile .session-chakra .cdot {
+  background: var(--profile-accent);
+  box-shadow: 0 0 6px var(--profile-accent);
+}
+.screen-profile .profile-tab.active {
+  background: #9571cc;
+  box-shadow: 0 4px 12px rgba(149,113,204,.18);
+}
+.screen-profile .profile-subtab.active {
+  background: #2f2446;
+  color: #fff;
+  border-color: #9571cc;
+}
+.screen-profile .level-badge b,
+.screen-profile .daily-header .count { color: var(--profile-accent); }
+.screen-profile .xp-fill,
+.screen-profile .daily-item.done .daily-check,
+.screen-profile .cal-dot {
+  background: var(--profile-accent);
+  border-color: var(--profile-accent);
+  box-shadow: none;
+}
+.screen-profile .cal-day.selected {
+  background: var(--profile-surface-raised);
+  border-color: var(--profile-accent);
+}
+.screen-profile .cal-day.has-data { background: #2b2242; }
+.screen-profile .stat-label,
+.screen-profile .stat-value span,
+.screen-profile .personal-note,
+.screen-profile .profile-backup-hint {
+  color: var(--profile-muted);
+}
+.screen-profile .stat-value { color: #f1eafd; }
+.profile-backup-section {
+  margin-top: 23px;
+  padding: 19px 13px 0;
+  border-top: 1px solid var(--profile-border);
+}
+.profile-backup-section h3 {
+  margin: 0 0 12px;
+  color: #ded0f5;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .4px;
+}
+.screen-profile .profile-actions {
+  margin-bottom: 0;
+}
+.screen-profile .profile-actions .quiet-toggle {
+  min-height: 46px;
+  background: var(--profile-surface);
+  color: #e9def9;
+  border: 1px solid var(--profile-border);
+  border-radius: 14px;
+  font-size: 13px;
+}
+.screen-profile .profile-actions .quiet-toggle:active {
+  background: var(--profile-surface-raised);
+}
+
