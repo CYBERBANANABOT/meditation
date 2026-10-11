@@ -89,6 +89,7 @@ document.querySelectorAll('.bottom-tab').forEach(btn => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
     const screen = btn.dataset.screen;
+    document.body.classList.toggle('profile-active', screen === 'profile');
     document.getElementById('screen-' + screen).classList.add('active');
     if (screen === 'practice') startOrbAnimation();
     else stopOrbAnimation();
