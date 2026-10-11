@@ -46,10 +46,19 @@ const fs=require('node:fs');
         orb=await page.locator('#orb').boundingBox();
       assert(info&&orb&&info.y+info.height<=orb.y+2,'Chakra instruction must be above universe');
       assert(info.x>=-1&&info.x+info.width<=viewport.width+1,'Chakra instruction overflow');
+      assert(orb.width>=Math.min(viewport.width-52,275),
+        'Universe must remain large and visible at '+viewport.width+'x'+viewport.height+': '+orb.width);
+      // The larger orb can make a compact phone scroll. The bottom navigation
+      // must never prevent reaching the play button after scrolling.
+      await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight));
+      await page.waitForTimeout(100);
       const playButton=await page.locator('#btnMain').boundingBox();
       const bottomNavigation=await page.locator('.tabs-bottom').boundingBox();
-      assert(playButton && bottomNavigation && playButton.y + playButton.height <= bottomNavigation.y + 2,
-        'Play button is hidden under bottom navigation at '+viewport.width+'x'+viewport.height);
+      assert(playButton && bottomNavigation && playButton.y+playButton.height<=bottomNavigation.y+2,
+        'Play button cannot be reached above bottom navigation at '+viewport.width+'x'+viewport.height);
+      assert(await page.locator('.ios-player').isVisible(),'Unified music player missing');
+      assert(await page.locator('.duration-wheel-unit').isVisible(),'Minute unit missing in wheel');
+      assert.equal(await page.locator('.duration-wheel-unit').textContent(),'мин');
       await page.screenshot({path:'artifacts/layout/practice-'+viewport.width+'.png',fullPage:true});
 
       // The small icon to the left of the title changes the practice goal.
@@ -67,7 +76,25 @@ const fs=require('node:fs');
       assert(await page.locator('#guideModal').isVisible());
       assert((await page.locator('#guideBody').textContent()).includes('Простая практика'),
         'Guidance should still be available inside About Chakra');
+      assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden',
+        'Guide should lock background scrolling');
+      const guideHeader=await page.locator('#guideModal .modal-header').boundingBox();
+      const guideScroll=await page.locator('#guideBody').evaluate(el=>{
+        const scrollable=el.scrollHeight > el.clientHeight+3;
+        el.scrollTop=el.scrollHeight;
+        return {scrollable,scrollTop:el.scrollTop};
+      });
+      const guideHeaderAfter=await page.locator('#guideModal .modal-header').boundingBox();
+      assert(guideHeader && guideHeaderAfter && Math.abs(guideHeader.y-guideHeaderAfter.y)<2,
+        'Guide header must remain stationary during content scroll');
+      if(viewport.width<=390){
+        assert(guideScroll.scrollable && guideScroll.scrollTop>0,'Chakra content must scroll independently');
+      }
+      assert(await page.locator('#guideModal [data-close]').first().isVisible(),'Guide close button must stay visible');
+      await page.screenshot({path:'artifacts/layout/chakra-guide-'+viewport.width+'.png'});
       await page.locator('#guideModal [data-close]').first().click();
+      assert.equal(await page.evaluate(()=>document.body.style.overflow),'',
+        'Closing guide should restore normal scrolling');
 
       // Cancel a second chakra selection without changing it.
       await page.locator('#changeChakraBtn').click();
@@ -117,7 +144,17 @@ const fs=require('node:fs');
       const profile=await page.locator('#screen-profile').boundingBox();
       assert(profile && profile.x>=-1 && profile.x+profile.width<=viewport.width+1);
       assert.equal(await page.locator('.stat-card').count(),4);
-      await page.screenshot({path:'artifacts/layout/profile-'+viewport.width+'.png'});
+      const backupBelow=await page.evaluate(()=>{
+        const stats=document.querySelector('#profileBody').getBoundingClientRect();
+        const backup=document.querySelector('.profile-backup-section').getBoundingClientRect();
+        return {end:stats.bottom,start:backup.top};
+      });
+      assert(backupBelow.start>=backupBelow.end-1,'Journal buttons must follow all statistics');
+      assert.equal(await page.locator('.streak-flame').textContent(),'✦');
+      const streakColors=await page.locator('.streak-flame').evaluate(el=>
+        getComputedStyle(el).backgroundImage);
+      assert(streakColors.includes('rgb(136, 102, 190)'), 'Profile streak icon should use lavender palette');
+      await page.screenshot({path:'artifacts/layout/profile-'+viewport.width+'.png',fullPage:true});
       await page.locator('.profile-tab[data-ptab="history"]').click();
       assert(await page.locator('#historyContent').isVisible());
 
