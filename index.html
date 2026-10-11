@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Медитации</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="./assets/style.css?v=20261011q">
+<link rel="stylesheet" href="./assets/style.css?v=20261011r">
 </head>
 <body>
 
@@ -31,10 +31,12 @@
       <div class="duration-wheel-frame">
         <div class="duration-wheel-highlight" aria-hidden="true"></div>
         <div class="duration-wheel" id="durationWheel" role="listbox" tabindex="0" aria-label="Выбрать длительность прокруткой вверх или вниз"></div>
+        <span class="duration-wheel-unit" aria-hidden="true">мин</span>
       </div>
       <div class="home-time-remaining" id="homeTimerRemaining" aria-live="off" hidden></div>
     </div>
-    <div class="home-music" aria-label="Музыкальный плеер">
+    <div class="ios-player" aria-label="Музыкальный плеер">
+      <div class="home-music">
       <button class="home-music-menu" id="btnTracks" aria-label="Выбрать музыку" title="Выбрать музыку">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
       </button>
@@ -43,7 +45,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       </button>
     </div>
-    <div class="control-bar home-controls">
+      <div class="control-bar home-controls">
       <button class="ctrl-side" id="btnPrevTrack" aria-label="Предыдущий трек" title="Предыдущий трек">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
       </button>
@@ -53,6 +55,7 @@
       <button class="ctrl-side" id="btnNextTrack" aria-label="Следующий трек" title="Следующий трек">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
       </button>
+      </div>
     </div>
 
   </div>
@@ -70,17 +73,20 @@
     <div id="streakWeek" class="streak-week"></div>
   </div>
 
-  <div class="profile-actions">
-    <button type="button" id="exportJournalBtn" class="quiet-toggle">↓ Сохранить дневник</button>
-    <button type="button" id="importJournalBtn" class="quiet-toggle">↑ Восстановить дневник</button>
-    <p class="profile-backup-hint">Записи сохраняются автоматически. Эти кнопки нужны для резервной копии.</p>
-  </div>
   <div class="profile-tabs">
     <button class="profile-tab active" data-ptab="stats">Статистика</button>
     <button class="profile-tab" data-ptab="history">История</button>
   </div>
 
   <div id="profileBody"></div>
+  <section class="profile-backup-section" aria-label="Резервная копия дневника">
+    <h3>Резервная копия</h3>
+  <div class="profile-actions">
+    <button type="button" id="exportJournalBtn" class="quiet-toggle">↓ Сохранить дневник</button>
+    <button type="button" id="importJournalBtn" class="quiet-toggle">↑ Восстановить дневник</button>
+    <p class="profile-backup-hint">Записи сохраняются автоматически. Эти кнопки нужны для резервной копии.</p>
+  </div>
+  </section>
 </div>
 
 <!-- ==================== НИЖНЯЯ НАВИГАЦИЯ ==================== -->
@@ -191,13 +197,13 @@
   </div>
 </div>
 
-<div class="modal" id="guideModal">
-  <div class="modal-content">
+<div class="modal" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+  <div class="modal-content guide-modal-content">
     <div class="modal-header">
-      <h2>О чакре</h2>
-      <button class="modal-close" data-close="guideModal">✕</button>
+      <h2 id="guideTitle">О чакре</h2>
+      <button type="button" class="modal-close" data-close="guideModal" aria-label="Закрыть">✕</button>
     </div>
-    <div id="guideBody"></div>
+    <div id="guideBody" tabindex="0" aria-label="Информация о чакре"></div>
   </div>
 </div>
 
@@ -223,10 +229,10 @@
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="./assets/core.js?v=20261011q"></script>
-<script src="./assets/visualizer.js?v=20261011q"></script>
-<script src="./assets/session.js?v=20261011q"></script>
-<script src="./assets/ui.js?v=20261011q"></script>
-<script src="./assets/journal-backup.js?v=20261011q"></script>
+<script src="./assets/core.js?v=20261011r"></script>
+<script src="./assets/visualizer.js?v=20261011r"></script>
+<script src="./assets/session.js?v=20261011r"></script>
+<script src="./assets/ui.js?v=20261011r"></script>
+<script src="./assets/journal-backup.js?v=20261011r"></script>
 </body>
 </html>
