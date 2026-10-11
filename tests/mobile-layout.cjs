@@ -146,6 +146,9 @@ const fs=require('node:fs');
       await page.locator('.bottom-tab[data-screen="profile"]').click();
       assert(await page.locator('#screen-profile').isVisible());
       assert(!(await page.locator('#screen-practice').isVisible()));
+      assert(await page.locator('.bottom-tab[data-screen="profile"].active').count()===1);
+      assert(await page.locator('body.profile-active').count()===1);
+      await page.waitForTimeout(350); // allow screen fade-in to complete for screenshot
       const profile=await page.locator('#screen-profile').boundingBox();
       assert(profile && profile.x>=-1 && profile.x+profile.width<=viewport.width+1);
       assert.equal(await page.locator('.stat-card').count(),4);
