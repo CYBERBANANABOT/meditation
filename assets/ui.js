@@ -34,13 +34,32 @@ document.getElementById('noteSave').addEventListener('click', () => {
 });
 noteModal.addEventListener('click', e => { if (e.target.id === 'noteModal') closeNoteModal(); });
 
+let guidePreviousOverflow = '';
+function closeChakraGuide() {
+  const modal = document.getElementById('guideModal');
+  if (!modal.classList.contains('show')) return;
+  modal.classList.remove('show');
+  document.body.style.overflow = guidePreviousOverflow;
+  document.getElementById('chakraNameWrap').focus({preventScroll:true});
+}
 document.querySelectorAll('[data-close]').forEach(btn => {
-  btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show'));
+  btn.addEventListener('click', () => {
+    if (btn.dataset.close === 'guideModal') closeChakraGuide();
+    else document.getElementById(btn.dataset.close).classList.remove('show');
+  });
 });
 document.querySelectorAll('.modal').forEach(m => {
   m.addEventListener('click', e => {
-      if (e.target === m && !['practiceRecoveryModal','welcomeGoalModal'].includes(m.id)) m.classList.remove('show');
-    });
+    if (e.target !== m) return;
+    if (m.id === 'guideModal') closeChakraGuide();
+    else if (!['practiceRecoveryModal','welcomeGoalModal'].includes(m.id)) m.classList.remove('show');
+  });
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('guideModal').classList.contains('show')) {
+    event.preventDefault();
+    closeChakraGuide();
+  }
 });
 
 function offerPracticeRecovery(saved) {
@@ -258,6 +277,9 @@ function openGuide(chakraKey) {
   const g = c.guide;
   const myIntents = userIntentions[chakraKey] || [];
   const body = document.getElementById('guideBody');
+  const guideModal = document.getElementById('guideModal');
+  const reopening = guideModal.classList.contains('show');
+  const savedScrollTop = reopening ? body.scrollTop : 0;
   body.innerHTML = `
     <div class="guide-chakra-name" style="color:${c.color}">${c.name}</div><p class="note-subtitle">Чакры здесь используются как символические темы внимания, а не как медицинская система.</p>
     <div class="guide-section">
@@ -282,7 +304,13 @@ function openGuide(chakraKey) {
       <button class="add-intent-btn" id="addIntentBtn">+ Добавить свою фразу</button>
     </div>
   `;
-  document.getElementById('guideModal').classList.add('show');
+  body.scrollTop = savedScrollTop;
+  if (!reopening) {
+    guidePreviousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+  guideModal.classList.add('show');
+  if (!reopening) guideModal.querySelector('.modal-close').focus({preventScroll:true});
 
   document.getElementById('addIntentBtn').addEventListener('click', () => {
     const text = prompt('Введи свою фразу для практики:');
