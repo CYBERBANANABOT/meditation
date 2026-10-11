@@ -80,6 +80,11 @@ const fs=require('node:fs');
         'Guide should lock background scrolling');
       const guideHeader=await page.locator('#guideModal .modal-header').boundingBox();
       const guideScroll=await page.locator('#guideBody').evaluate(el=>{
+        // A phone may fit the short default guide without scrolling.
+        // Simulate many personal practice phrases to verify long-content layout.
+        const extra=document.createElement('p');
+        extra.textContent='Длинная заметка для проверки прокрутки. '.repeat(90);
+        el.appendChild(extra);
         const scrollable=el.scrollHeight > el.clientHeight+3;
         el.scrollTop=el.scrollHeight;
         return {scrollable,scrollTop:el.scrollTop};
