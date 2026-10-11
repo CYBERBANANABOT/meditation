@@ -1521,3 +1521,10 @@
   background: var(--profile-surface-raised);
 }
 
+/* Profile navigation uses the same fixed accent as the profile cards. */
+body.profile-active .tabs-bottom .bottom-tab.active {
+  color: #b493ed;
+}
+body.profile-active .tabs-bottom .bottom-tab.active svg {
+  filter: drop-shadow(0 0 8px rgba(180,147,237,.45));
+}
