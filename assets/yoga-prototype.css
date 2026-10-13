@@ -64,3 +64,7 @@ button:focus-visible,a:focus-visible{outline:2px solid #d3b2ff;outline-offset:3p
 
 /* Preview of the upcoming instructor cue, kept visually subordinate to guidance. */
 .next-movement{margin:10px 0 -3px;color:#b9a7cf;font-size:11px;font-weight:550;line-height:1.45;letter-spacing:.05px}
+
+/* Low-cost yoga mat under the WebGL mannequin: no extra 3D passes. */
+.scene-mat{position:absolute;z-index:1;left:12%;bottom:8%;width:76%;height:35%;border:1px solid rgba(195,169,235,.25);border-radius:15px;background:linear-gradient(165deg,rgba(120,89,156,.20),rgba(61,48,85,.34));box-shadow:0 0 32px rgba(164,128,207,.12),inset 0 0 22px rgba(201,174,239,.10);transform:perspective(430px) rotateX(69deg);transform-origin:center bottom;pointer-events:none}
+.scene-floor{opacity:.42}
