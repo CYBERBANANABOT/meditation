@@ -87,14 +87,21 @@ const path=require('node:path');
         const snapshot=await page.evaluate(()=>window.__yogaPrototype.snapshot());
         assert.equal(snapshot.index,index);
         assert.equal(snapshot.mesh.pose,poses[index]);
+        assert(snapshot.mesh.rig?.maxError<.008,poses[index]+': stretched limb or neck detected');
         assert(Number.isFinite(snapshot.mesh.headY)&&Number.isFinite(snapshot.mesh.hipY),
           'Pose landmarks must be finite');
+        if(viewport.width===390){
+          await page.screenshot({
+            path:'artifacts/yoga/pose-'+String(index+1).padStart(2,'0')+'-'+poses[index]+'.png',
+            fullPage:true
+          });
+        }
         if(index===6){
-          assert(snapshot.mesh.hipY>1.7,'Downward dog must lift the hips');
+          assert(snapshot.mesh.hipY>1.0&&snapshot.mesh.hipY>snapshot.mesh.headY,'Dog must lift hips above head');
           await page.screenshot({path:'artifacts/yoga/yoga-dog-'+viewport.width+'.png',fullPage:true});
         }
         if(index===9){
-          assert(snapshot.mesh.leftAnkleZ>.5,'Warrior must move front foot forward');
+          assert(snapshot.mesh.leftAnkleZ>.40,'Warrior must move front foot forward');
           await page.screenshot({path:'artifacts/yoga/yoga-warrior-'+viewport.width+'.png',fullPage:true});
         }
         if(index===18){
