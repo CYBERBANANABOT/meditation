@@ -183,7 +183,6 @@
       // prone, inverted and supine poses.
       const h=j.hip,sCenter=j.shoulder,head=j.head;
       const torsoAxis=norm(sub(sCenter,h));
-      const side=unitX;
       // One contiguous chest block covers both shoulder pivot sockets.
       // Its 0.43-unit half-width overlaps each pivot at +/- 0.29.
       const Lshoulder=add(sCenter,[-window.YogaRig.lengths.shoulderSpan/2,0,0]);
@@ -195,11 +194,9 @@
       ellipsoid(chest,[.42,.23,.22],wood.torso);
       // The head is 0.39 from the shoulder centre: chest and skull
       // overlap the short neck connector; there is no giraffe-like stalk.
-      const headAxis=norm(sub(head,sCenter));
-      const neckStart=add(sCenter,scaled(headAxis,.16));
-      const neckEnd=add(head,scaled(headAxis,-.15));
-      if(Math.hypot(...sub(neckEnd,neckStart))>.01)
-        segment(neckStart,neckEnd,.092,.092,wood.hinge);
+      // Continuous, thick wooden neck dowel overlaps both chest and skull.
+      // It is deliberately not rendered as a long, thin separate column.
+      segment(sCenter,head,.126,.114,wood.hinge);
       ellipsoid(head,[.194,.226,.176],wood.head);
       for(const sign of [-1,1]){
         const key=sign<0?'left':'right';
