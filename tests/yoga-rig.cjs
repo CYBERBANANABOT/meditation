@@ -207,3 +207,27 @@ test('Cat-cow remains genuinely on hands and knees through each breathing cycle'
     }
   }
 });
+
+test('Warrior I and II lower the correct front knee and straighten the rear knee',()=>{
+  const kneeAngle=(j,side)=>{
+    const sign=side==='left'?-1:1;
+    const hip=[j.hip[0]+sign*rig.lengths.hipSpan/2,j.hip[1],j.hip[2]];
+    const knee=j[side+'Knee'],ankle=j[side+'Ankle'];
+    const a=hip.map((v,i)=>v-knee[i]),b=ankle.map((v,i)=>v-knee[i]);
+    const cosine=a.reduce((s,v,i)=>s+v*b[i],0)/
+      (rig.lengths.thigh*rig.lengths.shin);
+    return Math.acos(Math.max(-1,Math.min(1,cosine)))*180/Math.PI;
+  };
+  for(const family of ['warrior1','warrior2']){
+    for(const [suffix,front,rear] of [['L','left','right'],['R','right','left']]){
+      const name=family+suffix,j=rig.solve(asanas.poses[name]);
+      const bent=kneeAngle(j,front),extended=kneeAngle(j,rear);
+      assert(bent>=80&&bent<=120,name+': front knee insufficiently bent '+bent);
+      assert(extended>150,name+': rear leg not straight enough '+extended);
+      assert(extended-bent>45,name+': front and rear knees look identical');
+      assert(Math.abs(j[front+'Knee'][2]-j[front+'Ankle'][2])<.14,
+        name+': front knee not above ankle');
+      assert(j[front+'Ankle'][1]<.25,name+': front foot is not grounded');
+    }
+  }
+});

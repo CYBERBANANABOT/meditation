@@ -67,10 +67,14 @@ function lunge(left){
 p.lungeL=lunge(true);p.lungeR=lunge(false);
 function warrior1(left){
  const q=lunge(left);
- q.hip=[0,1.03,-.03];q.shoulder=[0,1.93,0];q.head=[0,2.33,0];
+ // Keep the pelvis low enough for the FRONT knee to bend. This places
+ // the front shin close to vertical above its mat-supported ankle.
+ q.hip=[0,.78,.24];q.shoulder=[0,1.68,.24];q.head=[0,2.07,.24];
  const rear=left?'right':'left',front=left?'left':'right';
- q[rear+'Knee']=[left?.23:-.23,.62,-.40];
- q[front+'Knee']=[left?-.27:.27,.60,.41];
+ q[rear+'Knee']=[left?.23:-.23,.52,-.18];
+ q[rear+'Ankle']=[left?.23:-.23,.14,-.60];
+ q[front+'Knee']=[left?-.26:.26,.50,.70];
+ q[front+'Ankle']=[left?-.26:.26,.14,.70];
  q.leftElbow=[-.33,2.39,0];q.rightElbow=[.33,2.39,0];
  q.leftWrist=[-.25,2.83,0];q.rightWrist=[.25,2.83,0];
  return q;

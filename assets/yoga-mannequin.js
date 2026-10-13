@@ -131,10 +131,10 @@
     const wood={
       torso:[0.84,0.60,0.39],head:[0.93,0.72,0.49],limb:[0.89,0.65,0.41],
       hands:[0.96,0.76,0.52],pelvis:[0.73,0.50,0.32],joint:[0.39,0.24,0.16],
-      hinge:[0.65,0.44,0.28]
+      hinge:[0.65,0.44,0.28],eye:[0.12,0.075,0.052],eyeLight:[0.92,0.77,0.58]
     };
     const unitX=[1,0,0],unitY=[0,1,0],unitZ=[0,0,1];
-    let lastPose=null,frames=0,lastTime=0,meanFrameMs=0;
+    let lastPose=null,lastFace=null,frames=0,lastTime=0,meanFrameMs=0;
 
     function ellipsoid(center,dimensions,color,options={}){
       const x=options.x||unitX,y=options.y||unitY,z=options.z||unitZ;
@@ -191,7 +191,8 @@
         m.pose,state.elapsed,m.duration,prev?.pose||'mountain',
         state.transitionFrom);
       const joints=window.YogaRig.solve(target);
-      return {joints,name:m.pose,section:m.section};
+      return {joints,name:m.pose,previous:prev?.pose||'mountain',
+        duration:m.duration,elapsed:state.elapsed,section:m.section};
     }
     function renderFigure(now){
       const bounds=canvas.getBoundingClientRect();
@@ -237,7 +238,19 @@
       // Continuous, thick wooden neck dowel overlaps both chest and skull.
       // It is deliberately not rendered as a long, thin separate column.
       segment(sCenter,head,.126,.114,wood.hinge);
-      ellipsoid(head,[.194,.226,.176],wood.head,frameAlong(sub(head,sCenter)));
+      // Head and both eyes use EXACTLY the same pose-space axes.
+      // Camera orbiting does not move the eyes around the skull.
+      lastFace=window.YogaHead.compute(j,lastPose.name,lastPose.previous,
+        lastPose.elapsed,lastPose.duration);
+      const faceAxes={x:lastFace.right,y:lastFace.up,z:lastFace.forward};
+      ellipsoid(head,[.194,.226,.176],wood.head,faceAxes);
+      for(const eye of lastFace.eyes){
+        ellipsoid(eye,[.032,.027,.018],wood.eye,{...faceAxes,joint:true});
+        const sparkle=add(add(eye,scaled(lastFace.up,.012)),
+          scaled(lastFace.forward,.017));
+        ellipsoid(sparkle,[.009,.008,.005],wood.eyeLight,
+          {...faceAxes,joint:true});
+      }
       for(const sign of [-1,1]){
         const key=sign<0?'left':'right';
         const hip=add(h,[sign*window.YogaRig.lengths.hipSpan/2,0,0]);
@@ -270,7 +283,7 @@
     return {
       frame:renderFigure,
       diagnostics:()=>({
-        material:'wood',mat:'world-space',joints:14,segments:30,
+        material:'wood',mat:'world-space',eyes:2,joints:14,segments:30,
         triangles:surface.indices.length/3,
         pose:lastPose?.name||'mountain',
         section:lastPose?.section||'',
@@ -281,6 +294,9 @@
         rightWristY:lastPose?.joints.rightWrist[1]||0,
         leftAnkleZ:lastPose?.joints.leftAnkle[2]||0,
         rig:lastPose?.joints?window.YogaRig.metrics(lastPose.joints):null,
+        face:lastFace?{eyes:lastFace.eyes.map(p=>p.slice()),
+          forward:lastFace.forward.slice(),up:lastFace.up.slice(),
+          right:lastFace.right.slice()}:null,
         frames,averageFrameMs:meanFrameMs
       })
     };

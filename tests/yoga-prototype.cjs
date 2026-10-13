@@ -6,7 +6,8 @@ const path=require('node:path');
 
 (async()=>{
   for(const file of ['yoga-prototype.html','assets/yoga-prototype.js','assets/yoga-program.js',
-    'assets/yoga-asanas.js','assets/yoga-mannequin.js','assets/yoga-prototype.css']){
+    'assets/yoga-asanas.js','assets/yoga-head.js',
+    'assets/yoga-mannequin.js','assets/yoga-prototype.css']){
     assert(fs.existsSync(file),'Missing '+file);
   }
   const browser=await chromium.launch({
@@ -31,6 +32,8 @@ const path=require('node:path');
       const initial=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert(initial.webgl,'3D WebGL context must initialize');
       assert.equal(initial.mesh?.material,'wood');
+      assert.equal(initial.mesh?.eyes,2,'Wooden instructor must have two eyes');
+      assert.equal(initial.mesh?.face?.eyes?.length,2,'Eyes not drawn with the head');
       assert.equal(initial.mesh?.mat,'world-space','Mat and figure need one projection');
       assert.equal(await page.locator('.scene-mat').evaluate(el=>getComputedStyle(el).display),
         'none','Misaligned CSS mat must not be visible over the 3D mat');
@@ -62,8 +65,14 @@ const path=require('node:path');
       await page.locator('#playButton').click();
       await page.waitForTimeout(200);
       assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).running);
+      const eyesBeforeCamera=await page.evaluate(()=>
+        window.__yogaPrototype.snapshot().mesh?.face?.eyes);
       await page.locator('#cameraButton').click();
       await page.waitForTimeout(600);
+      const eyesAfterCamera=await page.evaluate(()=>
+        window.__yogaPrototype.snapshot().mesh?.face?.eyes);
+      assert.deepEqual(eyesAfterCamera,eyesBeforeCamera,
+        'Orbiting the camera must not drag eyes around the head');
       const cameraDebug=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       console.log('CAMERA DEBUG',JSON.stringify({
         azimuth:cameraDebug.azimuth,frames:cameraDebug.mesh?.frames,
@@ -93,6 +102,14 @@ const path=require('node:path');
         assert(snapshot.mesh.rig?.maxError<.008,poses[index]+': stretched limb or neck detected');
         assert(Number.isFinite(snapshot.mesh.headY)&&Number.isFinite(snapshot.mesh.hipY),
           'Pose landmarks must be finite');
+        if([8,9,13,14].includes(index)){
+          const facing=snapshot.mesh.face;
+          assert(facing&&facing.eyes.length===2,'Eyes missing in '+poses[index]);
+          if(index===9)assert(facing.forward[0]>.15,
+            'Left Warrior II head did not turn with eyes');
+          if(index===14)assert(facing.forward[0]<-.15,
+            'Right Warrior II head did not turn with eyes');
+        }
         if(viewport.width===390){
           // Let the automatic camera reach its final angle before archiving.
           // Otherwise consecutive poses were photographed mid-turn.
