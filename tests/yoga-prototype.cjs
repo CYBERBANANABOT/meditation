@@ -99,7 +99,10 @@ const path=require('node:path');
           await page.waitForTimeout(420);
           if(index===20||index===23||index===24){
             const camera=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-            assert(camera.azimuth<.5,poses[index]+': front view needed for leg alignment');
+            if(index===20)assert(camera.azimuth<.5,
+              'Butterfly needs front view for symmetric knees');
+            else assert(camera.azimuth>.65&&camera.azimuth<1.15,
+              poses[index]+': twists need oblique view to show torso and crossed knees');
           }
           await page.screenshot({
             path:'artifacts/yoga/pose-'+String(index+1).padStart(2,'0')+'-'+poses[index]+'.png',

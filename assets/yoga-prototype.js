@@ -61,11 +61,15 @@
   const sideViewPoses=new Set(['fold','half','plank','cobra','dog','lungeL','lungeR',
     'warrior1L','warrior1R','warrior2L','warrior2R','child','catcow','staff',
     'bridge','savasana']);
-  const frontViewPoses=new Set(['butterfly','twistL','twistR']);
+  const frontViewPoses=new Set(['butterfly']);
+  const diagonalViewPoses=new Set(['twistL','twistR']);
   function choosePoseCamera(){
     const pose=moves[state.index].pose;
     const side=sideViewPoses.has(pose);
-    state.targetAzimuth=side?1.46:frontViewPoses.has(pose)?.18:.6;
+    // Oblique angle preserves torso length while still showing which side
+    // the crossed knees travel toward during supine spinal twists.
+    state.targetAzimuth=side?1.46:frontViewPoses.has(pose)?.18:
+      diagonalViewPoses.has(pose)?.92:.6;
     $('cameraButton').setAttribute('aria-label',side?'Показать вид под углом':'Показать вид сбоку');
     $('cameraButton').querySelector('span').textContent=side?'Вид под углом':'Вид сбоку';
   }
