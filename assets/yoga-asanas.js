@@ -114,6 +114,7 @@ p.table=own({
 });
 p.cat=own({...p.table,shoulder:[0,1.02,.65],head:[0,.77,1.12],hip:[0,.96,-.59]});
 p.cow=own({...p.table,shoulder:[0,.70,.65],head:[0,1.19,1.15],hip:[0,.79,-.59]});
+p.catcow=own(p.table); // Animated sequence interpolates cat and cow at runtime.
 p.butterfly=own({
  hip:[0,.26,-.10],shoulder:[0,1.18,-.10],head:[0,1.78,-.08],
  leftKnee:[-.60,.18,.48],rightKnee:[.60,.18,.48],
