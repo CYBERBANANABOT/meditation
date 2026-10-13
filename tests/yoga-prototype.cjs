@@ -68,6 +68,14 @@ const path=require('node:path');
         paused.elapsed,'Pause should freeze practice timer');
       await page.locator('#nextButton').click();
       assert.equal(await page.locator('#movementName').textContent(),'Плавный подъём рук');
+      await page.locator('#cameraButton').click();
+      await page.evaluate(()=>{
+        window.__yogaPrototype.setElapsed(12.5);
+      });
+      await page.waitForTimeout(550);
+      await page.screenshot({
+        path:'artifacts/yoga/yoga-arms-up-'+viewport.width+'.png',fullPage:true
+      });
       await page.locator('#nextButton').click();
       assert.equal(await page.locator('#movementName').textContent(),'Возвращение к покою');
       await page.locator('#nextButton').click();
