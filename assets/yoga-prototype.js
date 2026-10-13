@@ -75,11 +75,13 @@
   }
   function setUI(){
     const move=moves[state.index],percentage=clamp(cumulativeTime()/totalDuration*100,0,100);
-    $('stageCount').textContent='Этап '+(state.index+1)+' из '+moves.length;
-    $('nextMovement').textContent=state.index<moves.length-1?'Далее: '+moves[state.index+1].name:'Последний этап практики';
-    $('movementName').textContent=move.name;
-    $('movementInstruction').textContent=move.instruction;
-    $('movementSafety').textContent=move.safety;
+    // Avoid repeatedly announcing unchanged instructions through screen readers.
+    const updateText=(id,value)=>{if($(id).textContent!==value)$(id).textContent=value;};
+    updateText('stageCount','Этап '+(state.index+1)+' из '+moves.length);
+    updateText('nextMovement',state.index<moves.length-1?'Далее: '+moves[state.index+1].name:'Последний этап практики');
+    updateText('movementName',move.name);
+    updateText('movementInstruction',move.instruction);
+    updateText('movementSafety',move.safety);
     $('timeLeft').textContent=format(Math.ceil(Math.max(0,move.duration-state.elapsed)));
     $('progressFill').style.width=percentage+'%';
     $('sessionProgress').setAttribute('aria-valuenow',String(Math.round(percentage)));
