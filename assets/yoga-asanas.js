@@ -5,6 +5,7 @@
 (()=>{
 'use strict';
 const J=['hip','shoulder','head','leftKnee','rightKnee','leftAnkle','rightAnkle','leftElbow','rightElbow','leftWrist','rightWrist'];
+const smooth=t=>t*t*(3-2*t);
 const standing={
  hip:[0,1.14,0],shoulder:[0,2.1,0],head:[0,2.70,.02],
  leftKnee:[-.18,.62,0],rightKnee:[.18,.62,0],
