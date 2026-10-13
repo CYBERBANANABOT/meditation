@@ -1,4 +1,4 @@
-/* Standalone offline WebGL yoga instructor prototype. No external services. */
+/* Standalone offline yoga instructor with a wooden jointed 3D mannequin. */
 (() => {
   'use strict';
   const moves = [
@@ -144,10 +144,10 @@
   if(!gl){$('sceneFallback').hidden=false;$('sceneHint').hidden=true;}
   else{
     try{
-      renderer=window.createYogaHumanRenderer(gl,canvas,state,moves);
+      renderer=window.createYogaMannequinRenderer(gl,canvas,state,moves);
       state.ready=true;
     }catch(err){
-      console.warn('Human 3D renderer unavailable:',err.message);
+      console.warn('Wooden mannequin renderer unavailable:',err.message);
       $('sceneFallback').hidden=false;$('sceneHint').hidden=true;
     }
   }
