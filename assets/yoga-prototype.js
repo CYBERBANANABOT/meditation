@@ -213,7 +213,7 @@
     requestAnimationFrame(tick);
   }
   window.__yogaPrototype={
-    snapshot:()=>({index:state.index,stage:moves[state.index].id,stages:moves.length,elapsed:state.elapsed,running:state.running,done:state.done,webgl:state.ready,azimuth:state.azimuth,totalDuration,voice:state.voice,mesh:renderer?.diagnostics?.()||null}),
+    snapshot:()=>({index:state.index,stage:moves[state.index].id,stages:moves.length,elapsed:state.elapsed,running:state.running,done:state.done,webgl:state.ready,azimuth:state.azimuth,totalDuration,durations:moves.map(m=>m.duration),voice:state.voice,mesh:renderer?.diagnostics?.()||null}),
     jump:index=>selectStage(index),
     setElapsed:seconds=>{state.elapsed=clamp(seconds,0,moves[state.index].duration);state.reminded=state.elapsed>=moves[state.index].duration*.55;setUI();}
   };
