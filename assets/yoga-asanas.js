@@ -158,13 +158,33 @@ function interpolate(a,b,t){
  return out;
 }
 const available=Object.keys(p);
+// Difficult posture changes use intermediate supported positions rather than
+// linearly teleporting from standing to the floor in three seconds.
+const routes={
+ 'half>plank':['fold','table'],
+ 'plank>cobra':['table'],
+ 'cobra>dog':['table'],
+ 'dog>lungeL':['table'],
+ 'dog>lungeR':['table'],
+ 'triangleL>dog':['table'],
+ 'triangleR>dog':['table'],
+ 'plank>child':['table'],
+ 'catcow>butterfly':['child'],
+ 'staff>bridge':['butterfly'],
+ 'bridge>twistL':['supine'],
+ 'twistL>twistR':['supine']
+};
 const sample=(name,seconds,duration,from)=>{
  if(!p[name])throw Error('Unknown yoga pose '+name);
  const u=Math.max(0,Math.min(1,seconds/Math.max(duration,1)));
- const base=name==='catcow'?interpolate(p.cat,p.cow,(1+Math.sin(2*Math.PI*4*u))/2):p[name];
- // Give 3.5 seconds to change position, then demonstrate a genuine static asana.
- const previous=p[from]||p.mountain;
- return interpolate(previous,base,Math.min(1,seconds/3.5));
+ const target=name==='catcow'?interpolate(p.cat,p.cow,(1+Math.sin(2*Math.PI*4*u))/2):p[name];
+ const start=p[from]||p.mountain;
+ const via=routes[from+'>'+name]||[];
+ const path=[start,...via.map(k=>p[k]),target];
+ const transition=Math.min(duration*.35,via.length?Math.min(10,5+via.length*2):4.5);
+ const phase=Math.min(1,seconds/transition)* (path.length-1);
+ const step=Math.min(path.length-2,Math.floor(phase));
+ return interpolate(path[step],path[step+1],phase-step);
 };
 window.YogaAsanas=Object.freeze({sample,poses:p,names:available,joints:J});
 })();
