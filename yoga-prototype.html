@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0a0912">
+  <meta name="description" content="Экспериментальный 3D-инструктор мягкой йоги без платных сервисов.">
+  <title>Йога · 3D-прототип Meditation</title>
+  <link rel="stylesheet" href="./assets/yoga-prototype.css?v=1">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="back" href="./index.html" aria-label="Вернуться в медитацию">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        <span>Медитация</span>
+      </a>
+      <span class="prototype-label"><span class="status-dot"></span> 3D ПРОТОТИП</span>
+    </header>
+    <main id="yogaApp" aria-label="Прототип 3D-инструктора йоги">
+      <div class="headline">
+        <p class="eyebrow">БЕРЕЖНОЕ ДВИЖЕНИЕ</p>
+        <h1>Мягкое пробуждение</h1>
+        <p class="subtitle">Небольшая практика с цифровым инструктором. Двигайся только в комфортной амплитуде.</p>
+      </div>
+      <section class="stage-card" aria-label="Трёхмерный инструктор">
+        <div class="stage-header">
+          <span class="stage-pill" id="stageCount">Этап 1 из 4</span>
+          <button class="angle-toggle" type="button" id="cameraButton" aria-label="Показать вид сбоку">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z M12 12l8-4 M12 12 4 8 M12 12v8.5"/></svg>
+            <span>Вид сбоку</span>
+          </button>
+        </div>
+        <div class="figure-scene" id="figureScene">
+          <div class="scene-glow" aria-hidden="true"></div>
+          <canvas id="figureCanvas" aria-label="Трёхмерная демонстрация движения" role="img"></canvas>
+          <div class="scene-floor" aria-hidden="true"></div>
+          <div class="scene-fallback" id="sceneFallback" hidden>
+            <svg viewBox="0 0 160 230" aria-hidden="true"><circle cx="80" cy="34" r="18"/><path d="M80 54v82m-39-55 39-24 39 24m-39 55-27 70m27-70 27 70"/></svg>
+            <p>3D недоступно на этом устройстве. Следуй текстовым подсказкам ниже.</p>
+          </div>
+          <div class="scene-hint" id="sceneHint">Проведи пальцем, чтобы повернуть</div>
+        </div>
+      </section>
+      <section class="instruction-card" aria-live="polite" aria-atomic="true">
+        <div class="instruction-heading">
+          <div><p class="step-eyebrow">ТЕКУЩЕЕ ДВИЖЕНИЕ</p><h2 id="movementName">Спокойная стойка</h2></div>
+          <span class="step-time" id="timeLeft" aria-label="Время до конца упражнения">0:35</span>
+        </div>
+        <p class="instruction" id="movementInstruction">Встань устойчиво, опусти плечи. Дыши естественно, без усилия.</p>
+        <p class="safety-note" id="movementSafety">Если стоять неудобно, выполняй движение сидя.</p>
+        <div class="progress-track" role="progressbar" id="sessionProgress" aria-label="Общий прогресс занятия" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressFill"></div></div>
+        <div class="progress-footer"><span id="elapsedLabel">0:00 прошло</span><span id="totalLabel">2:50 всего</span></div>
+      </section>
+      <nav class="player-controls" aria-label="Управление занятием">
+        <button id="previousButton" class="control secondary" type="button" aria-label="Предыдущее движение" title="Предыдущее движение">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14m12-14L9 12l10 7V5Z"/></svg>
+        </button>
+        <button id="playButton" class="control main-control" type="button" aria-label="Начать практику">
+          <svg id="playIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7z"/></svg>
+          <span id="playText">Начать</span>
+        </button>
+        <button id="nextButton" class="control secondary" type="button" aria-label="Следующее движение" title="Следующее движение">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 5v14M5 5l10 7-10 7V5Z"/></svg>
+        </button>
+      </nav>
+      <div class="extras">
+        <button class="voice-toggle" id="voiceButton" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></svg><span id="voiceLabel">Озвучить подсказки</span></button>
+        <button class="restart" id="restartButton" type="button">Начать сначала</button>
+      </div>
+      <p class="disclaimer">Это технический прототип, а не медицинская программа. Не выполняй движения через боль. Если появилось головокружение или ухудшилось самочувствие — остановись. 3D-фигура схематичная, технику для полноценных комплексов ещё предстоит проверить со специалистом.</p>
+    </main>
+    <div id="completeModal" class="complete-overlay" role="dialog" aria-modal="true" aria-labelledby="completeTitle" hidden>
+      <div class="complete-content">
+        <div class="complete-symbol" aria-hidden="true">✦</div>
+        <p class="eyebrow">МЯГКОЕ ЗАВЕРШЕНИЕ</p>
+        <h2 id="completeTitle">Практика завершена</h2>
+        <p>Спасибо, что уделил время себе. Остановись на мгновение и заметь, как чувствует себя тело.</p>
+        <button id="repeatButton" class="complete-action" type="button">Повторить практику</button>
+        <a class="complete-link" href="./index.html">Вернуться к медитации</a>
+      </div>
+    </div>
+  </div>
+  <script defer src="./assets/yoga-prototype.js?v=1"></script>
+</body>
+</html>
