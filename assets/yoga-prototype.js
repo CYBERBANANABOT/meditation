@@ -143,8 +143,13 @@
   let renderer=null;
   if(!gl){$('sceneFallback').hidden=false;$('sceneHint').hidden=true;}
   else{
-    try{renderer=createRenderer(gl);state.ready=true;}
-    catch(err){console.warn('3D unavailable:',err.message);$('sceneFallback').hidden=false;$('sceneHint').hidden=true;}
+    try{
+      renderer=window.createYogaHumanRenderer(gl,canvas,state,moves);
+      state.ready=true;
+    }catch(err){
+      console.warn('Human 3D renderer unavailable:',err.message);
+      $('sceneFallback').hidden=false;$('sceneHint').hidden=true;
+    }
   }
   function createRenderer(gl){
     const vertex=[
@@ -291,13 +296,13 @@
     if(!document.hidden){
       if(state.lastFrame&&state.running)advance((timestamp-state.lastFrame)/1000);
       state.lastFrame=timestamp;
-      renderer?.frame();
+      renderer?.frame(timestamp);
       if(timestamp-lastUI>95){lastUI=timestamp;setUI();}
     }else state.lastFrame=0;
     requestAnimationFrame(tick);
   }
   window.__yogaPrototype={
-    snapshot:()=>({index:state.index,elapsed:state.elapsed,running:state.running,done:state.done,webgl:state.ready,azimuth:state.azimuth,totalDuration}),
+    snapshot:()=>({index:state.index,elapsed:state.elapsed,running:state.running,done:state.done,webgl:state.ready,azimuth:state.azimuth,totalDuration,mesh:renderer?.diagnostics?.()||null}),
     jump:index=>selectStage(index),
     setElapsed:seconds=>{state.elapsed=clamp(seconds,0,moves[state.index].duration);setUI();}
   };
