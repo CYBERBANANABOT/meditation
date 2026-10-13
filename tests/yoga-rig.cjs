@@ -70,3 +70,30 @@ test('Left/right pose families remain distinct, and floor poses are on the mat',
     assert(j.hip[1]<.55,name+' not near mat');
   }
 });
+
+test('Dog has a raised hip and an inverted-V back rather than a table top',()=>{
+ const j=rig.solve(asanas.poses.dog);
+ assert(j.hip[1]>j.shoulder[1]+.28,'Dog torso should slope down from the hip');
+ assert(j.hip[1]>j.head[1]+.42,'Dog hips should visibly exceed head height');
+ for(const side of ['left','right']){
+   assert(j[side+'Wrist'][1]<.27,'Dog hands should meet mat');
+   assert(j[side+'Ankle'][1]<.27,'Dog feet should meet mat');
+ }
+});
+test('Low lunges kneel with the rear leg, rather than balancing on one leg',()=>{
+ for(const [name,rear] of [['lungeL','right'],['lungeR','left']]){
+   const j=rig.solve(asanas.poses[name]);
+   assert(j[rear+'Knee'][1]<.36,name+' rear knee should be near mat: '+j[rear+'Knee'][1]);
+   assert(j[rear+'Ankle'][1]<.27,name+' rear foot should meet mat');
+ }
+});
+test('Prone cobra, supine bridge and final relaxation show distinct body planes',()=>{
+ const cobra=rig.solve(asanas.poses.cobra);
+ assert(cobra.hip[1]<.33&&cobra.shoulder[1]>.5,'Cobra chest should rise above prone pelvis');
+ const bridge=rig.solve(asanas.poses.bridge);
+ assert(bridge.hip[1]>.70&&bridge.shoulder[1]<.55,
+   'Bridge hip should rise above shoulders');
+ const rest=rig.solve(asanas.poses.savasana);
+ assert(rest.hip[1]<.3&&rest.shoulder[1]<.35&&rest.head[1]<.4,
+   'Savasana torso and head should stay close to mat');
+});
