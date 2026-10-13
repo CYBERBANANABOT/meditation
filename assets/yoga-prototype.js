@@ -257,7 +257,7 @@
       const ratio=clamp(state.elapsed/moves[state.index].duration,0,1);
       const breathing=state.running?Math.sin(state.elapsed*1.25)*.012:0;
       const lift=(state.index===0||state.index===3)?.06:
-        state.index===1?1.32*Math.sin(Math.PI*2*ratio)**2:2.67*Math.sin(Math.PI*1.5*ratio)**2;
+        state.index===1?1.32*Math.sin(Math.PI*2*ratio)**2:2.67*Math.sin(Math.PI*2*ratio)**2;
       const sway=state.index===0?.035*Math.sin(ratio*Math.PI*2):0;
       ball([0,1.08,0],[.28,.25,.205],colors.body);
       ball([0,1.75+breathing,0],[.295,.54,.190],colors.body);
