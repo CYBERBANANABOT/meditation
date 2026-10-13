@@ -88,7 +88,7 @@
       'float rim=pow(1.0-max(dot(n,eye),0.0),2.4);',
       'float grain1=sin(vLocal.y*21.0+sin(vLocal.x*5.0+vLocal.z*6.0)*1.8);',
       'float grain2=sin(vLocal.y*67.0+vLocal.x*13.0+grain1*1.3);',
-      'float wood=1.0+uGrain*(grain1*0.067+grain2*0.023);',
+      'float wood=1.0+uGrain*(grain1*0.028+grain2*0.009);',
       'float diffuse=0.47+0.40*key+0.15*fill;',
       'vec3 color=uColor*wood*diffuse;',
       'color+=vec3(0.115,0.09,0.16)*rim;',
@@ -217,7 +217,7 @@
     return {
       frame:renderFigure,
       diagnostics:()=>({
-        material:'wood',segments:23,joints:17,triangles:surface.indices.length/3,
+        material:'wood',segments:30,joints:14,triangles:surface.indices.length/3,
         points:0,shoulderAngle:lastPose?.angle||0,lift:lastPose?.lift||0,
         frames,averageFrameMs:meanFrameMs
       })
