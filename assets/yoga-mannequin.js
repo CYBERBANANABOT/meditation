@@ -237,7 +237,7 @@
       const chestFrame=window.YogaRig.axisFor(j);
       const Lshoulder=window.YogaRig.socket(j,'left');
       const Rshoulder=window.YogaRig.socket(j,'right');
-      const chest=add(sCenter,scaled(torsoAxis,-.16));
+      const chest=add(sCenter,scaled(torsoAxis,-.155));
       // Replace the exposed chest and hips with fitted continuous garment pieces.
       // Pelvis opens only slightly; unlike the chest it stays aligned
       // mainly with the planted feet.
@@ -246,13 +246,18 @@
         z:[Math.sin(py),0,Math.cos(py)]};
       ellipsoid(h,[.277,.214,.206],cloth.leggings,
         {...pelvisFrame,fabric:true});
-      segment(h,sCenter,.259,.192,cloth.top,.02,true);
-      segment(add(sCenter,scaled(torsoAxis,-.34)),sCenter,
-        .386,.218,cloth.top,0,true);
-      ellipsoid(chest,[.425,.233,.233],cloth.top,
+      // One continuous body shell, aligned with the rotating chest.
+      // The old second 0.386-wide upper-torso ellipsoid remained aligned
+      // to world X and protruded as a hump after Warrior/Triangle turns.
+      const torsoMid=scaled(add(h,sCenter),.5);
+      ellipsoid(torsoMid,[.252,window.YogaRig.lengths.torso*.54,.170],
+        cloth.top,{...chestFrame,fabric:true});
+      // A shallow upper-ribcage overlay softens the shoulder silhouette
+      // without adding a second thick, independently rotated chest lump.
+      ellipsoid(chest,[.375,.265,.175],cloth.top,
         {...chestFrame,fabric:true});
-      segment(add(h,scaled(torsoAxis,.055)),add(h,scaled(torsoAxis,.17)),
-        .276,.205,cloth.waist,0,true);
+      ellipsoid(add(h,scaled(torsoAxis,.105)),[.265,.12,.180],
+        cloth.waist,{...chestFrame,fabric:true});
       // The head is 0.39 from the shoulder centre: chest and skull
       // overlap the short neck connector; there is no giraffe-like stalk.
       // Continuous, thick wooden neck dowel overlaps both chest and skull.
@@ -295,7 +300,7 @@
         const palm=wrist[1]<=.23?add(wrist,[0,0,.145]):
           add(wrist,scaled(handDir,.135));
         // Smooth sleeves conceal shoulder and elbow sockets; hands stay wooden.
-        pivot(shoulder,.139,cloth.top,true);
+        pivot(shoulder,.123,cloth.top,true);
         segment(shoulder,elbow,.116,.109,cloth.top,.06,true);
         joint(elbow,.108,cloth.top,true);
         segment(elbow,wrist,.095,.089,cloth.top,-.04,true);
@@ -310,6 +315,8 @@
       diagnostics:()=>({
         material:'wood',outfit:'plum-long-sleeve-top-graphite-leggings',
         garmentCoversJoints:true,
+        torsoShellDepth:.170,chestShellDepth:.175,
+        torsoShellCount:2,
         torsoYaw:lastPose?.joints.torsoYaw||0,
         pelvisYaw:lastPose?.joints.pelvisYaw||0,
         shoulderAxis:lastPose?.joints?window.YogaRig.axisFor(lastPose.joints).x.slice():null,
