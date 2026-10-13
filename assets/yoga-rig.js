@@ -30,6 +30,15 @@ function slerpDirection(a,b,t){
 }
 const solvedKeyframes=new WeakMap();
 const lengths=Object.freeze({torso:.91,neck:.39,upperArm:.50,forearm:.46,thigh:.55,shin:.50,hipSpan:.32,shoulderSpan:.58});
+const axisFor=p=>{
+ const up=unit(v(p.shoulder,p.hip)),base=[1,0,0],
+   perpendicular=unit(cross(base,up)),yaw=p.torsoYaw||0;
+ const x=unit(plus(times(base,Math.cos(yaw)),
+   times(perpendicular,-Math.sin(yaw))));
+ return {x,y:up,z:unit(cross(x,up))};
+};
+const socket=(p,side)=>plus(p.shoulder,times(axisFor(p).x,
+  (side==='left'?-1:1)*lengths.shoulderSpan/2));
 const keys=['hip','shoulder','head','leftKnee','rightKnee','leftAnkle','rightAnkle','leftElbow','rightElbow','leftWrist','rightWrist'];
 const groundKeys=new Set(['leftWrist','rightWrist','leftAnkle','rightAnkle']);
 const assertFinite=p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite);
@@ -66,12 +75,17 @@ function legOrArm(start,endTarget,kneeTarget,L1,L2,ground){
 // Both elbows share a deterministic, outward/backward bend pole.
 // A wrist can move freely in space, but may not pass through the chest,
 // and a hinge may not bend toward the anatomically wrong side.
-function armIK(shoulder,wristTarget,sign){
+function armIK(shoulder,wristTarget,sign,axes){
   const L1=lengths.upperArm,L2=lengths.forearm;
-  const center=shoulder[0]-sign*lengths.shoulderSpan/2;
+  const sideways=axes.x,facing=axes.z;
+  const center=plus(shoulder,times(sideways,-sign*lengths.shoulderSpan/2));
   const end=[...wristTarget];
-  // 0.42 from centre keeps hand pads clear of chest and of each other.
-  end[0]=center+sign*Math.max(.42,sign*(end[0]-center));
+  // Enforce the correct side of the *rotating* ribcage, not world X.
+  const reach=sign*dot(v(end,center),sideways);
+  if(reach<.42){
+    const correction=plus(end,times(sideways,sign*(.42-reach)));
+    end.splice(0,3,...correction);
+  }
   if(end[1]<.105)end[1]=.105;
   let axis=v(end,shoulder),dy=axis[1],max=L1+L2-.005;
   if(end[1]<=.26&&Math.abs(dy)<max){
@@ -90,10 +104,10 @@ function armIK(shoulder,wristTarget,sign){
   const forward=unit(v(end,shoulder));
   const along=(L1*L1-L2*L2+dist*dist)/(2*dist);
   const height=Math.sqrt(Math.max(0,L1*L1-along*along));
-  const pole=[sign*.48,0,-.72];
+  const pole=plus(times(sideways,sign*.48),times(facing,-.72));
   let bend=v(pole,times(forward,dot(pole,forward)));
   if(length(bend)<.01){
-    const side=[sign,0,0];bend=v(side,times(forward,dot(side,forward)));
+    const side=times(sideways,sign);bend=v(side,times(forward,dot(side,forward)));
   }
   const elbow=plus(plus(shoulder,times(forward,along)),times(unit(bend),height));
   return {middle:elbow,end};
@@ -104,9 +118,10 @@ function solve(input){
   // time; that would re-introduce bend-pole flips into the renderer.
   if(input.__rigged===true){
     if(metrics(input).maxError>.001)throw Error('Invalid articulated frame');
-    return Object.fromEntries(keys.map(k=>[k,input[k].slice()]));
+    return {...Object.fromEntries(keys.map(k=>[k,input[k].slice()])),
+      torsoYaw:input.torsoYaw||0,pelvisYaw:input.pelvisYaw||0};
   }
-  const out={};
+  const out={torsoYaw:input.torsoYaw||0,pelvisYaw:input.pelvisYaw||0};
   out.hip=[...input.hip];
   // The shoulders are rigidly connected to the torso; neck cannot stretch.
   const trunk=unit(v(input.shoulder,out.hip));
@@ -117,9 +132,9 @@ function solve(input){
   out.head=plus(out.shoulder,times(headAxis,lengths.neck));
   for(const left of [true,false]){
     const prefix=left?'left':'right',sgn=left?-1:1;
-    const shoulderJoint=plus(out.shoulder,[sgn*lengths.shoulderSpan/2,0,0]);
+    const shoulderJoint=socket(out,prefix);
     const elbowName=prefix+'Elbow',wristName=prefix+'Wrist';
-    const arm=armIK(shoulderJoint,input[wristName],sgn);
+    const arm=armIK(shoulderJoint,input[wristName],sgn,axisFor(out));
     out[elbowName]=arm.middle;out[wristName]=arm.end;
     const hipJoint=plus(out.hip,[sgn*lengths.hipSpan/2,0,0]);
     const kneeName=prefix+'Knee',ankleName=prefix+'Ankle';
@@ -139,7 +154,9 @@ function keyframe(pose){
 // with exactly constant arm/leg segment lengths throughout every frame.
 function blend(a,b,t){
   const start=keyframe(a),end=keyframe(b),u=clamp(t,0,1),e=u*u*(3-2*u);
-  const out={hip:mix(start.hip,end.hip,e)};
+  const out={hip:mix(start.hip,end.hip,e),
+    torsoYaw:(start.torsoYaw||0)*(1-e)+(end.torsoYaw||0)*e,
+    pelvisYaw:(start.pelvisYaw||0)*(1-e)+(end.pelvisYaw||0)*e};
   function bone(aRoot,aTip,bRoot,bTip,boneLength,newRoot){
     const dir=slerpDirection(v(aTip,aRoot),v(bTip,bRoot),e);
     return plus(newRoot,times(dir,boneLength));
@@ -147,10 +164,10 @@ function blend(a,b,t){
   out.shoulder=bone(start.hip,start.shoulder,end.hip,end.shoulder,lengths.torso,out.hip);
   out.head=bone(start.shoulder,start.head,end.shoulder,end.head,lengths.neck,out.shoulder);
   for(const [side,sign] of [['left',-1],['right',1]]){
-    const shoulderOffset=[sign*lengths.shoulderSpan/2,0,0];
+    const shoulderOffset=times(axisFor(out).x,sign*lengths.shoulderSpan/2);
     const hipOffset=[sign*lengths.hipSpan/2,0,0];
-    const oldShoulder=plus(start.shoulder,shoulderOffset);
-    const newShoulder=plus(end.shoulder,shoulderOffset);
+    const oldShoulder=socket(start,side);
+    const newShoulder=socket(end,side);
     const currentShoulder=plus(out.shoulder,shoulderOffset);
     // Follow the continuous FK wrist path, but rebuild elbow with
     // the same anatomical pole and no-crossing rule as static poses.
@@ -158,7 +175,7 @@ function blend(a,b,t){
       newShoulder,end[side+'Elbow'],lengths.upperArm,currentShoulder);
     const fkWrist=bone(start[side+'Elbow'],start[side+'Wrist'],
       end[side+'Elbow'],end[side+'Wrist'],lengths.forearm,fkElbow);
-    const arm=armIK(currentShoulder,fkWrist,sign);
+    const arm=armIK(currentShoulder,fkWrist,sign,axisFor(out));
     out[side+'Elbow']=arm.middle;out[side+'Wrist']=arm.end;
     const oldHip=plus(start.hip,hipOffset),newHip=plus(end.hip,hipOffset);
     const currentHip=plus(out.hip,hipOffset);
@@ -174,7 +191,7 @@ function metrics(p){
   const torso=length(v(p.shoulder,p.hip)),neck=length(v(p.head,p.shoulder));
   const bones={},contacts={};
   for(const [prefix,sgn] of [['left',-1],['right',1]]){
-    const shoulder=plus(p.shoulder,[sgn*lengths.shoulderSpan/2,0,0]);
+    const shoulder=socket(p,prefix);
     const hip=plus(p.hip,[sgn*lengths.hipSpan/2,0,0]);
     bones[prefix+'UpperArm']=length(v(p[prefix+'Elbow'],shoulder));
     bones[prefix+'Forearm']=length(v(p[prefix+'Wrist'],p[prefix+'Elbow']));
@@ -191,5 +208,5 @@ function metrics(p){
     }));
   return {torso,neck,bones,maxError,contacts,shoulderSpan:lengths.shoulderSpan};
 }
-window.YogaRig=Object.freeze({solve,blend,metrics,lengths});
+window.YogaRig=Object.freeze({solve,blend,metrics,lengths,axisFor,socket});
 })();

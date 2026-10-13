@@ -123,12 +123,27 @@ const path=require('node:path');
         assert(snapshot.mesh.rig?.maxError<.008,poses[index]+': stretched limb or neck detected');
         assert(Number.isFinite(snapshot.mesh.headY)&&Number.isFinite(snapshot.mesh.hipY),
           'Pose landmarks must be finite');
+        if([9,10,14,15].includes(index)){
+          const expectedSign=index<12?1:-1;
+          assert(Math.abs(snapshot.mesh.torsoYaw-expectedSign*Math.PI/2)<.06,
+            poses[index]+': chest must open along stance');
+          assert(Math.abs(snapshot.mesh.pelvisYaw-expectedSign*.30)<.04,
+            poses[index]+': pelvis must open gently');
+          const x=snapshot.mesh.shoulderAxis;
+          assert(x&&Math.hypot(...x)>.999&&Math.hypot(...x)<1.001,
+            'Rotating chest shoulder axis is invalid');
+        }
         if([9,14].includes(index)){
           const jj=await page.evaluate(n=>window.YogaRig.solve(
             window.YogaAsanas.poses[n===9?'warrior2L':'warrior2R']),index);
           for(const side of ['left','right']){
             const sign=side==='left'?-1:1;
-            const s=[jj.shoulder[0]+sign*.29,jj.shoulder[1],jj.shoulder[2]];
+            const axis=jj.torsoYaw;
+            const s=[
+              jj.shoulder[0]+sign*.29*Math.cos(axis),
+              jj.shoulder[1],
+              jj.shoulder[2]-sign*.29*Math.sin(axis)
+            ];
             const e=jj[side+'Elbow'],w=jj[side+'Wrist'];
             const a=s.map((v,i)=>v-e[i]),b=w.map((v,i)=>v-e[i]);
             const angle=Math.acos(Math.max(-1,Math.min(1,

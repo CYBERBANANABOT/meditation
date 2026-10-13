@@ -234,16 +234,23 @@
       const torsoAxis=norm(sub(sCenter,h));
       // One contiguous chest block covers both shoulder pivot sockets.
       // Its 0.43-unit half-width overlaps each pivot at +/- 0.29.
-      const Lshoulder=add(sCenter,[-window.YogaRig.lengths.shoulderSpan/2,0,0]);
-      const Rshoulder=add(sCenter,[window.YogaRig.lengths.shoulderSpan/2,0,0]);
+      const chestFrame=window.YogaRig.axisFor(j);
+      const Lshoulder=window.YogaRig.socket(j,'left');
+      const Rshoulder=window.YogaRig.socket(j,'right');
       const chest=add(sCenter,scaled(torsoAxis,-.16));
       // Replace the exposed chest and hips with fitted continuous garment pieces.
-      ellipsoid(h,[.277,.214,.206],cloth.leggings,{fabric:true});
+      // Pelvis opens only slightly; unlike the chest it stays aligned
+      // mainly with the planted feet.
+      const py=j.pelvisYaw||0;
+      const pelvisFrame={x:[Math.cos(py),0,-Math.sin(py)],y:unitY,
+        z:[Math.sin(py),0,Math.cos(py)]};
+      ellipsoid(h,[.277,.214,.206],cloth.leggings,
+        {...pelvisFrame,fabric:true});
       segment(h,sCenter,.259,.192,cloth.top,.02,true);
       segment(add(sCenter,scaled(torsoAxis,-.34)),sCenter,
         .386,.218,cloth.top,0,true);
       ellipsoid(chest,[.425,.233,.233],cloth.top,
-        {...frameAlong(torsoAxis),fabric:true});
+        {...chestFrame,fabric:true});
       segment(add(h,scaled(torsoAxis,.055)),add(h,scaled(torsoAxis,.17)),
         .276,.205,cloth.waist,0,true);
       // The head is 0.39 from the shoulder centre: chest and skull
@@ -302,7 +309,11 @@
       frame:renderFigure,
       diagnostics:()=>({
         material:'wood',outfit:'plum-long-sleeve-top-graphite-leggings',
-        garmentCoversJoints:true,mat:'world-space',eyes:2,joints:14,segments:30,
+        garmentCoversJoints:true,
+        torsoYaw:lastPose?.joints.torsoYaw||0,
+        pelvisYaw:lastPose?.joints.pelvisYaw||0,
+        shoulderAxis:lastPose?.joints?window.YogaRig.axisFor(lastPose.joints).x.slice():null,
+        mat:'world-space',eyes:2,joints:14,segments:30,
         triangles:surface.indices.length/3,
         pose:lastPose?.name||'mountain',
         section:lastPose?.section||'',

@@ -86,21 +86,28 @@ function warrior2(left){
  const level=q.shoulder[1];
  q.leftElbow=[-.39,level,left?.73:-.25];
  q.rightElbow=[.39,level,left?-.25:.73];
- q.leftWrist=[-.40,level,left?1.20:-1.20];
- q.rightWrist=[.40,level,left?-1.20:1.20];
+ // Warrior II rotates the ribcage into the stance plane. Pelvis opens
+ // modestly without requiring an extreme spinal twist.
+ q.leftWrist=[-.10,level,left?1.49:-1.01];
+ q.rightWrist=[.10,level,left?-1.01:1.49];
+ q.torsoYaw=left?Math.PI/2:-Math.PI/2;
+ q.pelvisYaw=left?.30:-.30;
  return q;
 }
 p.warrior2L=warrior2(true);p.warrior2R=warrior2(false);
 function triangle(left){
  const q=warrior2(left),sign=left?-1:1;
  q.hip=[0,1.02,-.07];q.shoulder=[sign*.13,1.39,.74];q.head=[sign*.18,1.59,1.07];
+ // Triangle combines an opened chest with a genuine lateral torso bend.
+ q.torsoYaw=left?Math.PI/2:-Math.PI/2;
+ q.pelvisYaw=left?.30:-.30;
  q.leftKnee=[-.25,.57,.40];q.rightKnee=[.25,.57,-.39];
  if(left){
-  q.leftElbow=[-.31,1.04,.78];q.leftWrist=[-.30,.64,.87];
-  q.rightElbow=[.32,1.86,.70];q.rightWrist=[.33,2.26,.72];
+  q.leftElbow=[-.12,.65,1.13];q.leftWrist=[-.13,.23,1.20];
+  q.rightElbow=[.08,2.06,.40];q.rightWrist=[.08,2.50,.19];
  }else{
-  q.rightElbow=[.31,1.04,.78];q.rightWrist=[.30,.64,.87];
-  q.leftElbow=[-.32,1.86,.70];q.leftWrist=[-.33,2.26,.72];
+  q.rightElbow=[.12,.65,1.13];q.rightWrist=[.13,.23,1.20];
+  q.leftElbow=[-.08,2.06,.40];q.leftWrist=[-.08,2.50,.19];
  }
  return q;
 }

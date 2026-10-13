@@ -22,14 +22,15 @@ test('No stretching of mannequin spine, neck, arms, or legs across 26 poses and 
       const candidate=asanas.sample(m.pose,secs,m.duration,previous);
       const j=rig.solve(candidate),stats=rig.metrics(j);
       for(const [name,point] of Object.entries(j)){
-        assert(point.every(Number.isFinite),m.pose+': bad '+name);
+        if(Array.isArray(point))assert(point.every(Number.isFinite),m.pose+': bad '+name);
+        else assert(Number.isFinite(point),m.pose+': invalid orientation '+name);
       }
       assert(near(stats.torso,rig.lengths.torso),m.pose+': torso changed length');
       assert(near(stats.neck,rig.lengths.neck),m.pose+': stretched neck');
       assert(stats.maxError<.008,m.pose+': stretched limb error '+stats.maxError);
       assert(near(stats.shoulderSpan,.58),m.pose+': shoulder offset wrong');
       for(const [side,sgn] of [['left',-1],['right',1]]){
-        const shoulder=[j.shoulder[0]+sgn*.29,j.shoulder[1],j.shoulder[2]];
+        const shoulder=rig.socket(j,side);
         assert(near(dist(shoulder,j[side+'Elbow']),.50),
           m.pose+': disconnected '+side+' shoulder');
         assert(near(dist(j[side+'Elbow'],j[side+'Wrist']),.46),
@@ -54,7 +55,7 @@ test('Standing arms overhead are attached to shoulders and neck is human-scale',
     const j=rig.solve(asanas.poses[name]);
     assert(near(dist(j.head,j.shoulder),.39),name+': giraffe neck');
     for(const side of ['left','right']){
-      assert(near(dist(j[side+'Elbow'],[j.shoulder[0]+(side==='left'?-.29:.29),j.shoulder[1],j.shoulder[2]]),.5),
+      assert(near(dist(j[side+'Elbow'],rig.socket(j,side)),.5),
         name+': arm disconnected');
     }
   }
@@ -152,11 +153,14 @@ test('Elbow hinge direction, separation, reach and smooth motion for all 26 asan
       }
       for(const [side,sign] of signs){
         const el=joints[side+'Elbow'],wr=joints[side+'Wrist'],center=joints.shoulder;
-        assert(sign*(el[0]-center[0])>.31,
+        const frame=rig.axisFor(joints);
+        const projected=pt=>sign*frame.x.reduce((sum,v,k)=>
+          sum+v*(pt[k]-center[k]),0);
+        assert(projected(el)>.31,
           movement.pose+' '+side+' elbow crossed body');
-        assert(sign*(wr[0]-center[0])>.32,
+        assert(projected(wr)>.32,
           movement.pose+' '+side+' wrist crossed body');
-        const shoulder=[center[0]+sign*.29,center[1],center[2]];
+        const shoulder=rig.socket(joints,side);
         const a=shoulder.map((v,k)=>v-el[k]),b=wr.map((v,k)=>v-el[k]);
         const cosine=a.reduce((sum,v,k)=>sum+v*b[k],0)/
           (rig.lengths.upperArm*rig.lengths.forearm);
@@ -167,7 +171,8 @@ test('Elbow hinge direction, separation, reach and smooth motion for all 26 asan
         // remain on the outward/backward hinge side for the whole sequence.
         const axis=wr.map((v,k)=>v-shoulder[k]);
         const d=Math.hypot(...axis);
-        const forward=axis.map(v=>v/d),pole=[sign*.48,0,-.72];
+        const forward=axis.map(v=>v/d),
+          pole=frame.x.map((v,k)=>v*sign*.48-frame.z[k]*.72);
         const scalar=pole.reduce((sum,v,k)=>sum+v*forward[k],0);
         const preferred=pole.map((v,k)=>v-scalar*forward[k]);
         const elbowV=el.map((v,k)=>v-shoulder[k]);
@@ -334,8 +339,7 @@ test('Warrior II left and right arms are nearly straight at shoulder height',()=
     const j=rig.solve(asanas.poses[pose]);
     for(const side of ['left','right']){
       const sign=side==='left'?-1:1;
-      const shoulder=[j.shoulder[0]+sign*rig.lengths.shoulderSpan/2,
-        j.shoulder[1],j.shoulder[2]];
+      const shoulder=rig.socket(j,side);
       const elbow=j[side+'Elbow'],wrist=j[side+'Wrist'];
       const a=shoulder.map((v,i)=>v-elbow[i]),b=wrist.map((v,i)=>v-elbow[i]);
       const cosine=a.reduce((s,v,i)=>s+v*b[i],0)/
@@ -350,5 +354,53 @@ test('Warrior II left and right arms are nearly straight at shoulder height',()=
     assert(j.leftWrist[2]*j.rightWrist[2]<0,
       pose+' arms do not stretch toward opposite ends of mat');
     assert(rig.metrics(j).maxError<.001);
+  }
+});
+
+test('Warrior II and Triangle open the chest and maintain attached rotating shoulders',()=>{
+  const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);
+  for(const [family,left] of [['warrior2L',true],['warrior2R',false],
+    ['triangleL',true],['triangleR',false]]){
+    const j=rig.solve(asanas.poses[family]),frame=rig.axisFor(j);
+    assert(Math.abs(Math.abs(j.torsoYaw)-Math.PI/2)<.01,
+      family+': chest did not open sideways');
+    assert((left?1:-1)*j.torsoYaw>1.5,family+': incorrect turn direction');
+    assert(Math.abs(j.pelvisYaw)> .20&&Math.abs(j.pelvisYaw)<.40,
+      family+': pelvis should rotate gently, not overtwist');
+    assert(Math.abs(dot(frame.x,frame.y))<.001,
+      family+': shoulder line no longer perpendicular to spine');
+    for(const side of ['left','right']){
+      assert(near(dist(rig.socket(j,side),j[side+'Elbow']),.50),
+        family+': rotating shoulder disconnected from upper arm');
+      assert(near(dist(j[side+'Elbow'],j[side+'Wrist']),.46),
+        family+': rotating elbow disconnected from wrist');
+    }
+  }
+  const w=rig.solve(asanas.poses.warrior2L);
+  assert(Math.abs(w.leftWrist[1]-w.rightWrist[1])<.07,
+    'Warrior II arms must extend on one level');
+  for(const pose of ['triangleL','triangleR']){
+    const j=rig.solve(asanas.poses[pose]);
+    assert(j.shoulder[2]>j.hip[2]+.6,'Triangle did not bend sideways');
+    const lower=pose.endsWith('L')?'left':'right';
+    const raised=lower==='left'?'right':'left';
+    assert(j[lower+'Wrist'][1]<.38,
+      'Triangle lower arm not reaching toward the mat');
+    assert(j[raised+'Wrist'][1]>2.3,
+      'Triangle upper arm not pointing skyward');
+  }
+});
+test('Chest turning occurs smoothly during pose transitions',()=>{
+  for(const pose of ['warrior2L','triangleL','warrior2R','triangleR']){
+    const index=program.movements.findIndex(m=>m.pose===pose);
+    const m=program.movements[index],from=program.movements[index-1]?.pose||'mountain';
+    let previous=null;
+    for(let frame=0;frame<=Math.min(12,m.duration)*30;frame++){
+      const j=rig.solve(asanas.sample(m.pose,frame/30,m.duration,from));
+      assert(rig.metrics(j).maxError<.001,pose+': shoulder length changed');
+      if(previous)assert(Math.abs(j.torsoYaw-previous.torsoYaw)<.045,
+        pose+': chest snapped between frames');
+      previous=j;
+    }
   }
 });
