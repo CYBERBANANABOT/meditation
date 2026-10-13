@@ -143,3 +143,12 @@ test('Eye placement and face orientation stay continuous for 28-second recline',
   assert(resting.head[2]<resting.hip[2],'Supine head should be behind torso');
   assert(f.forward[1]>.9,'Supine face should be pointing upwards');
 });
+
+test('Supine spinal twist gaze turns away from the bent knee',()=>{
+  for(const [pose,sign] of [['twistL',1],['twistR',-1]]){
+    const joints=rig.solve(asanas.poses[pose]);
+    const face=head.compute(joints,pose,pose,20,40);
+    assert(sign*face.forward[0]>.15,pose+' head looks toward twisted knee');
+    assert(face.forward[1]>.75,pose+' head does not face upwards');
+  }
+});

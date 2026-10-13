@@ -94,7 +94,8 @@ const path=require('node:path');
         await page.evaluate(n=>{
           window.__yogaPrototype.jump(n);
           // Bridge includes a 28-second human-paced preparation.
-          window.__yogaPrototype.setElapsed(n===22?30:9);
+          window.__yogaPrototype.setElapsed(n===22?30:
+            (n===23||n===24?24:9));
         },index);
         await page.waitForFunction(expected=>window.__yogaPrototype.snapshot().mesh?.pose===expected,poses[index]);
         const snapshot=await page.evaluate(()=>window.__yogaPrototype.snapshot());
@@ -159,6 +160,16 @@ const path=require('node:path');
             });
           }
           await page.evaluate(()=>window.__yogaPrototype.setElapsed(30));
+        }
+        if(viewport.width===390&&(index===23||index===24)){
+          for(const seconds of [0,5,10,15,20]){
+            await page.evaluate(t=>window.__yogaPrototype.setElapsed(t),seconds);
+            await page.waitForTimeout(110);
+            await page.screenshot({
+              path:'artifacts/yoga/twist-'+poses[index]+'-'+seconds+'.png'
+            });
+          }
+          await page.evaluate(()=>window.__yogaPrototype.setElapsed(24));
         }
         if(viewport.width===390&&[4,5,6,17].includes(index)){
           // Archive half-way motion, not only the final resting silhouette.

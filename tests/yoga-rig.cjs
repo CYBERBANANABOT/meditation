@@ -268,3 +268,63 @@ test('Plank entry keeps skull above the mat through intermediate frames',()=>{
     assert(j.head[1]>.7,'Head dove into mat at '+i/30+'s');
   }
 });
+
+test('Spinal twists have a straight lower leg and naturally bent, non-intersecting upper leg',()=>{
+  const angle=(j,side)=>{
+    const sign=side==='left'?-1:1,
+      hip=[j.hip[0]+sign*rig.lengths.hipSpan/2,j.hip[1],j.hip[2]],
+      k=j[side+'Knee'],ankle=j[side+'Ankle'];
+    const a=hip.map((v,i)=>v-k[i]),b=ankle.map((v,i)=>v-k[i]);
+    return Math.acos(Math.max(-1,Math.min(1,
+      a.reduce((s,v,i)=>s+v*b[i],0)/(rig.lengths.thigh*rig.lengths.shin))))*180/Math.PI;
+  };
+  for(const [name,straight,bent,side] of [
+    ['twistL','left','right',-1],['twistR','right','left',1]
+  ]){
+    const j=rig.solve(asanas.poses[name]);
+    assert(angle(j,straight)>155,name+' supporting leg is not straight');
+    assert(angle(j,bent)>85&&angle(j,bent)<115,name+' crossing knee not correctly bent');
+    assert(side*j[bent+'Knee'][0]>.20,name+' knee on wrong side');
+    assert(j[bent+'Knee'][1]>.35,name+' knee collapsed through mat');
+    assert(j[straight+'Ankle'][1]<.25,name+' support foot is floating');
+    assert(dist(j.leftKnee,j.rightKnee)>.50,name+' knees intersect');
+    assert(dist(j.leftAnkle,j.rightAnkle)>.70,name+' ankles intersect');
+    assert(rig.metrics(j).maxError<.001);
+  }
+});
+test('Twist transitions never pass shins through each other',()=>{
+  const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+  const segmentClearance=j=>{
+    const hipL=[j.hip[0]-.16,j.hip[1],j.hip[2]],
+      hipR=[j.hip[0]+.16,j.hip[1],j.hip[2]];
+    const lk=j.leftKnee,rk=j.rightKnee,la=j.leftAnkle,ra=j.rightAnkle;
+    const pairs=[
+      [hipL,lk,hipR,rk,.30,.30],
+      [hipL,lk,rk,ra,.25,0],
+      [lk,la,hipR,rk,0,.25],
+      [lk,la,rk,ra,0,0]
+    ];
+    let nearest=Infinity;
+    for(const [a,b,c,d,startA,startB] of pairs)
+      for(let i=0;i<=10;i++)for(let j=0;j<=10;j++){
+        const pa=mix(a,b,startA+(1-startA)*i/10);
+        const pb=mix(c,d,startB+(1-startB)*j/10);
+        nearest=Math.min(nearest,dist(pa,pb));
+      }
+    return nearest;
+  };
+  for(const [name,from] of [['twistL','bridge'],['twistR','twistL']]){
+    const move=program.movements.find(x=>x.pose===name);
+    let previous=null;
+    for(let frame=0;frame<=20*30;frame++){
+      const joints=rig.solve(asanas.sample(name,frame/30,move.duration,from));
+      const separation=segmentClearance(joints);
+      assert(separation>.19,name+' crossed leg penetrated the other at '+frame/30);
+      if(previous)for(const key of asanas.joints)
+        assert(dist(previous[key],joints[key])<.065,name+' joint jump '+key);
+      previous=joints;
+    }
+  }
+  assert.equal(program.total,1100);
+  assert.equal(program.movements.length,26);
+});

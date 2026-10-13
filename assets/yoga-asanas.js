@@ -171,12 +171,32 @@ p.supine=own({
  leftElbow:[-.61,.18,-.50],rightElbow:[.61,.18,-.50],
  leftWrist:[-.96,.14,-.25],rightWrist:[.96,.14,-.25]
 });
+// Each twist keeps the opposite leg long while one knee bends across.
 function twist(left){
  const q=own(p.supine),sign=left?-1:1;
- q.leftKnee=[sign*.62,.26,.03];q.rightKnee=[sign*.63,.27,-.12];
- q.leftAnkle=[sign*.73,.16,.45];q.rightAnkle=[sign*.75,.16,.30];
+ const extended=left?'left':'right',moving=left?'right':'left';
+ q[extended+'Knee']=[sign*.22,.16,.84];
+ q[extended+'Ankle']=[sign*.28,.12,1.50];
+ q[moving+'Knee']=[sign*.45,.40,.27];
+ q[moving+'Ankle']=[sign*.60,.20,.45];
  return q;
 }
+// First bend and lift the moving leg on its own side, THEN transfer
+// it over the other thigh and gently lower it.
+function twistLift(left){
+ const q=own(p.supine),sign=left?-1:1,side=left?'left':'right';
+ q[side+'Knee']=[sign*.28,.73,.45];
+ q[side+'Ankle']=[sign*.30,.48,.50];
+ return q;
+}
+function twistHover(left){
+ const q=twist(left),sign=left?-1:1,side=left?'right':'left';
+ q[side+'Knee']=[sign*.45,.65,.27];
+ q[side+'Ankle']=[sign*.60,.52,.45];
+ return q;
+}
+p.twistLiftL=twistLift(true);p.twistLiftR=twistLift(false);
+p.twistHoverL=twistHover(true);p.twistHoverR=twistHover(false);
 p.twistL=twist(true);p.twistR=twist(false);
 p.savasana=own(p.supine);
 function interpolate(a,b,t){
@@ -198,8 +218,8 @@ const routes={
  'plank>child':['table'],
  'catcow>butterfly':['child'],
  'staff>bridge':['reclinePrep','constructiveRest','bridgePrep'],
- 'bridge>twistL':['supine'],
- 'twistL>twistR':['supine']
+ 'bridge>twistL':['supine','twistLiftR','twistHoverL'],
+ 'twistL>twistR':['twistHoverL','twistLiftR','supine','twistLiftL','twistHoverR']
 };
 const sample=(name,seconds,duration,from,fromCurrentFrame=null)=>{
  if(!p[name])throw Error('Unknown yoga pose '+name);
@@ -213,7 +233,9 @@ const sample=(name,seconds,duration,from,fromCurrentFrame=null)=>{
  const via=routes[from+'>'+name]||[];
  const path=[start,...via.map(k=>p[k]),target];
  // Four supported stages over 28 seconds instead of an impossible flip.
- const transition=from==='staff'&&name==='bridge'
+ const transition=(name==='twistL'||name==='twistR')
+   ? Math.min(duration*.5,20)
+   : from==='staff'&&name==='bridge'
    ? Math.min(duration*.55,28)
    : Math.min(duration*.35,via.length?Math.min(10,5+via.length*2):4.5);
  const phase=Math.min(1,seconds/transition)* (path.length-1);

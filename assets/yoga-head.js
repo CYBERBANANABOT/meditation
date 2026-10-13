@@ -19,7 +19,7 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const yaw=Object.freeze({
  warrior2L:.36,warrior2R:-.36,
  triangleL:.48,triangleR:-.48,
- twistL:-.23,twistR:.23
+ twistL:.23,twistR:-.23
 });
 const angleForPose=name=>yaw[name]||0;
 function frame(joints,angle=0,previousFrame=null){
