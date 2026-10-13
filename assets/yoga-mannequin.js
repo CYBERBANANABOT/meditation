@@ -134,7 +134,8 @@
       hinge:[0.65,0.44,0.28],eye:[0.12,0.075,0.052],eyeLight:[0.92,0.77,0.58]
     };
     const unitX=[1,0,0],unitY=[0,1,0],unitZ=[0,0,1];
-    let lastPose=null,lastFace=null,frames=0,lastTime=0,meanFrameMs=0;
+    let lastPose=null,lastFace=null,lastStage=-1,lastElapsed=0,
+      frames=0,lastTime=0,meanFrameMs=0;
 
     function ellipsoid(center,dimensions,color,options={}){
       const x=options.x||unitX,y=options.y||unitY,z=options.z||unitZ;
@@ -208,7 +209,9 @@
       const frameSeconds=lastTime>0?clamp((now-lastTime)/1000,0,.25):1/60;
       const cameraEase=1-Math.pow(.89,frameSeconds*60);
       state.azimuth+=(state.targetAzimuth-state.azimuth)*cameraEase;
+      const previousStage=lastStage,previousElapsed=lastElapsed;
       lastPose=pose();
+      lastStage=state.index;lastElapsed=state.elapsed;
       // Three-quarter camera reveals front/back foot placement in lunges and
       // depth of poses on the mat. Manual rotation remains supported.
       const eye=[Math.sin(state.azimuth)*6.5,2.6,
@@ -240,8 +243,11 @@
       segment(sCenter,head,.126,.114,wood.hinge);
       // Head and both eyes use EXACTLY the same pose-space axes.
       // Camera orbiting does not move the eyes around the skull.
+      // Timeline jumps must not inherit an obsolete orientation.
+      const priorFace=previousStage===state.index&&
+        lastPose.elapsed>=previousElapsed-.05?lastFace:null;
       lastFace=window.YogaHead.compute(j,lastPose.name,lastPose.previous,
-        lastPose.elapsed,lastPose.duration);
+        lastPose.elapsed,lastPose.duration,priorFace);
       const faceAxes={x:lastFace.right,y:lastFace.up,z:lastFace.forward};
       ellipsoid(head,[.194,.226,.176],wood.head,faceAxes);
       for(const eye of lastFace.eyes){

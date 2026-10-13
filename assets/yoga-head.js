@@ -19,11 +19,10 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const yaw=Object.freeze({
  warrior2L:.36,warrior2R:-.36,
  triangleL:.48,triangleR:-.48,
- bridge:Math.PI,supine:Math.PI,savasana:Math.PI,
- twistL:Math.PI+.23,twistR:Math.PI-.23
+ twistL:-.23,twistR:.23
 });
 const angleForPose=name=>yaw[name]||0;
-function frame(joints,angle=0){
+function frame(joints,angle=0,previousFrame=null){
   const up=norm(sub(joints.head,joints.shoulder));
   // Transport the original body's left-right axis onto the neck plane.
   // For the whole yoga program the neck moves in YZ; world X stays
@@ -35,21 +34,25 @@ function frame(joints,angle=0){
     baseRight=sub(alternate,scale(up,dot(alternate,up)));
   }
   baseRight=norm(baseRight);
+  // Transport head-right from the last frame if its projection would
+  // otherwise switch signs near an axis singularity.
+  if(previousFrame&&dot(baseRight,previousFrame.right)<0)
+    baseRight=scale(baseRight,-1);
   const baseForward=norm(cross(baseRight,up));
   const forward=norm(add(scale(baseForward,Math.cos(angle)),
     scale(baseRight,Math.sin(angle))));
   const right=norm(cross(up,forward));
-  const center=add(add(joints.head,scale(forward,.166)),scale(up,.035));
+  const center=add(add(joints.head,scale(forward,.166)),scale(up,.024));
   const eyes=[add(center,scale(right,-.071)),add(center,scale(right,.071))];
   return {right,up,forward,eyes};
 }
-function compute(joints,pose,previous,elapsed,duration){
+function compute(joints,pose,previous,elapsed,duration,previousFrame=null){
   const seconds=Math.min(5,Math.max(1,duration*.30));
   const t=clamp(elapsed/seconds,0,1),ease=t*t*(3-2*t);
   const before=angleForPose(previous||pose),after=angleForPose(pose);
   // Unwrapped angle interpolation guarantees that a look up to the
   // ceiling never abruptly becomes a look down into the mat.
-  return frame(joints,before+(after-before)*ease);
+  return frame(joints,before+(after-before)*ease,previousFrame);
 }
 window.YogaHead=Object.freeze({compute,frame,angleForPose});
 })();

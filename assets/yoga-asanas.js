@@ -134,24 +134,47 @@ p.staff=own({
  leftElbow:[-.33,.67,-.21],rightElbow:[.33,.67,-.21],
  leftWrist:[-.38,.19,.05],rightWrist:[.38,.19,.05]
 });
+// Reclining from staff must move the head BACK (-Z), without the
+// 180-degree body reversal in the previous supine and bridge poses.
+p.reclinePrep=own({
+ hip:[0,.23,-.25],shoulder:[0,.72,-.97],head:[0,.68,-1.32],
+ leftKnee:[-.22,.45,.32],rightKnee:[.22,.45,.32],
+ leftAnkle:[-.24,.14,.84],rightAnkle:[.24,.14,.84],
+ leftElbow:[-.38,.53,-.64],rightElbow:[.38,.53,-.64],
+ leftWrist:[-.42,.28,-.27],rightWrist:[.42,.28,-.27]
+});
+p.constructiveRest=own({
+ hip:[0,.18,.20],shoulder:[0,.17,-.71],head:[0,.20,-1.10],
+ leftKnee:[-.22,.58,.65],rightKnee:[.22,.58,.65],
+ leftAnkle:[-.22,.14,1.03],rightAnkle:[.22,.14,1.03],
+ leftElbow:[-.48,.19,-.40],rightElbow:[.48,.19,-.40],
+ leftWrist:[-.48,.14,.04],rightWrist:[.48,.14,.04]
+});
+p.bridgePrep=own({
+ hip:[0,.18,.20],shoulder:[0,.17,-.71],head:[0,.20,-1.10],
+ leftKnee:[-.22,.63,.73],rightKnee:[.22,.63,.73],
+ leftAnkle:[-.22,.14,.99],rightAnkle:[.22,.14,.99],
+ leftElbow:[-.44,.17,-.39],rightElbow:[.44,.17,-.39],
+ leftWrist:[-.42,.14,.04],rightWrist:[.42,.14,.04]
+});
 p.bridge=own({
- hip:[0,.87,-.31],shoulder:[0,.27,.68],head:[0,.19,1.10],
- leftKnee:[-.20,.68,-.78],rightKnee:[.20,.68,-.78],
- leftAnkle:[-.22,.14,-1.18],rightAnkle:[.22,.14,-1.18],
- leftElbow:[-.35,.19,.28],rightElbow:[.35,.19,.28],
- leftWrist:[-.38,.12,-.20],rightWrist:[.38,.12,-.20]
+ hip:[0,.82,.16],shoulder:[0,.26,-.55],head:[0,.20,-.94],
+ leftKnee:[-.22,.66,.73],rightKnee:[.22,.66,.73],
+ leftAnkle:[-.22,.14,.99],rightAnkle:[.22,.14,.99],
+ leftElbow:[-.44,.20,-.41],rightElbow:[.44,.20,-.41],
+ leftWrist:[-.42,.14,.04],rightWrist:[.42,.14,.04]
 });
 p.supine=own({
- hip:[0,.18,-.28],shoulder:[0,.17,.68],head:[0,.20,1.21],
- leftKnee:[-.22,.16,-.91],rightKnee:[.22,.16,-.91],
- leftAnkle:[-.28,.12,-1.60],rightAnkle:[.28,.12,-1.60],
- leftElbow:[-.61,.18,.49],rightElbow:[.61,.18,.49],
- leftWrist:[-.96,.14,.26],rightWrist:[.96,.14,.26]
+ hip:[0,.18,.20],shoulder:[0,.17,-.71],head:[0,.20,-1.10],
+ leftKnee:[-.22,.16,.84],rightKnee:[.22,.16,.84],
+ leftAnkle:[-.28,.12,1.50],rightAnkle:[.28,.12,1.50],
+ leftElbow:[-.61,.18,-.50],rightElbow:[.61,.18,-.50],
+ leftWrist:[-.96,.14,-.25],rightWrist:[.96,.14,-.25]
 });
 function twist(left){
  const q=own(p.supine),sign=left?-1:1;
- q.leftKnee=[sign*.62,.26,-.03];q.rightKnee=[sign*.63,.27,.12];
- q.leftAnkle=[sign*.73,.16,-.45];q.rightAnkle=[sign*.75,.16,-.30];
+ q.leftKnee=[sign*.62,.26,.03];q.rightKnee=[sign*.63,.27,-.12];
+ q.leftAnkle=[sign*.73,.16,.45];q.rightAnkle=[sign*.75,.16,.30];
  return q;
 }
 p.twistL=twist(true);p.twistR=twist(false);
@@ -165,7 +188,7 @@ const available=Object.keys(p);
 // Difficult posture changes use intermediate supported positions rather than
 // linearly teleporting from standing to the floor in three seconds.
 const routes={
- 'half>plank':['fold','table'],
+ 'half>plank':['table'],
  'plank>cobra':['table'],
  'cobra>dog':['table'],
  'dog>lungeL':['table'],
@@ -174,7 +197,7 @@ const routes={
  'triangleR>dog':['table'],
  'plank>child':['table'],
  'catcow>butterfly':['child'],
- 'staff>bridge':['butterfly'],
+ 'staff>bridge':['reclinePrep','constructiveRest','bridgePrep'],
  'bridge>twistL':['supine'],
  'twistL>twistR':['supine']
 };
@@ -189,7 +212,10 @@ const sample=(name,seconds,duration,from,fromCurrentFrame=null)=>{
  const start=fromCurrentFrame||p[from]||p.mountain;
  const via=routes[from+'>'+name]||[];
  const path=[start,...via.map(k=>p[k]),target];
- const transition=Math.min(duration*.35,via.length?Math.min(10,5+via.length*2):4.5);
+ // Four supported stages over 28 seconds instead of an impossible flip.
+ const transition=from==='staff'&&name==='bridge'
+   ? Math.min(duration*.55,28)
+   : Math.min(duration*.35,via.length?Math.min(10,5+via.length*2):4.5);
  const phase=Math.min(1,seconds/transition)* (path.length-1);
  const step=Math.min(path.length-2,Math.floor(phase));
  return window.YogaRig?.blend
