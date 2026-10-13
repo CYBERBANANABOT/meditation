@@ -182,7 +182,7 @@
       // prone, inverted and supine poses.
       const h=j.hip,sCenter=j.shoulder,head=j.head;
       const torsoAxis=norm(sub(sCenter,h));
-      const shoulderLine=norm(cross([0,0,1],torsoAxis));
+      const shoulderLine=norm(cross(torsoAxis,[0,0,1]));
       const side=Math.hypot(...shoulderLine)>.5?shoulderLine:unitX;
       const Lshoulder=add(sCenter,scaled(side,-.31));
       const Rshoulder=add(sCenter,scaled(side,.31));
@@ -192,7 +192,7 @@
       segment(h,sCenter,.25,.17,wood.torso,.02);
       ellipsoid(chest,[.31,.20,.18],wood.torso);
       joint(sCenter,.116);
-      segment(sCenter,add(sCenter,scaled(chestUp,.16)),.11,.10,wood.hinge);
+      segment(sCenter,head,.105,.091,wood.hinge);
       ellipsoid(head,[.192,.248,.176],wood.head);
       for(const sign of [-1,1]){
         const key=sign<0?'left':'right';
