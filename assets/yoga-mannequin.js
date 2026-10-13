@@ -151,17 +151,51 @@
     }
     function pose(){
       const {index,elapsed,running}=state;
-      const time=moves[index].duration||1;
+      const movement=moves[index],time=movement.duration||1;
       const t=clamp(elapsed/time,0,1);
-      const wave=Math.sin(3*Math.PI*t);
-      const rise=wave*wave;
-      const lift=index===2?rise:index===1?rise*.50:0;
-      const angle=.23+lift*(index===2?2.56:2.14);
-      const bend=.08+.24*lift;
-      const breath=(running?1:.25)*.008*Math.sin(elapsed*1.4);
-      const top=2.16+breath;
-      const shoulderY=2.14+breath;
-      return {lift,angle,bend,top,shoulderY,breath};
+      const pulse=count=>Math.sin(Math.PI*count*t)**2;
+      const sway=count=>Math.sin(2*Math.PI*count*t);
+      const gesture={
+        motion:movement.id,angleL:.23,angleR:.23,bendL:.08,bendR:.08,
+        shoulderLift:0,shoulderForward:0,tilt:0,shift:0,
+        wristFlex:0,heelL:0,heelR:0,headNod:0,lift:0
+      };
+      if(movement.id==='shoulders'){
+        gesture.shoulderLift=.064*pulse(5);
+        gesture.shoulderForward=.035*sway(5);
+        gesture.angleL+=.14*pulse(5);
+        gesture.angleR+=.14*pulse(5);
+      }else if(movement.id==='arms'){
+        gesture.lift=pulse(6);
+        gesture.angleL+=2.46*gesture.lift;
+        gesture.angleR+=2.46*gesture.lift;
+        gesture.bendL+=.12*gesture.lift;
+        gesture.bendR+=.12*gesture.lift;
+      }else if(movement.id==='reach'){
+        const side=sway(3);
+        gesture.angleL+=1.33*Math.max(0,-side)**2;
+        gesture.angleR+=1.33*Math.max(0,side)**2;
+        gesture.tilt=.037*side;
+        gesture.lift=.34*Math.abs(side);
+      }else if(movement.id==='extremities'){
+        const wave=sway(4);
+        gesture.wristFlex=.19*sway(6);
+        gesture.heelL=.046*Math.max(0,wave);
+        gesture.heelR=.046*Math.max(0,-wave);
+        gesture.angleL+=.08*pulse(6);
+        gesture.angleR+=.08*pulse(6);
+      }else if(movement.id==='balance'){
+        gesture.shift=.052*sway(4);
+        gesture.angleL+=.10*pulse(4);
+        gesture.angleR+=.10*pulse(4);
+      }else if(movement.id==='release'){
+        gesture.headNod=.024*pulse(2);
+      }
+      gesture.breath=(running?1:.28)*.008*Math.sin(elapsed*1.35);
+      gesture.shoulderY=2.14+gesture.breath;
+      gesture.top=2.16+gesture.breath;
+      gesture.angle=Math.max(gesture.angleL,gesture.angleR);
+      return gesture;
     }
     function renderFigure(now){
       const bounds=canvas.getBoundingClientRect();
@@ -174,7 +208,7 @@
       gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
       state.azimuth+=(state.targetAzimuth-state.azimuth)*.11;
       lastPose=pose();
-      const orbit=5.45+.82*lastPose.lift;
+      const orbit=5.45+.84*lastPose.lift;
       const target=[0,1.47+.19*lastPose.lift,0];
       const eye=[Math.sin(state.azimuth)*orbit,2.14+.15*lastPose.lift,
         Math.cos(state.azimuth)*orbit];
@@ -218,7 +252,10 @@
       frame:renderFigure,
       diagnostics:()=>({
         material:'wood',segments:30,joints:14,triangles:surface.indices.length/3,
-        points:0,shoulderAngle:lastPose?.angle||0,lift:lastPose?.lift||0,
+        points:0,motion:lastPose?.motion||'arrival',shoulderAngle:lastPose?.angle||0,
+        lift:lastPose?.lift||0,tilt:lastPose?.tilt||0,shift:lastPose?.shift||0,
+        shoulderLift:lastPose?.shoulderLift||0,wristFlex:lastPose?.wristFlex||0,
+        heelLift:Math.max(lastPose?.heelL||0,lastPose?.heelR||0),
         frames,averageFrameMs:meanFrameMs
       })
     };
