@@ -34,10 +34,14 @@ const path=require('node:path');
       assert.equal(initial.mesh?.material,'wood');
       assert.equal(initial.mesh?.outfit,'plum-long-sleeve-top-graphite-leggings');
       assert.equal(initial.mesh?.garmentCoversJoints,true);
-      assert.equal(initial.mesh?.torsoShellCount,2,
-        'Extra upper torso layers create an artificial chest hump');
-      assert(initial.mesh?.chestShellDepth<=.18,
-        'Chest shell is too deep for a fitted garment');
+      assert.equal(initial.mesh?.torsoShellCount,1,
+        'Chest must use a single continuous surface without overlapping shells');
+      assert(initial.mesh?.torsoProfileRings>=10,
+        'Torso must taper gradually from waist to shoulders');
+      assert(initial.mesh?.torsoMeshTriangles>500,
+        'Continuous torso mesh has not been rendered');
+      assert(initial.mesh?.torsoMaxDepth<=.18,
+        'Chest depth exceeds the intended fitted-clothing silhouette');
       assert.equal(initial.mesh?.eyes,2,'Wooden instructor must have two eyes');
       assert.equal(initial.mesh?.face?.eyes?.length,2,'Eyes not drawn with the head');
       assert.equal(initial.mesh?.mat,'world-space','Mat and figure need one projection');
@@ -128,10 +132,10 @@ const path=require('node:path');
         assert(Number.isFinite(snapshot.mesh.headY)&&Number.isFinite(snapshot.mesh.hipY),
           'Pose landmarks must be finite');
         if([9,10,14,15].includes(index)){
-          assert(snapshot.mesh?.torsoShellDepth<=.18,
-            poses[index]+': torso shell has unwanted dorsal bulge');
-          assert(snapshot.mesh?.chestShellDepth<=.18,
-            poses[index]+': chest protrudes unnaturally');
+          assert.equal(snapshot.mesh?.torsoShellCount,1,
+            poses[index]+': overlapping torso shells create a chest hump');
+          assert(snapshot.mesh?.torsoMaxDepth<=.18,
+            poses[index]+': chest profile is too deep');
           const expectedSign=index<12?1:-1;
           assert(Math.abs(snapshot.mesh.torsoYaw-expectedSign*Math.PI/2)<.06,
             poses[index]+': chest must open along stance');

@@ -31,6 +31,44 @@
     }
     return {vertices:new Float32Array(vertices),normals:new Float32Array(normals),indices:new Uint16Array(indices)};
   }
+  // Unlike stacked ellipsoids, this loft has ONE closed, continuously
+  // tapered surface. It cannot create two protruding pectoral lobes.
+  // X = shoulder line, Y = spine, Z = anatomical chest depth.
+  const torsoProfile=Object.freeze([
+    [-.510,.085,.090],[-.477,.220,.150],[-.420,.242,.158],
+    [-.270,.254,.165],[-.080,.285,.172],[.145,.316,.174],
+    [.292,.340,.175],[.390,.335,.167],[.451,.306,.152],
+    [.489,.180,.120],[.535,.047,.067]
+  ]);
+  function torsoMesh(columns=36){
+    const vertices=[],normals=[],indices=[];
+    const normalize=p=>{const v=Math.hypot(...p)||1;return p.map(x=>x/v);};
+    for(let row=0;row<torsoProfile.length;row++){
+      const [y,rx,rz]=torsoProfile[row];
+      const before=torsoProfile[Math.max(0,row-1)];
+      const after=torsoProfile[Math.min(torsoProfile.length-1,row+1)];
+      const dY=after[0]-before[0]||1;
+      const slopeX=(after[1]-before[1])/dY;
+      const slopeZ=(after[2]-before[2])/dY;
+      for(let col=0;col<=columns;col++){
+        const theta=2*PI*col/columns,c=Math.cos(theta),s=Math.sin(theta);
+        vertices.push(rx*c,y,rz*s);
+        // Cross of the longitudinal tangent and angular tangent. Normal
+        // is calculated from the loft itself, not from a generic sphere.
+        normals.push(...normalize([
+          rz*c,-slopeX*rz*c*c-slopeZ*rx*s*s,rx*s
+        ]));
+      }
+    }
+    for(let row=0;row<torsoProfile.length-1;row++)
+      for(let col=0;col<columns;col++){
+        const a=row*(columns+1)+col,b=a+columns+1;
+        indices.push(a,b,a+1,a+1,b,b+1);
+      }
+    return {vertices:new Float32Array(vertices),
+      normals:new Float32Array(normals),
+      indices:new Uint16Array(indices)};
+  }
   function projection(fov,aspect,near,far){
     const f=1/Math.tan(fov/2),d=1/(near-far);
     return [f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*d,-1,0,0,2*far*near*d,0];
@@ -62,6 +100,7 @@
   }
   function createYogaMannequinRenderer(gl,canvas,state,moves){
     const surface=sphereMesh();
+    const torsoSurface=torsoMesh();
     const vertex=[
       'attribute vec3 aPosition,aNormal;',
       'uniform mat4 uView;',
@@ -112,6 +151,9 @@
     const positions=upload(gl.ARRAY_BUFFER,surface.vertices);
     const normals=upload(gl.ARRAY_BUFFER,surface.normals);
     const triangles=upload(gl.ELEMENT_ARRAY_BUFFER,surface.indices);
+    const torsoPositions=upload(gl.ARRAY_BUFFER,torsoSurface.vertices);
+    const torsoNormals=upload(gl.ARRAY_BUFFER,torsoSurface.normals);
+    const torsoTriangles=upload(gl.ELEMENT_ARRAY_BUFFER,torsoSurface.indices);
     attribute('aPosition',positions);attribute('aNormal',normals);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,triangles);
     // Keep the mat in the exact same projected 3D scene as the figure.
@@ -151,6 +193,24 @@
       gl.uniform1f(loc.uJoint,options.joint||options.fabric?1:0);
       gl.uniform1f(loc.uGrain,options.fabric?.05:options.joint?.22:1);
       gl.drawElements(gl.TRIANGLES,surface.indices.length,gl.UNSIGNED_SHORT,0);
+    }
+    function drawTorso(center,axes){
+      // One draw call, one mesh: no intersecting chest/torso spheres.
+      attribute('aPosition',torsoPositions);attribute('aNormal',torsoNormals);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,torsoTriangles);
+      gl.uniform3fv(loc.uCenter,center);
+      gl.uniform3fv(loc.uAxisX,axes.x);
+      gl.uniform3fv(loc.uAxisY,axes.y);
+      gl.uniform3fv(loc.uAxisZ,axes.z);
+      gl.uniform3fv(loc.uScale,[1,1,1]);
+      gl.uniform3fv(loc.uColor,cloth.top);
+      gl.uniform1f(loc.uTaper,0);
+      gl.uniform1f(loc.uJoint,1);
+      gl.uniform1f(loc.uGrain,.05);
+      gl.drawElements(gl.TRIANGLES,torsoSurface.indices.length,
+        gl.UNSIGNED_SHORT,0);
+      attribute('aPosition',positions);attribute('aNormal',normals);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,triangles);
     }
     function frameAlong(axis){
       const y=norm(axis);
@@ -237,7 +297,8 @@
       const chestFrame=window.YogaRig.axisFor(j);
       const Lshoulder=window.YogaRig.socket(j,'left');
       const Rshoulder=window.YogaRig.socket(j,'right');
-      const chest=add(sCenter,scaled(torsoAxis,-.155));
+      // The full shirt is one mesh whose shoulder line rotates with
+      // the torso and whose lower section tapers toward the hips.
       // Replace the exposed chest and hips with fitted continuous garment pieces.
       // Pelvis opens only slightly; unlike the chest it stays aligned
       // mainly with the planted feet.
@@ -246,18 +307,7 @@
         z:[Math.sin(py),0,Math.cos(py)]};
       ellipsoid(h,[.277,.214,.206],cloth.leggings,
         {...pelvisFrame,fabric:true});
-      // One continuous body shell, aligned with the rotating chest.
-      // The old second 0.386-wide upper-torso ellipsoid remained aligned
-      // to world X and protruded as a hump after Warrior/Triangle turns.
-      const torsoMid=scaled(add(h,sCenter),.5);
-      ellipsoid(torsoMid,[.252,window.YogaRig.lengths.torso*.54,.170],
-        cloth.top,{...chestFrame,fabric:true});
-      // A shallow upper-ribcage overlay softens the shoulder silhouette
-      // without adding a second thick, independently rotated chest lump.
-      ellipsoid(chest,[.375,.265,.175],cloth.top,
-        {...chestFrame,fabric:true});
-      ellipsoid(add(h,scaled(torsoAxis,.105)),[.265,.12,.180],
-        cloth.waist,{...chestFrame,fabric:true});
+      drawTorso(scaled(add(h,sCenter),.5),chestFrame);
       // The head is 0.39 from the shoulder centre: chest and skull
       // overlap the short neck connector; there is no giraffe-like stalk.
       // Continuous, thick wooden neck dowel overlaps both chest and skull.
@@ -315,8 +365,11 @@
       diagnostics:()=>({
         material:'wood',outfit:'plum-long-sleeve-top-graphite-leggings',
         garmentCoversJoints:true,
-        torsoShellDepth:.170,chestShellDepth:.175,
-        torsoShellCount:2,
+        torsoShellCount:1,
+        torsoProfileRings:torsoProfile.length,
+        torsoMeshVertices:torsoSurface.vertices.length/3,
+        torsoMeshTriangles:torsoSurface.indices.length/3,
+        torsoMaxDepth:Math.max(...torsoProfile.map(r=>r[2])),
         torsoYaw:lastPose?.joints.torsoYaw||0,
         pelvisYaw:lastPose?.joints.pelvisYaw||0,
         shoulderAxis:lastPose?.joints?window.YogaRig.axisFor(lastPose.joints).x.slice():null,
