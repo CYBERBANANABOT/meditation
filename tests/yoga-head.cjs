@@ -51,7 +51,7 @@ test('Moving the camera never changes eye positions in world space',()=>{
   const a=head.compute(j,'mountain','mountain',8,40);
   const b=head.compute(j,'mountain','mountain',8,40);
   assert.deepEqual(a.eyes,b.eyes);
-  const turned=head.frame(j,[1,0,0]);
+  const turned=head.frame(j,Math.PI/2);
   assert(turned.forward[0]>.99,'Face fails 90 degree head turn');
   assert(Math.abs(turned.eyes[0][2]-turned.eyes[1][2])>.13,
     'Eye pair did not rotate with head');
@@ -65,5 +65,55 @@ test('Gaze axes remain well-formed through every stage and its transition',()=>{
       for(const point of f.eyes)assert(point.every(Number.isFinite));
       assert(near(dot(f.forward,f.right),0,.0001));
     }
+  }
+});
+
+test('Facial direction never flips across any transition sampled at 60 FPS',()=>{
+  let worst=1,worstAt='';
+  for(let i=0;i<program.movements.length;i++){
+    const movement=program.movements[i],
+      previous=program.movements[i-1]?.pose||'mountain';
+    let last=null;
+    const seconds=Math.min(12,movement.duration);
+    for(let tick=0;tick<=seconds*60;tick++){
+      const t=tick/60;
+      const j=rig.solve(asanas.sample(movement.pose,t,movement.duration,previous));
+      const face=head.compute(j,movement.pose,previous,t,movement.duration);
+      if(last){
+        const cosine=dot(face.forward,last.forward);
+        if(cosine<worst){worst=cosine;worstAt=movement.pose+' at '+t;}
+        assert(cosine>.985,movement.pose+' face flipped at '+t+' (dot '+cosine+')');
+      }
+      last=face;
+    }
+  }
+  assert(worst>.985,worstAt+' unstable face orientation');
+});
+test('Face remains on intended side in inverted, prone and supine poses',()=>{
+  for(const pose of ['mountain','fold','plank','cobra','dog','bridge',
+    'supine','twistL','twistR','savasana']){
+    const j=rig.solve(asanas.poses[pose]);
+    const f=head.compute(j,pose,pose,10,30);
+    // Face turns up when lying on the back; down in downward dog/plank.
+    if(['bridge','supine','twistL','twistR','savasana'].includes(pose))
+      assert(f.forward[1]>.1,pose+': eyes on back-of-head side');
+    if(['plank','dog'].includes(pose))
+      assert(f.forward[1]<-.15,pose+': face unexpectedly upwards');
+    for(const eye of f.eyes)
+      assert(dot(sub(eye,j.head),f.forward)>.15,pose+': eye not on face surface');
+  }
+});
+test('Continuity when entering stage from previous pose',()=>{
+  for(let i=1;i<program.movements.length;i++){
+    const old=program.movements[i-1],current=program.movements[i];
+    const beforeOld=program.movements[i-2]?.pose||'mountain';
+    const lastJ=rig.solve(asanas.sample(old.pose,old.duration,old.duration,beforeOld));
+    const nextJ=rig.solve(asanas.sample(current.pose,0,current.duration,old.pose));
+    const f1=head.compute(lastJ,old.pose,beforeOld,old.duration,old.duration);
+    const f2=head.compute(nextJ,current.pose,old.pose,0,current.duration);
+    assert(dot(f1.forward,f2.forward)>.995,
+      old.pose+' -> '+current.pose+': face snaps at boundary');
+    assert(Math.hypot(...sub(f1.eyes[0],f2.eyes[0]))<.06,
+      old.pose+' -> '+current.pose+': eye jumped at boundary');
   }
 });

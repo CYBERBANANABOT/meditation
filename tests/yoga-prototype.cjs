@@ -99,6 +99,12 @@ const path=require('node:path');
         const snapshot=await page.evaluate(()=>window.__yogaPrototype.snapshot());
         assert.equal(snapshot.index,index);
         assert.equal(snapshot.mesh.pose,poses[index]);
+        const face=snapshot.mesh.face;
+        assert(face?.eyes?.length===2,'Eyes missing in '+poses[index]);
+        const magnitude=Math.hypot(...face.forward);
+        assert(Math.abs(magnitude-1)<.001,'Head orientation invalid');
+        if(['bridge','twistL','twistR','savasana'].includes(poses[index]))
+          assert(face.forward[1]>.1,poses[index]+': eyes should face upward');
         assert(snapshot.mesh.rig?.maxError<.008,poses[index]+': stretched limb or neck detected');
         assert(Number.isFinite(snapshot.mesh.headY)&&Number.isFinite(snapshot.mesh.hipY),
           'Pose landmarks must be finite');

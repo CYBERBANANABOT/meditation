@@ -1,6 +1,8 @@
-/* Camera-independent eye placement attached to the mannequin's head.
- * A named pose determines gaze, not the device camera. All vectors use
- * world coordinates; head and eyes share the same orthonormal local frame.
+/* Stable head-local eye orientation for the wooden yoga instructor.
+ * A neck axis fixes head tilt. A separate, smoothly animated yaw fixes the
+ * facial/front side. Never project an arbitrary world gaze across the neck:
+ * the old projection had a singularity and flipped eyes 180 degrees.
+ * No camera coordinates participate in this calculation.
  */
 (()=>{
 'use strict';
@@ -12,43 +14,42 @@ const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
 const len=a=>Math.hypot(...a);
 const norm=a=>scale(a,1/(len(a)||1));
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-// The warrior's gaze turns toward the leading arm; lying and inverted
-// poses aim appropriately up or toward the mat.
-const yaw={warrior2L:.36,warrior2R:-.36,triangleL:.48,triangleR:-.48,
-  twistL:-.23,twistR:.23};
-function target(name){
-  if(name==='fold'||name==='dog'||name==='child')return norm([0,-1,.18]);
-  if(name==='catcow'||name==='table'||name==='cat'||name==='cow')
-    return norm([0,-.4,1]);
-  if(name==='plank'||name==='half')return norm([0,-.22,1]);
-  if(name==='bridge'||name==='supine'||name==='savasana'||name==='twistL'||name==='twistR')
-    return norm([Math.sin(yaw[name]||0),1,.12]);
-  if(name==='cobra')return norm([0,.12,1]);
-  const angle=yaw[name]||0;
-  return [Math.sin(angle),0,Math.cos(angle)];
-}
-function frame(joints,direction){
+// All angles are in the *head's local coordinates*, not world-space gaze
+// vectors. In supine poses the face points upward rather than into the mat.
+const yaw=Object.freeze({
+ warrior2L:.36,warrior2R:-.36,
+ triangleL:.48,triangleR:-.48,
+ bridge:Math.PI,supine:Math.PI,savasana:Math.PI,
+ twistL:Math.PI+.23,twistR:Math.PI-.23
+});
+const angleForPose=name=>yaw[name]||0;
+function frame(joints,angle=0){
   const up=norm(sub(joints.head,joints.shoulder));
-  let projected=sub(direction,scale(up,dot(direction,up)));
-  if(len(projected)<.0001){
-    // Never derive orientation from camera position or screen axes.
-    const ref=Math.abs(up[2])<.9?[0,0,1]:[0,1,0];
-    projected=sub(ref,scale(up,dot(ref,up)));
+  // Transport the original body's left-right axis onto the neck plane.
+  // For the whole yoga program the neck moves in YZ; world X stays
+  // perpendicular, even when looking down or lying on the back.
+  let baseRight=sub([1,0,0],scale(up,up[0]));
+  if(len(baseRight)<.001){
+    // Fallback only for a physically sideways (X-aligned) neck.
+    const alternate=[0,0,1];
+    baseRight=sub(alternate,scale(up,dot(alternate,up)));
   }
-  const forward=norm(projected),right=norm(cross(up,forward));
+  baseRight=norm(baseRight);
+  const baseForward=norm(cross(baseRight,up));
+  const forward=norm(add(scale(baseForward,Math.cos(angle)),
+    scale(baseRight,Math.sin(angle))));
+  const right=norm(cross(up,forward));
   const center=add(add(joints.head,scale(forward,.166)),scale(up,.035));
-  const eyes=[
-    add(center,scale(right,-.071)),
-    add(center,scale(right,.071))
-  ];
+  const eyes=[add(center,scale(right,-.071)),add(center,scale(right,.071))];
   return {right,up,forward,eyes};
 }
 function compute(joints,pose,previous,elapsed,duration){
-  const moveSeconds=Math.min(5,Math.max(1,duration*.30));
-  const x=clamp(elapsed/moveSeconds,0,1),blend=x*x*(3-2*x);
-  const before=target(previous||pose),after=target(pose);
-  const gaze=norm(add(scale(before,1-blend),scale(after,blend)));
-  return frame(joints,gaze);
+  const seconds=Math.min(5,Math.max(1,duration*.30));
+  const t=clamp(elapsed/seconds,0,1),ease=t*t*(3-2*t);
+  const before=angleForPose(previous||pose),after=angleForPose(pose);
+  // Unwrapped angle interpolation guarantees that a look up to the
+  // ceiling never abruptly becomes a look down into the mat.
+  return frame(joints,before+(after-before)*ease);
 }
-window.YogaHead=Object.freeze({compute,frame,target});
+window.YogaHead=Object.freeze({compute,frame,angleForPose});
 })();
