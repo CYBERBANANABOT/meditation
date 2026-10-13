@@ -216,28 +216,47 @@
       gl.uniformMatrix4fv(loc.uView,false,new Float32Array(multiply(projection(.69,width/height,.1,30),lookAt(eye,target))));
       gl.uniform3fv(loc.uEye,eye);
 
-      // Walnut mannequin with clearly exposed ball joints.
-      ellipsoid([0,1.13,0],[.263,.225,.183],wood.pelvis);
-      ellipsoid([0,1.66+lastPose.breath*.45,0],[.245,.37,.160],wood.torso,{taper:.08});
-      ellipsoid([0,2.04+lastPose.breath*.7,0],[.322,.245,.183],wood.torso,{taper:.08});
-      joint([0,1.38,0],.126);
-      pivot([0,2.37+lastPose.breath,0],.102);
-      ellipsoid([0,2.67+lastPose.breath,.01],[.191,.250,.180],wood.head,{taper:-.035});
+      // Rigid wooden segments move around visible hinges; no stretching skin.
+      const g=lastPose,co=Math.cos(g.tilt),si=Math.sin(g.tilt);
+      const point=p=>{
+        const dy=p[1]-1.31;
+        return [p[0]*co-dy*si+g.shift,1.31+p[0]*si+dy*co,p[2]];
+      };
+      const direction=p=>[p[0]*co-p[1]*si,p[0]*si+p[1]*co,p[2]];
+      const bodyAxes={x:[co,si,0],y:[-si,co,0],z:unitZ,taper:.08};
+      ellipsoid([g.shift*.8,1.13,0],[.263,.225,.183],wood.pelvis);
+      ellipsoid(point([0,1.66+g.breath*.45,0]),[.245,.37,.160],wood.torso,bodyAxes);
+      ellipsoid(point([0,2.04+g.breath*.7,0]),[.322,.245,.183],wood.torso,bodyAxes);
+      joint(point([0,1.38,0]),.126);
+      pivot(point([0,2.37+g.breath,0]),.102);
+      ellipsoid(point([0,2.67+g.breath-g.headNod,.01]),
+        [.191,.250,.180],wood.head,{...bodyAxes,taper:-.035});
       for(const sign of [-1,1]){
-        const hip=[sign*.17,1.055,0],knee=[sign*.196,.61,.015],ankle=[sign*.198,.174,.035];
+        const hip=[sign*.17+g.shift*.8,1.055,0];
+        const knee=[sign*.196+g.shift*.32,.61,.015];
+        const heel=sign<0?g.heelL:g.heelR;
+        const ankle=[sign*.198,.174+heel*.55,.035];
         pivot(hip,.136);
         segment(hip,knee,.148,.140,wood.limb,-.06);
         joint(knee,.112);
         segment(knee,ankle,.112,.105,wood.limb,.11);
         pivot(ankle,.085);
-        ellipsoid([sign*.199,.105,.166],[.141,.087,.254],wood.hands,{taper:.025});
-        const shoulder=[sign*.36,lastPose.shoulderY,0];
-        const upperDirection=[sign*Math.sin(lastPose.angle),-Math.cos(lastPose.angle),.015];
+        const pitch=-2.6*heel;
+        const footAxes={x:unitX,y:[0,Math.cos(pitch),Math.sin(pitch)],
+          z:[0,-Math.sin(pitch),Math.cos(pitch)],taper:.025};
+        ellipsoid([sign*.199,.105+heel*.30,.166],[.141,.087,.254],wood.hands,footAxes);
+        const shoulder=point([sign*.36,g.shoulderY+g.shoulderLift,g.shoulderForward]);
+        const angle=sign<0?g.angleL:g.angleR;
+        const elbowBend=sign<0?g.bendL:g.bendR;
+        const upperDirection=norm(direction([sign*Math.sin(angle),-Math.cos(angle),.015]));
         const elbow=add(shoulder,scaled(upperDirection,.505));
-        const foreAngle=lastPose.angle+lastPose.bend;
-        const foreDirection=[sign*Math.sin(foreAngle),-Math.cos(foreAngle),.03];
+        const foreAngle=angle+elbowBend;
+        const foreDirection=norm(direction([sign*Math.sin(foreAngle),-Math.cos(foreAngle),.03]));
         const wrist=add(elbow,scaled(foreDirection,.456));
-        const palm=add(wrist,scaled(foreDirection,.131));
+        const flex=sign*g.wristFlex;
+        const palmDirection=norm(direction([sign*Math.sin(foreAngle+flex),
+          -Math.cos(foreAngle+flex),.03+.06*flex]));
+        const palm=add(wrist,scaled(palmDirection,.137));
         pivot(shoulder,.137);
         segment(shoulder,elbow,.111,.102,wood.limb,.10);
         joint(elbow,.098);
