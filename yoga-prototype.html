@@ -42,9 +42,9 @@
           <div class="scene-hint" id="sceneHint">Проведи пальцем, чтобы повернуть</div>
         </div>
       </section>
-      <section class="instruction-card" aria-live="polite" aria-atomic="true">
+      <section class="instruction-card">
         <div class="instruction-heading">
-          <div><p class="step-eyebrow">ТЕКУЩЕЕ ДВИЖЕНИЕ</p><h2 id="movementName">Настрой и дыхание</h2></div>
+          <div><p class="step-eyebrow">ТЕКУЩЕЕ ДВИЖЕНИЕ</p><h2 id="movementName" aria-live="polite">Настрой и дыхание</h2></div>
           <span class="step-time" id="timeLeft" aria-label="Время до конца упражнения">1:00</span>
         </div>
         <p class="instruction" id="movementInstruction">Встань устойчиво или сядь. Расслабь плечи и дыши естественно.</p>
@@ -74,9 +74,9 @@
     <div id="completeModal" class="complete-overlay" role="dialog" aria-modal="true" aria-labelledby="completeTitle" hidden>
       <div class="complete-content">
         <div class="complete-symbol" aria-hidden="true">✦</div>
-        <p class="eyebrow">МЯГКОЕ ЗАВЕРШЕНИЕ</p>
+        <p class="eyebrow">10 МИНУТ ДЛЯ СЕБЯ</p>
         <h2 id="completeTitle">Практика завершена</h2>
-        <p>Спасибо, что уделил время себе. Остановись на мгновение и заметь, как чувствует себя тело.</p>
+        <p>Ты завершил десять минут мягкого движения. Заметь, как изменились ощущения в теле, и возвращайся к делам без спешки.</p>
         <button id="repeatButton" class="complete-action" type="button">Повторить практику</button>
         <a class="complete-link" href="./index.html">Вернуться к медитации</a>
       </div>
