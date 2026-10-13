@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           if test -f assets/ui.js; then
-            for file in assets/core.js assets/visualizer.js assets/session.js assets/ui.js assets/journal-backup.js; do
+            for file in assets/core.js assets/visualizer.js assets/session.js assets/ui.js assets/journal-backup.js assets/yoga-prototype.js; do
               test -s "$file"
               node --check "$file"
             done
@@ -44,12 +44,18 @@ jobs:
           npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.55.0
           command -v google-chrome
           node tests/mobile-layout.cjs
+      - name: Test standalone 3D yoga instructor on mobile
+        shell: bash
+        run: |
+          node tests/yoga-prototype.cjs
       - name: Preserve mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mobile-layout-screenshots
-          path: artifacts/layout/
+          path: |
+            artifacts/layout/
+            artifacts/yoga/
           if-no-files-found: ignore
           retention-days: 5
       - name: Check patch whitespace
