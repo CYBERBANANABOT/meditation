@@ -114,6 +114,15 @@
     const triangles=upload(gl.ELEMENT_ARRAY_BUFFER,surface.indices);
     attribute('aPosition',positions);attribute('aNormal',normals);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,triangles);
+    // Keep the mat in the exact same projected 3D scene as the figure.
+    // A CSS-perspective mat used to look detached from hands and feet.
+    const matPositions=upload(gl.ARRAY_BUFFER,new Float32Array([
+      -1,0,-1, 1,0,-1, 1,0,1, -1,0,1
+    ]));
+    const matNormals=upload(gl.ARRAY_BUFFER,new Float32Array([
+      0,1,0, 0,1,0, 0,1,0, 0,1,0
+    ]));
+    const matTriangles=upload(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array([0,1,2,0,2,3]));
     const loc={};
     for(const key of ['uView','uCenter','uAxisX','uAxisY','uAxisZ','uScale','uTaper','uColor','uEye','uJoint','uGrain'])
       loc[key]=gl.getUniformLocation(program,key);
@@ -137,11 +146,31 @@
       gl.uniform1f(loc.uGrain,options.joint?0.22:1);
       gl.drawElements(gl.TRIANGLES,surface.indices.length,gl.UNSIGNED_SHORT,0);
     }
-    function segment(start,end,width,depth,color,taper=0){
-      const v=sub(end,start),y=norm(v),reference=Math.abs(y[2])>.9?unitY:unitZ;
+    function frameAlong(axis){
+      const y=norm(axis),reference=Math.abs(y[2])>.9?unitY:unitZ;
       const x=norm(cross(reference,y)),z=norm(cross(y,x));
-      const mid=scaled(add(start,end),.5);
-      ellipsoid(mid,[width,Math.hypot(...v)*.52,depth],color,{x,y,z,taper});
+      return {x,y,z};
+    }
+    function segment(start,end,width,depth,color,taper=0){
+      const v=sub(end,start),mid=scaled(add(start,end),.5);
+      ellipsoid(mid,[width,Math.hypot(...v)*.52,depth],color,
+        {...frameAlong(v),taper});
+    }
+    function drawMat(){
+      attribute('aPosition',matPositions);attribute('aNormal',matNormals);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,matTriangles);
+      gl.uniform3fv(loc.uCenter,[0,.025,0]);
+      gl.uniform3fv(loc.uAxisX,unitX);
+      gl.uniform3fv(loc.uAxisY,unitY);
+      gl.uniform3fv(loc.uAxisZ,unitZ);
+      gl.uniform3fv(loc.uScale,[1.12,1,1.98]);
+      gl.uniform3fv(loc.uColor,[.34,.26,.46]);
+      gl.uniform1f(loc.uTaper,0);
+      gl.uniform1f(loc.uJoint,1);
+      gl.uniform1f(loc.uGrain,0);
+      gl.drawElements(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,0);
+      attribute('aPosition',positions);attribute('aNormal',normals);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,triangles);
     }
     function joint(point,radius){
       ellipsoid(point,[radius,radius,radius],wood.joint,{joint:true});
@@ -178,6 +207,7 @@
       gl.useProgram(program);
       gl.uniformMatrix4fv(loc.uView,false,new Float32Array(view));
       gl.uniform3fv(loc.uEye,eye);
+      drawMat();
       const j=lastPose.joints;
       // Hips, chest and head follow the whole spine in standing, kneeling,
       // prone, inverted and supine poses.
@@ -191,13 +221,13 @@
       ellipsoid(h,[.25,.20,.19],wood.pelvis);
       segment(h,sCenter,.24,.175,wood.torso,.02);
       segment(add(sCenter,scaled(torsoAxis,-.34)),sCenter,.38,.205,wood.torso);
-      ellipsoid(chest,[.42,.23,.22],wood.torso);
+      ellipsoid(chest,[.42,.23,.22],wood.torso,frameAlong(torsoAxis));
       // The head is 0.39 from the shoulder centre: chest and skull
       // overlap the short neck connector; there is no giraffe-like stalk.
       // Continuous, thick wooden neck dowel overlaps both chest and skull.
       // It is deliberately not rendered as a long, thin separate column.
       segment(sCenter,head,.126,.114,wood.hinge);
-      ellipsoid(head,[.194,.226,.176],wood.head);
+      ellipsoid(head,[.194,.226,.176],wood.head,frameAlong(sub(head,sCenter)));
       for(const sign of [-1,1]){
         const key=sign<0?'left':'right';
         const hip=add(h,[sign*window.YogaRig.lengths.hipSpan/2,0,0]);
@@ -227,7 +257,7 @@
     return {
       frame:renderFigure,
       diagnostics:()=>({
-        material:'wood',joints:14,segments:30,
+        material:'wood',mat:'world-space',joints:14,segments:30,
         triangles:surface.indices.length/3,
         pose:lastPose?.name||'mountain',
         section:lastPose?.section||'',

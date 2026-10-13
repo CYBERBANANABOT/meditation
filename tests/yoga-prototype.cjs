@@ -31,6 +31,9 @@ const path=require('node:path');
       const initial=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert(initial.webgl,'3D WebGL context must initialize');
       assert.equal(initial.mesh?.material,'wood');
+      assert.equal(initial.mesh?.mat,'world-space','Mat and figure need one projection');
+      assert.equal(await page.locator('.scene-mat').evaluate(el=>getComputedStyle(el).display),
+        'none','Misaligned CSS mat must not be visible over the 3D mat');
       assert.equal(initial.mesh?.joints,14);
       assert(initial.mesh?.triangles>1500);
       assert.equal(initial.totalDuration,1100,'Practice must last 18 min 20 seconds');

@@ -149,6 +149,7 @@
   else{
     try{
       renderer=window.createYogaMannequinRenderer(gl,canvas,state,moves);
+      scene.classList.add('has-webgl');
       state.ready=true;
     }catch(err){
       console.warn('Wooden mannequin renderer unavailable:',err.message);
