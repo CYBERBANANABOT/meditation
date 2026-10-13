@@ -196,7 +196,11 @@
         canvas.width=width;canvas.height=height;gl.viewport(0,0,width,height);
       }
       gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-      state.azimuth+=(state.targetAzimuth-state.azimuth)*.11;
+      // Camera easing is based on real elapsed time, not frame count.
+      // Low-FPS mobile WebGL must not keep showing the previous pose angle.
+      const frameSeconds=lastTime>0?clamp((now-lastTime)/1000,0,.25):1/60;
+      const cameraEase=1-Math.pow(.89,frameSeconds*60);
+      state.azimuth+=(state.targetAzimuth-state.azimuth)*cameraEase;
       lastPose=pose();
       // Three-quarter camera reveals front/back foot placement in lunges and
       // depth of poses on the mat. Manual rotation remains supported.
