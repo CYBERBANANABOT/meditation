@@ -7,6 +7,7 @@ const path=require('node:path');
 (async()=>{
   assert(fs.existsSync('yoga-prototype.html'));
   assert(fs.existsSync('assets/yoga-prototype.js'));
+  assert(fs.existsSync('assets/yoga-mannequin.js'));
   assert(fs.existsSync('assets/yoga-prototype.css'));
   const browser=await chromium.launch({
     executablePath:process.env.CHROME_BIN||'/usr/bin/google-chrome',
@@ -30,9 +31,10 @@ const path=require('node:path');
       await page.waitForTimeout(400);
       const initial=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert(initial.webgl,'3D WebGL should initialize on test device');
-      assert.equal(initial.mesh?.joints,17,'Model must use a real skeletal hierarchy');
-      assert(initial.mesh?.triangles>1500,'Human surface must be a detailed skin mesh');
-      assert(initial.mesh?.points>100,'Human figure must have a visible particle surface');
+      assert.equal(initial.mesh?.material,'wood','New model must use wooden material');
+      assert.equal(initial.mesh?.joints,17,'Mannequin must include articulated joint locations');
+      assert(initial.mesh?.segments>=18,'Mannequin must have distinct body segments');
+      assert(initial.mesh?.triangles>1500,'Rounded wooden segments should use real 3D surfaces');
       assert.equal(initial.totalDuration,170);
       assert.equal(initial.index,0);
       assert.equal(initial.running,false);
@@ -78,7 +80,7 @@ const path=require('node:path');
       await page.waitForTimeout(550);
       const raised=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert(raised.mesh?.shoulderAngle>2.0,
-        'Arm lift must rotate a skeletal shoulder joint');
+        'Arm lift must rotate the wooden shoulder hinge');
       await page.screenshot({
         path:'artifacts/yoga/yoga-arms-up-'+viewport.width+'.png',fullPage:true
       });
@@ -95,7 +97,7 @@ const path=require('node:path');
       assert(requests.every(url=>url.startsWith('file://')),
         'Prototype must load without any external network requests');
       console.log('PASS yoga '+viewport.width+'x'+viewport.height+
-        ' WebGL figure, controls, camera, session and offline assets');
+        ' wooden WebGL mannequin, controls, camera, session and offline assets');
       await context.close();
     }
   }finally{await browser.close();}
