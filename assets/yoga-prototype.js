@@ -56,7 +56,7 @@
     }catch{state.voice=false;renderVoice();}
   }
   function pause(){state.running=false;stopVoice();state.lastFrame=0;setUI();}
-  const sideViewPoses=new Set(['plank','cobra','dog','lungeL','lungeR',
+  const sideViewPoses=new Set(['fold','half','plank','cobra','dog','lungeL','lungeR',
     'child','catcow','bridge','twistL','twistR','savasana']);
   function choosePoseCamera(){
     const side=sideViewPoses.has(moves[state.index].pose);
