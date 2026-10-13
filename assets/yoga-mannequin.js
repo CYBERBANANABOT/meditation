@@ -300,6 +300,7 @@
         rightWristY:lastPose?.joints.rightWrist[1]||0,
         leftAnkleZ:lastPose?.joints.leftAnkle[2]||0,
         rig:lastPose?.joints?window.YogaRig.metrics(lastPose.joints):null,
+        headCenter:lastPose?.joints.head.slice()||null,
         face:lastFace?{eyes:lastFace.eyes.map(p=>p.slice()),
           forward:lastFace.forward.slice(),up:lastFace.up.slice(),
           right:lastFace.right.slice()}:null,

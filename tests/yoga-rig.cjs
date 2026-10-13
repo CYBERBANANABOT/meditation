@@ -231,3 +231,40 @@ test('Warrior I and II lower the correct front knee and straighten the rear knee
     }
   }
 });
+
+test('Human-paced bridge entry reclines, plants feet, then lifts pelvis',()=>{
+  const bridge=program.movements.find(m=>m.pose==='bridge');
+  assert(bridge&&bridge.duration===55);
+  for(const name of ['reclinePrep','constructiveRest','bridgePrep'])
+    assert(asanas.poses[name],name+' is missing');
+  const at=t=>rig.solve(asanas.sample('bridge',t,55,'staff'));
+  const sitting=at(0),reclining=at(7),onBack=at(14),
+    ready=at(21),lifted=at(28);
+  assert(sitting.head[1]>1.2,'Staff does not start seated');
+  assert(reclining.head[2]<sitting.head[2]-.6,'Head did not recline backward');
+  assert(reclining.shoulder[1]<.85,'Reclining skipped the intermediate stage');
+  for(const j of [onBack,ready]){
+    assert(j.shoulder[1]<.33&&j.head[1]<.33,'Shoulders/head must rest on mat');
+    assert(j.hip[1]<.29,'Hips rose before feet were prepared');
+    for(const side of ['left','right']){
+      assert(j[side+'Knee'][1]>.35,'Knee was not bent');
+      assert(j[side+'Ankle'][1]>=.09&&j[side+'Ankle'][1]<.26,
+        'Foot was not on mat');
+    }
+  }
+  assert(lifted.hip[1]>.75,'Bridge pelvis did not rise');
+  assert(lifted.head[1]<.33&&lifted.shoulder[1]<.33,
+    'Bridge lifted head or shoulders instead of pelvis');
+  for(const side of ['left','right'])assert(
+    dist(ready[side+'Ankle'],lifted[side+'Ankle'])<.16,
+    'Bridge slid the supporting '+side+' foot');
+  assert.equal(program.movements.length,26);
+  assert.equal(program.total,1100);
+});
+test('Plank entry keeps skull above the mat through intermediate frames',()=>{
+  const m=program.movements.find(m=>m.pose==='plank');
+  for(let i=0;i<=9*30;i++){
+    const j=rig.solve(asanas.sample('plank',i/30,m.duration,'half'));
+    assert(j.head[1]>.7,'Head dove into mat at '+i/30+'s');
+  }
+});

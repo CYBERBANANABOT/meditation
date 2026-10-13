@@ -27,7 +27,8 @@ test('Two eyes stay outside the head on an orthonormal pose-space frame',()=>{
     assert(near(len(sub(f.eyes[0],f.eyes[1])),.142),pose+' eye spacing changed');
     for(const eye of f.eyes){
       assert(dot(sub(eye,j.head),f.forward)>.15,pose+' eye behind skull');
-      assert(dot(sub(eye,j.head),f.up)>.02,pose+' eye moved off face');
+      const crown=dot(sub(eye,j.head),f.up);
+      assert(crown>.005&&crown<.05,pose+' eye drifted to crown/chin');
     }
   }
 });
@@ -116,4 +117,29 @@ test('Continuity when entering stage from previous pose',()=>{
     assert(Math.hypot(...sub(f1.eyes[0],f2.eyes[0]))<.06,
       old.pose+' -> '+current.pose+': eye jumped at boundary');
   }
+});
+
+test('Eye placement and face orientation stay continuous for 28-second recline',()=>{
+  const m=program.movements.find(m=>m.pose==='bridge');
+  let last=null,lowest=1;
+  for(let i=0;i<=28*60;i++){
+    const t=i/60,j=rig.solve(asanas.sample('bridge',t,m.duration,'staff'));
+    const f=head.compute(j,'bridge','staff',t,m.duration,last);
+    for(const eye of f.eyes){
+      const offset=sub(eye,j.head),crown=dot(offset,f.up);
+      assert(crown>.005&&crown<.05,'Eye drifted to crown at '+t);
+      assert(dot(offset,f.forward)>.15,'Eye moved behind face at '+t);
+    }
+    if(last){
+      const similarity=dot(f.forward,last.forward);
+      lowest=Math.min(lowest,similarity);
+      assert(similarity>.99,'Face unexpectedly rotated at '+t);
+    }
+    last=f;
+  }
+  assert(lowest>.99);
+  const resting=rig.solve(asanas.poses.constructiveRest);
+  const f=head.compute(resting,'bridge','staff',14,55);
+  assert(resting.head[2]<resting.hip[2],'Supine head should be behind torso');
+  assert(f.forward[1]>.9,'Supine face should be pointing upwards');
 });

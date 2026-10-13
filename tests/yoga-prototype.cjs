@@ -99,6 +99,17 @@ const path=require('node:path');
         const snapshot=await page.evaluate(()=>window.__yogaPrototype.snapshot());
         assert.equal(snapshot.index,index);
         assert.equal(snapshot.mesh.pose,poses[index]);
+        const headCenter=snapshot.mesh.headCenter;
+        const faceAxes=snapshot.mesh.face;
+        assert(headCenter&&faceAxes,'Face diagnostics missing');
+        for(const eye of faceAxes.eyes){
+          const offset=eye.map((v,k)=>v-headCenter[k]);
+          const alongUp=offset.reduce((s,v,k)=>s+v*faceAxes.up[k],0);
+          const inFront=offset.reduce((s,v,k)=>s+v*faceAxes.forward[k],0);
+          assert(alongUp>.005&&alongUp<.05,
+            poses[index]+': eye moved onto crown/chin');
+          assert(inFront>.15,poses[index]+': eye moved behind face');
+        }
         const face=snapshot.mesh.face;
         assert(face?.eyes?.length===2,'Eyes missing in '+poses[index]);
         const magnitude=Math.hypot(...face.forward);
@@ -131,6 +142,22 @@ const path=require('node:path');
             path:'artifacts/yoga/pose-'+String(index+1).padStart(2,'0')+'-'+poses[index]+'.png',
             fullPage:true
           });
+        }
+        if(viewport.width===390&&index===22){
+          // Record the physical bridge sequence instead of only its finish.
+          for(const seconds of [0,7,14,21,24,28]){
+            await page.evaluate(t=>window.__yogaPrototype.setElapsed(t),seconds);
+            await page.waitForTimeout(100);
+            const stage=await page.evaluate(()=>window.__yogaPrototype.snapshot());
+            if(seconds===21)assert(stage.mesh.hipY<.30,
+              'Bridge pelvis lifted before lying down with bent knees');
+            if(seconds===28)assert(stage.mesh.hipY>.75,
+              'Bridge pelvis never lifted');
+            await page.screenshot({
+              path:'artifacts/yoga/bridge-transition-'+seconds+'.png'
+            });
+          }
+          await page.evaluate(()=>window.__yogaPrototype.setElapsed(9));
         }
         if(viewport.width===390&&[4,5,6,17].includes(index)){
           // Archive half-way motion, not only the final resting silhouette.
