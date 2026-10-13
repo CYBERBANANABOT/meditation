@@ -32,7 +32,7 @@ const path=require('node:path');
       const initial=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert(initial.webgl,'3D WebGL should initialize on test device');
       assert.equal(initial.mesh?.material,'wood','New model must use wooden material');
-      assert.equal(initial.mesh?.joints,17,'Mannequin must include articulated joint locations');
+      assert.equal(initial.mesh?.joints,14,'Mannequin must have fourteen visible articulated hinges');
       assert(initial.mesh?.segments>=18,'Mannequin must have distinct body segments');
       assert(initial.mesh?.triangles>1500,'Rounded wooden segments should use real 3D surfaces');
       assert.equal(initial.totalDuration,170);
