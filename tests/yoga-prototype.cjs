@@ -122,7 +122,8 @@ const path=require('node:path');
 
       await page.locator('#nextButton').click();
       assert.equal(await page.locator('#movementName').textContent(),'Возвращение к дыханию');
-      assert.equal((await page.evaluate(()=>window.__yogaPrototype.snapshot())).mesh.motion,'breath');
+      await page.waitForFunction(()=>
+        window.__yogaPrototype.snapshot().mesh?.motion==='breath');
       await page.locator('#nextButton').click();
       assert.equal(await page.locator('#movementName').textContent(),'Завершение и расслабление');
       assert.equal(await page.locator('#nextMovement').textContent(),'Последний этап практики');
