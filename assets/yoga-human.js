@@ -270,9 +270,13 @@ function makeRenderer(gl,canvas,model,state,moves){
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;gl.viewport(0,0,width,height);}
   gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   state.azimuth+=(state.targetAzimuth-state.azimuth)*.11;
-  const eye=[Math.sin(state.azimuth)*5.5,2.16,Math.cos(state.azimuth)*5.5];
-  const view=mul(projection(.65,width/height,.1,30),camera(eye,[0,1.5,0]));
   lastPose=pose(state.index,state.elapsed,moves[state.index].duration,state.running);
+  // Lift the camera and zoom out as arms rise so hands stay inside the viewport.
+  const orbit=5.5+.9*lastPose.lift;
+  const eye=[Math.sin(state.azimuth)*orbit,2.16+.16*lastPose.lift,
+    Math.cos(state.azimuth)*orbit];
+  const view=mul(projection(.65,width/height,.1,30),
+    camera(eye,[0,1.5+.16*lastPose.lift,0]));
   gl.depthMask(true);draw(0,view,lastPose.matrices,eye,1);
   gl.depthMask(false);draw(1,view,lastPose.matrices,eye,2.1*scale);
   gl.depthMask(true);
