@@ -56,15 +56,23 @@
     }catch{state.voice=false;renderVoice();}
   }
   function pause(){state.running=false;stopVoice();state.lastFrame=0;setUI();}
+  const sideViewPoses=new Set(['plank','cobra','dog','lungeL','lungeR',
+    'child','catcow','bridge','twistL','twistR','savasana']);
+  function choosePoseCamera(){
+    const side=sideViewPoses.has(moves[state.index].pose);
+    state.targetAzimuth=side?1.46:.6;
+    $('cameraButton').setAttribute('aria-label',side?'Показать вид под углом':'Показать вид сбоку');
+    $('cameraButton').querySelector('span').textContent=side?'Вид под углом':'Вид сбоку';
+  }
   function selectStage(index){
     const running=state.running;
     stopVoice();state.index=clamp(index,0,moves.length-1);state.elapsed=0;state.reminded=false;
     state.done=false;state.running=running;state.lastFrame=0;
-    setUI();if(running)speak();
+    choosePoseCamera();setUI();if(running)speak();
   }
   function reset(){
     state.index=0;state.elapsed=0;state.running=false;state.done=false;state.lastFrame=0;state.reminded=false;
-    stopVoice();$('completeModal').hidden=true;document.body.style.overflow='';setUI();
+    stopVoice();$('completeModal').hidden=true;document.body.style.overflow='';choosePoseCamera();setUI();
     window.scrollTo({top:0,behavior:reduced?'instant':'smooth'});
   }
   function complete(){
@@ -82,7 +90,7 @@
       state.elapsed-=moves[state.index].duration;
       state.index++;
       state.reminded=false;
-      setUI();speak();
+      choosePoseCamera();setUI();speak();
     }else if(!state.reminded&&state.elapsed>=moves[state.index].duration*.55){
       state.reminded=true;
       if(state.voice)speak(moves[state.index].reminder);
@@ -110,8 +118,8 @@
   $('cameraButton').addEventListener('click',()=>{
     const side=Math.abs(state.targetAzimuth)>1.1;
     state.targetAzimuth=side?.6:Math.PI/2;
-    $('cameraButton').setAttribute('aria-label',side?'Показать вид сбоку':'Показать вид спереди');
-    $('cameraButton').querySelector('span').textContent=side?'Вид сбоку':'Вид спереди';
+    $('cameraButton').setAttribute('aria-label',side?'Показать вид сбоку':'Показать вид под углом');
+    $('cameraButton').querySelector('span').textContent=side?'Вид сбоку':'Вид под углом';
   });
   let drag=null;
   canvas.addEventListener('pointerdown',e=>{
@@ -162,5 +170,5 @@
     jump:index=>selectStage(index),
     setElapsed:seconds=>{state.elapsed=clamp(seconds,0,moves[state.index].duration);state.reminded=state.elapsed>=moves[state.index].duration*.55;setUI();}
   };
-  setUI();renderVoice();requestAnimationFrame(tick);
+  choosePoseCamera();setUI();renderVoice();requestAnimationFrame(tick);
 })();
