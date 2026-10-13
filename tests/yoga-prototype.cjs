@@ -94,6 +94,13 @@ const path=require('node:path');
         assert(Number.isFinite(snapshot.mesh.headY)&&Number.isFinite(snapshot.mesh.hipY),
           'Pose landmarks must be finite');
         if(viewport.width===390){
+          // Let the automatic camera reach its final angle before archiving.
+          // Otherwise consecutive poses were photographed mid-turn.
+          await page.waitForTimeout(420);
+          if(index===20||index===23||index===24){
+            const camera=await page.evaluate(()=>window.__yogaPrototype.snapshot());
+            assert(camera.azimuth<.5,poses[index]+': front view needed for leg alignment');
+          }
           await page.screenshot({
             path:'artifacts/yoga/pose-'+String(index+1).padStart(2,'0')+'-'+poses[index]+'.png',
             fullPage:true

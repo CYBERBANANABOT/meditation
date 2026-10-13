@@ -56,11 +56,16 @@
     }catch{state.voice=false;renderVoice();}
   }
   function pause(){state.running=false;stopVoice();state.lastFrame=0;setUI();}
+  // Show long side-on stances in profile; show open seated legs and left/right
+  // supine twists from in front so one side is not hidden behind the other.
   const sideViewPoses=new Set(['fold','half','plank','cobra','dog','lungeL','lungeR',
-    'child','catcow','bridge','twistL','twistR','savasana']);
+    'warrior1L','warrior1R','warrior2L','warrior2R','child','catcow','staff',
+    'bridge','savasana']);
+  const frontViewPoses=new Set(['butterfly','twistL','twistR']);
   function choosePoseCamera(){
-    const side=sideViewPoses.has(moves[state.index].pose);
-    state.targetAzimuth=side?1.46:.6;
+    const pose=moves[state.index].pose;
+    const side=sideViewPoses.has(pose);
+    state.targetAzimuth=side?1.46:frontViewPoses.has(pose)?.18:.6;
     $('cameraButton').setAttribute('aria-label',side?'Показать вид под углом':'Показать вид сбоку');
     $('cameraButton').querySelector('span').textContent=side?'Вид под углом':'Вид сбоку';
   }
