@@ -194,3 +194,16 @@ test('Plank and downward dog use nearly straight supporting arms and separate pa
     assert(dist(joints.leftWrist,joints.rightWrist)>.65,name+' hands overlap');
   }
 });
+
+test('Cat-cow remains genuinely on hands and knees through each breathing cycle',()=>{
+  for(const name of ['table','cat','cow']){
+    const pose=rig.solve(asanas.poses[name]);
+    assert(pose.hip[1]>.6&&pose.hip[1]<.8,name+': hips not at kneeling height');
+    for(const side of ['left','right']){
+      assert(pose[side+'Knee'][1]>.10&&pose[side+'Knee'][1]<.25,
+        name+': knee not on mat');
+      assert(pose[side+'Wrist'][1]>.10&&pose[side+'Wrist'][1]<.26,
+        name+': hands not planted');
+    }
+  }
+});

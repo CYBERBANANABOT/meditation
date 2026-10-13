@@ -107,14 +107,14 @@ p.child=own({
  leftWrist:[-.34,.13,1.33],rightWrist:[.34,.13,1.33]
 });
 p.table=own({
- hip:[0,.82,-.59],shoulder:[0,.80,.65],head:[0,1.04,1.03],
- leftKnee:[-.24,.15,-.56],rightKnee:[.24,.15,-.56],
- leftAnkle:[-.24,.12,-1.15],rightAnkle:[.24,.12,-1.15],
- leftElbow:[-.33,.52,.80],rightElbow:[.33,.52,.80],
- leftWrist:[-.34,.13,1.00],rightWrist:[.34,.13,1.00]
+ hip:[0,.70,-.46],shoulder:[0,.76,.44],head:[0,1.02,.72],
+ leftKnee:[-.24,.15,-.46],rightKnee:[.24,.15,-.46],
+ leftAnkle:[-.24,.14,-.96],rightAnkle:[.24,.14,-.96],
+ leftElbow:[-.36,.43,.66],rightElbow:[.36,.43,.66],
+ leftWrist:[-.40,.14,.92],rightWrist:[.40,.14,.92]
 });
-p.cat=own({...p.table,shoulder:[0,1.02,.65],head:[0,.77,1.12],hip:[0,.96,-.59]});
-p.cow=own({...p.table,shoulder:[0,.70,.65],head:[0,1.19,1.15],hip:[0,.79,-.59]});
+p.cat=own({...p.table,shoulder:[0,.81,.44],head:[0,.62,.77],hip:[0,.73,-.46]});
+p.cow=own({...p.table,shoulder:[0,.72,.44],head:[0,1.06,.73],hip:[0,.67,-.46]});
 p.catcow=own(p.table); // Animated sequence interpolates cat and cow at runtime.
 p.butterfly=own({
  hip:[0,.26,-.10],shoulder:[0,1.18,-.10],head:[0,1.78,-.08],
