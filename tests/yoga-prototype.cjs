@@ -60,8 +60,14 @@ const path=require('node:path');
       await page.waitForTimeout(200);
       assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).running);
       await page.locator('#cameraButton').click();
-      await page.waitForFunction(()=>window.__yogaPrototype.snapshot().azimuth>1.0,
-        null,{timeout:7000});
+      await page.waitForTimeout(600);
+      const cameraDebug=await page.evaluate(()=>window.__yogaPrototype.snapshot());
+      console.log('CAMERA DEBUG',JSON.stringify({
+        azimuth:cameraDebug.azimuth,frames:cameraDebug.mesh?.frames,
+        errors:errors.length
+      }));
+      assert(cameraDebug.mesh?.frames>2,'3D render loop stopped unexpectedly');
+      assert(cameraDebug.azimuth>1.0,'Side camera must rotate');
       await page.locator('#playButton').click();
       const paused=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert.equal(paused.running,false);
