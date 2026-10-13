@@ -30,6 +30,9 @@ const path=require('node:path');
       await page.waitForTimeout(400);
       const initial=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert(initial.webgl,'3D WebGL should initialize on test device');
+      assert.equal(initial.mesh?.joints,17,'Model must use a real skeletal hierarchy');
+      assert(initial.mesh?.triangles>1500,'Human surface must be a detailed skin mesh');
+      assert(initial.mesh?.points>100,'Human figure must have a visible particle surface');
       assert.equal(initial.totalDuration,170);
       assert.equal(initial.index,0);
       assert.equal(initial.running,false);
@@ -73,6 +76,9 @@ const path=require('node:path');
         window.__yogaPrototype.setElapsed(12.5);
       });
       await page.waitForTimeout(550);
+      const raised=await page.evaluate(()=>window.__yogaPrototype.snapshot());
+      assert(raised.mesh?.shoulderAngle>.6,
+        'Arm lift must rotate a skeletal shoulder joint');
       await page.screenshot({
         path:'artifacts/yoga/yoga-arms-up-'+viewport.width+'.png',fullPage:true
       });
