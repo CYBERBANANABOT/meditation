@@ -1,27 +1,68 @@
 /* Standalone offline yoga instructor with a wooden jointed 3D mannequin. */
 (() => {
   'use strict';
+  // Fixed ten-minute gentle practice, structured as eight independently animated stages.
   const moves = [
-    {name:'Спокойная стойка',duration:35,
-      instruction:'Встань устойчиво или сядь. Отпусти напряжение в плечах, дыши естественно.',
-      safety:'Если стоять неудобно, выполняй движение сидя.',
-      voice:'Начнём спокойно. Найди устойчивое положение. Расслабь плечи. Дыши естественно.'},
-    {name:'Раскрытие плеч',duration:45,
-      instruction:'Медленно разводи руки в стороны и возвращай обратно. Не поднимай их выше комфортного уровня.',
-      safety:'Если возникает боль, уменьши амплитуду или пропусти движение.',
-      voice:'Плавно разводи руки в стороны. Движение мягкое, без усилия. На выдохе возвращай руки вниз.'},
-    {name:'Плавный подъём рук',duration:50,
-      instruction:'Поднимай руки вверх настолько, насколько удобно, затем медленно опускай. Не прогибай поясницу.',
-      safety:'Можно поднимать руки только до уровня плеч. Не делай движение через боль.',
-      voice:'На комфортном вдохе медленно поднимай руки. Сохраняй корпус неподвижным. На выдохе плавно опускай.'},
-    {name:'Возвращение к покою',duration:40,
-      instruction:'Опусти руки, позволь плечам расслабиться. Заметь дыхание и ощущения в теле.',
-      safety:'Сохраняй естественное дыхание. В любой момент можно завершить.',
-      voice:'Мягко опусти руки. Расслабь плечи и кисти. Почувствуй, как тело возвращается к покою.'}
+    {
+      id:'arrival',name:'Настрой и дыхание',duration:60,
+      instruction:'Найди устойчивое положение стоя или сядь. Опусти плечи, дыши естественно.',
+      safety:'Не задерживай дыхание. Если стоять неудобно, выбери положение сидя.',
+      voice:'Начинаем мягкое утро. Устройся устойчиво. Расслабь плечи и челюсть. Дыши так, как удобно.',
+      reminder:'Сохраняй спокойное дыхание и не торопись.'
+    },
+    {
+      id:'shoulders',name:'Мягкие движения плечами',duration:60,
+      instruction:'Медленно приподнимай и опускай плечи. Делай небольшие мягкие круговые движения.',
+      safety:'Шея остаётся свободной. При дискомфорте уменьши движение или пропусти его.',
+      voice:'Переходим к плечам. Совсем немного подними их и плавно опусти. Шея остаётся расслабленной.',
+      reminder:'Движения небольшие и спокойные. Не нужно тянуться через силу.'
+    },
+    {
+      id:'arms',name:'Подъём и опускание рук',duration:90,
+      instruction:'Плавно поднимай руки через стороны до комфортной высоты и опускай обратно.',
+      safety:'Достаточно поднять руки до плеч. Не прогибай поясницу и не двигайся через боль.',
+      voice:'Поднимаем руки через стороны. До той высоты, которая сегодня комфортна. Корпус устойчивый.',
+      reminder:'Мягко опускай руки, не торопись и сохраняй естественное дыхание.'
+    },
+    {
+      id:'reach',name:'Вытяжение рук в стороны',duration:90,
+      instruction:'Поочерёдно отводи одну руку в сторону, затем другую. Корпус почти неподвижен.',
+      safety:'Наклонять или скручивать позвоночник не нужно. Можно выполнять сидя.',
+      voice:'По очереди раскрываем руки в стороны. Двигайся мягко. Спина остаётся в удобном положении.',
+      reminder:'Не стремись увеличить амплитуду. Достаточно небольшого движения рук.'
+    },
+    {
+      id:'extremities',name:'Кисти и стопы',duration:60,
+      instruction:'Неспешно двигай кистями, затем мягко приподнимай пятки по очереди.',
+      safety:'Для движения стоп держись за устойчивую опору или выполняй сидя.',
+      voice:'Теперь кисти и стопы. Мягко разомни запястья. Если стоишь, используй опору для равновесия.',
+      reminder:'Держи движения маленькими. Если неудобно, оставь только кисти.'
+    },
+    {
+      id:'balance',name:'Плавный перенос веса',duration:90,
+      instruction:'С опорой слегка переноси вес с одной ноги на другую, без глубоких приседаний.',
+      safety:'Если равновесие неуверенное, выполняй вариант сидя или пропусти этап.',
+      voice:'Немного переносим вес тела. Держись за надёжную опору. Не нужно сильно отклоняться.',
+      reminder:'Следи за устойчивостью. Можно просто мягко менять опору стоп сидя.'
+    },
+    {
+      id:'breath',name:'Возвращение к дыханию',duration:60,
+      instruction:'Остановись в устойчивом положении. Расслабь руки и наблюдай обычный ритм дыхания.',
+      safety:'Не пытайся дышать глубже или медленнее, чем тебе комфортно.',
+      voice:'Возвращаем внимание к дыханию. Почувствуй опору под ногами или под сиденьем.',
+      reminder:'Ничего не нужно исправлять. Просто замечай ощущения.'
+    },
+    {
+      id:'release',name:'Завершение и расслабление',duration:90,
+      instruction:'Позволь плечам и кистям расслабиться. Заметь, как сейчас чувствует себя тело.',
+      safety:'Если возникла боль, головокружение или слабость — прекрати практику.',
+      voice:'Последний этап. Расслабь кисти, плечи и лицо. Побудь немного в спокойном положении.',
+      reminder:'Не торопись. Поблагодари себя за время, которое ты уделил практике.'
+    }
   ];
   const totalDuration = moves.reduce((sum,m)=>sum+m.duration,0);
   const $=id=>document.getElementById(id);
-  const state={index:0,elapsed:0,running:false,done:false,lastFrame:0,azimuth:0,targetAzimuth:0,voice:false,ready:false};
+  const state={index:0,elapsed:0,running:false,done:false,lastFrame:0,azimuth:0,targetAzimuth:0,voice:false,ready:false,reminded:false};
   const scene=$('figureScene'),canvas=$('figureCanvas');
   const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
   const format=time=>{
@@ -35,6 +76,7 @@
   function setUI(){
     const move=moves[state.index],percentage=clamp(cumulativeTime()/totalDuration*100,0,100);
     $('stageCount').textContent='Этап '+(state.index+1)+' из '+moves.length;
+    $('nextMovement').textContent=state.index<moves.length-1?'Далее: '+moves[state.index+1].name:'Последний этап практики';
     $('movementName').textContent=move.name;
     $('movementInstruction').textContent=move.instruction;
     $('movementSafety').textContent=move.safety;
@@ -55,11 +97,11 @@
     $('voiceButton').setAttribute('aria-pressed',String(state.voice));
     $('voiceLabel').textContent=state.voice?'Голос включён':'Озвучить подсказки';
   }
-  function speak(){
+  function speak(text){
     if(!state.voice||!state.running||!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window))return;
     stopVoice();
     try{
-      const msg=new SpeechSynthesisUtterance(moves[state.index].voice);
+      const msg=new SpeechSynthesisUtterance(text||moves[state.index].voice);
       msg.lang='ru-RU';msg.rate=.87;msg.pitch=.94;msg.volume=.85;
       const russian=window.speechSynthesis.getVoices().find(v=>/^ru(-|_)/i.test(v.lang));
       if(russian)msg.voice=russian;
@@ -69,12 +111,12 @@
   function pause(){state.running=false;stopVoice();state.lastFrame=0;setUI();}
   function selectStage(index){
     const running=state.running;
-    stopVoice();state.index=clamp(index,0,moves.length-1);state.elapsed=0;
+    stopVoice();state.index=clamp(index,0,moves.length-1);state.elapsed=0;state.reminded=false;
     state.done=false;state.running=running;state.lastFrame=0;
     setUI();if(running)speak();
   }
   function reset(){
-    state.index=0;state.elapsed=0;state.running=false;state.done=false;state.lastFrame=0;
+    state.index=0;state.elapsed=0;state.running=false;state.done=false;state.lastFrame=0;state.reminded=false;
     stopVoice();$('completeModal').hidden=true;document.body.style.overflow='';setUI();
     window.scrollTo({top:0,behavior:reduced?'instant':'smooth'});
   }
@@ -86,10 +128,17 @@
   }
   function advance(dt){
     if(!state.running||state.done)return;
-    state.elapsed+=clamp(dt,0,.06);
+    // The timer uses actual elapsed time: rendering FPS never changes session length.
+    state.elapsed+=clamp(dt,0,1.2);
     if(state.elapsed>=moves[state.index].duration){
       if(state.index===moves.length-1){complete();return;}
-      state.index++;state.elapsed=0;setUI();speak();
+      state.elapsed-=moves[state.index].duration;
+      state.index++;
+      state.reminded=false;
+      setUI();speak();
+    }else if(!state.reminded&&state.elapsed>=moves[state.index].duration*.55){
+      state.reminded=true;
+      if(state.voice)speak(moves[state.index].reminder);
     }
   }
   $('playButton').addEventListener('click',()=>{
@@ -162,9 +211,9 @@
     requestAnimationFrame(tick);
   }
   window.__yogaPrototype={
-    snapshot:()=>({index:state.index,elapsed:state.elapsed,running:state.running,done:state.done,webgl:state.ready,azimuth:state.azimuth,totalDuration,mesh:renderer?.diagnostics?.()||null}),
+    snapshot:()=>({index:state.index,stage:moves[state.index].id,stages:moves.length,elapsed:state.elapsed,running:state.running,done:state.done,webgl:state.ready,azimuth:state.azimuth,totalDuration,voice:state.voice,mesh:renderer?.diagnostics?.()||null}),
     jump:index=>selectStage(index),
-    setElapsed:seconds=>{state.elapsed=clamp(seconds,0,moves[state.index].duration);setUI();}
+    setElapsed:seconds=>{state.elapsed=clamp(seconds,0,moves[state.index].duration);state.reminded=state.elapsed>=moves[state.index].duration*.55;setUI();}
   };
   setUI();renderVoice();requestAnimationFrame(tick);
 })();
