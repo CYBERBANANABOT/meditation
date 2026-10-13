@@ -82,10 +82,12 @@ function warrior1(left){
 p.warrior1L=warrior1(true);p.warrior1R=warrior1(false);
 function warrior2(left){
  const q=warrior1(left);
- q.leftElbow=[-.32,1.94,left?.47:-.47];
- q.rightElbow=[.32,1.94,left?-.47:.47];
- q.leftWrist=[-.35,1.93,left?.93:-.93];
- q.rightWrist=[.35,1.93,left?-.93:.93];
+ // Extend each arm toward its full physical reach, parallel to the mat.
+ const level=q.shoulder[1];
+ q.leftElbow=[-.39,level,left?.73:-.25];
+ q.rightElbow=[.39,level,left?-.25:.73];
+ q.leftWrist=[-.40,level,left?1.20:-1.20];
+ q.rightWrist=[.40,level,left?-1.20:1.20];
  return q;
 }
 p.warrior2L=warrior2(true);p.warrior2R=warrior2(false);

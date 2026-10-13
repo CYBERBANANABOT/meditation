@@ -328,3 +328,27 @@ test('Twist transitions never pass shins through each other',()=>{
   assert.equal(program.total,1100);
   assert.equal(program.movements.length,26);
 });
+
+test('Warrior II left and right arms are nearly straight at shoulder height',()=>{
+  for(const pose of ['warrior2L','warrior2R']){
+    const j=rig.solve(asanas.poses[pose]);
+    for(const side of ['left','right']){
+      const sign=side==='left'?-1:1;
+      const shoulder=[j.shoulder[0]+sign*rig.lengths.shoulderSpan/2,
+        j.shoulder[1],j.shoulder[2]];
+      const elbow=j[side+'Elbow'],wrist=j[side+'Wrist'];
+      const a=shoulder.map((v,i)=>v-elbow[i]),b=wrist.map((v,i)=>v-elbow[i]);
+      const cosine=a.reduce((s,v,i)=>s+v*b[i],0)/
+        (rig.lengths.upperArm*rig.lengths.forearm);
+      const angle=Math.acos(Math.max(-1,Math.min(1,cosine)))*180/Math.PI;
+      assert(angle>162&&angle<175,pose+' '+side+' arm angle '+angle);
+      assert(Math.abs(wrist[1]-j.shoulder[1])<.08,
+        pose+' '+side+' wrist not horizontal');
+      assert(Math.abs(elbow[1]-j.shoulder[1])<.08,
+        pose+' '+side+' elbow not horizontal');
+    }
+    assert(j.leftWrist[2]*j.rightWrist[2]<0,
+      pose+' arms do not stretch toward opposite ends of mat');
+    assert(rig.metrics(j).maxError<.001);
+  }
+});

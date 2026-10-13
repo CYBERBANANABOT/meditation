@@ -128,6 +128,11 @@
       loc[key]=gl.getUniformLocation(program,key);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.BLEND);gl.disable(gl.CULL_FACE);
+    // Matte long-sleeve top and full-length yoga leggings.
+    const cloth={
+      top:[.49,.34,.63],leggings:[.30,.31,.40],
+      waist:[.36,.28,.49],cuff:[.40,.30,.53]
+    };
     const wood={
       torso:[0.84,0.60,0.39],head:[0.93,0.72,0.49],limb:[0.89,0.65,0.41],
       hands:[0.96,0.76,0.52],pelvis:[0.73,0.50,0.32],joint:[0.39,0.24,0.16],
@@ -143,8 +148,8 @@
       gl.uniform3fv(loc.uAxisX,x);gl.uniform3fv(loc.uAxisY,y);gl.uniform3fv(loc.uAxisZ,z);
       gl.uniform3fv(loc.uScale,dimensions);gl.uniform3fv(loc.uColor,color);
       gl.uniform1f(loc.uTaper,options.taper||0);
-      gl.uniform1f(loc.uJoint,options.joint?1:0);
-      gl.uniform1f(loc.uGrain,options.joint?0.22:1);
+      gl.uniform1f(loc.uJoint,options.joint||options.fabric?1:0);
+      gl.uniform1f(loc.uGrain,options.fabric?.05:options.joint?.22:1);
       gl.drawElements(gl.TRIANGLES,surface.indices.length,gl.UNSIGNED_SHORT,0);
     }
     function frameAlong(axis){
@@ -157,10 +162,10 @@
       const z=norm(cross(x,y));
       return {x,y,z};
     }
-    function segment(start,end,width,depth,color,taper=0){
+    function segment(start,end,width,depth,color,taper=0,fabric=false){
       const v=sub(end,start),mid=scaled(add(start,end),.5);
       ellipsoid(mid,[width,Math.hypot(...v)*.52,depth],color,
-        {...frameAlong(v),taper});
+        {...frameAlong(v),taper,fabric});
     }
     function drawMat(){
       attribute('aPosition',matPositions);attribute('aNormal',matNormals);
@@ -178,11 +183,11 @@
       attribute('aPosition',positions);attribute('aNormal',normals);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,triangles);
     }
-    function joint(point,radius){
-      ellipsoid(point,[radius,radius,radius],wood.joint,{joint:true});
+    function joint(point,radius,color=wood.joint,fabric=false){
+      ellipsoid(point,[radius,radius,radius],color,{joint:!fabric,fabric});
     }
-    function pivot(point,radius){
-      ellipsoid(point,[radius*.90,radius,radius*.86],wood.hinge,{joint:true});
+    function pivot(point,radius,color=wood.hinge,fabric=false){
+      ellipsoid(point,[radius*.90,radius,radius*.86],color,{joint:!fabric,fabric});
     }
     // A pose now contains real X/Y/Z positions for every wooden joint,
     // rather than procedural arm swings while the body remains standing.
@@ -232,10 +237,15 @@
       const Lshoulder=add(sCenter,[-window.YogaRig.lengths.shoulderSpan/2,0,0]);
       const Rshoulder=add(sCenter,[window.YogaRig.lengths.shoulderSpan/2,0,0]);
       const chest=add(sCenter,scaled(torsoAxis,-.16));
-      ellipsoid(h,[.25,.20,.19],wood.pelvis);
-      segment(h,sCenter,.24,.175,wood.torso,.02);
-      segment(add(sCenter,scaled(torsoAxis,-.34)),sCenter,.38,.205,wood.torso);
-      ellipsoid(chest,[.42,.23,.22],wood.torso,frameAlong(torsoAxis));
+      // Replace the exposed chest and hips with fitted continuous garment pieces.
+      ellipsoid(h,[.277,.214,.206],cloth.leggings,{fabric:true});
+      segment(h,sCenter,.259,.192,cloth.top,.02,true);
+      segment(add(sCenter,scaled(torsoAxis,-.34)),sCenter,
+        .386,.218,cloth.top,0,true);
+      ellipsoid(chest,[.425,.233,.233],cloth.top,
+        {...frameAlong(torsoAxis),fabric:true});
+      segment(add(h,scaled(torsoAxis,.055)),add(h,scaled(torsoAxis,.17)),
+        .276,.205,cloth.waist,0,true);
       // The head is 0.39 from the shoulder centre: chest and skull
       // overlap the short neck connector; there is no giraffe-like stalk.
       // Continuous, thick wooden neck dowel overlaps both chest and skull.
@@ -261,11 +271,12 @@
         const key=sign<0?'left':'right';
         const hip=add(h,[sign*window.YogaRig.lengths.hipSpan/2,0,0]);
         const knee=j[key+'Knee'],ankle=j[key+'Ankle'];
-        pivot(hip,.135);
-        segment(hip,knee,.151,.137,wood.limb,-.06);
-        joint(knee,.110);
-        segment(knee,ankle,.112,.102,wood.limb,.10);
-        pivot(ankle,.087);
+        // Fitted leggings wrap thigh, knee hinge and shin without gaps.
+        pivot(hip,.143,cloth.leggings,true);
+        segment(hip,knee,.159,.143,cloth.leggings,-.06,true);
+        joint(knee,.115,cloth.leggings,true);
+        segment(knee,ankle,.120,.108,cloth.leggings,.10,true);
+        pivot(ankle,.086,cloth.cuff,true);
         // The foot's orientation follows ankle-to-knee direction.
         const foot=add(ankle,[0,0,.16]);
         segment(ankle,foot,.126,.12,wood.hands);
@@ -276,11 +287,12 @@
         // forearm down through it like a pointed wooden stump.
         const palm=wrist[1]<=.23?add(wrist,[0,0,.145]):
           add(wrist,scaled(handDir,.135));
-        pivot(shoulder,.132);
-        segment(shoulder,elbow,.107,.10,wood.limb,.06);
-        joint(elbow,.096);
-        segment(elbow,wrist,.085,.079,wood.limb,-.04);
-        joint(wrist,.068);
+        // Smooth sleeves conceal shoulder and elbow sockets; hands stay wooden.
+        pivot(shoulder,.139,cloth.top,true);
+        segment(shoulder,elbow,.116,.109,cloth.top,.06,true);
+        joint(elbow,.108,cloth.top,true);
+        segment(elbow,wrist,.095,.089,cloth.top,-.04,true);
+        joint(wrist,.074,cloth.cuff,true);
         segment(wrist,palm,.081,.062,wood.hands,-.07);
       }
       if(lastTime>0)meanFrameMs=meanFrameMs*.9+(now-lastTime)*.1;
@@ -289,7 +301,8 @@
     return {
       frame:renderFigure,
       diagnostics:()=>({
-        material:'wood',mat:'world-space',eyes:2,joints:14,segments:30,
+        material:'wood',outfit:'plum-long-sleeve-top-graphite-leggings',
+        garmentCoversJoints:true,mat:'world-space',eyes:2,joints:14,segments:30,
         triangles:surface.indices.length/3,
         pose:lastPose?.name||'mountain',
         section:lastPose?.section||'',

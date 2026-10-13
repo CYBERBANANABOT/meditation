@@ -32,6 +32,8 @@ const path=require('node:path');
       const initial=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert(initial.webgl,'3D WebGL context must initialize');
       assert.equal(initial.mesh?.material,'wood');
+      assert.equal(initial.mesh?.outfit,'plum-long-sleeve-top-graphite-leggings');
+      assert.equal(initial.mesh?.garmentCoversJoints,true);
       assert.equal(initial.mesh?.eyes,2,'Wooden instructor must have two eyes');
       assert.equal(initial.mesh?.face?.eyes?.length,2,'Eyes not drawn with the head');
       assert.equal(initial.mesh?.mat,'world-space','Mat and figure need one projection');
@@ -121,6 +123,21 @@ const path=require('node:path');
         assert(snapshot.mesh.rig?.maxError<.008,poses[index]+': stretched limb or neck detected');
         assert(Number.isFinite(snapshot.mesh.headY)&&Number.isFinite(snapshot.mesh.hipY),
           'Pose landmarks must be finite');
+        if([9,14].includes(index)){
+          const jj=await page.evaluate(n=>window.YogaRig.solve(
+            window.YogaAsanas.poses[n===9?'warrior2L':'warrior2R']),index);
+          for(const side of ['left','right']){
+            const sign=side==='left'?-1:1;
+            const s=[jj.shoulder[0]+sign*.29,jj.shoulder[1],jj.shoulder[2]];
+            const e=jj[side+'Elbow'],w=jj[side+'Wrist'];
+            const a=s.map((v,i)=>v-e[i]),b=w.map((v,i)=>v-e[i]);
+            const angle=Math.acos(Math.max(-1,Math.min(1,
+              a.reduce((v,x,i)=>v+x*b[i],0)/(.5*.46))))*180/Math.PI;
+            assert(angle>162,poses[index]+' '+side+' arm bent '+angle);
+            assert(Math.abs(w[1]-jj.shoulder[1])<.08,
+              poses[index]+' '+side+' wrist below shoulder');
+          }
+        }
         if([8,9,13,14].includes(index)){
           const facing=snapshot.mesh.face;
           assert(facing&&facing.eyes.length===2,'Eyes missing in '+poses[index]);
