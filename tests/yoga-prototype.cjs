@@ -5,15 +5,14 @@ const fs=require('node:fs');
 const path=require('node:path');
 
 (async()=>{
-  assert(fs.existsSync('yoga-prototype.html'));
-  assert(fs.existsSync('assets/yoga-prototype.js'));
-  assert(fs.existsSync('assets/yoga-mannequin.js'));
-  assert(fs.existsSync('assets/yoga-prototype.css'));
+  for(const name of ['yoga-prototype.html','assets/yoga-prototype.js',
+    'assets/yoga-mannequin.js','assets/yoga-prototype.css']){
+    assert(fs.existsSync(name),'Missing app resource '+name);
+  }
   const browser=await chromium.launch({
     executablePath:process.env.CHROME_BIN||'/usr/bin/google-chrome',
     headless:true,
-    args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl',
-      '--enable-unsafe-swiftshader','--use-angle=swiftshader']
+    args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']
   });
   fs.mkdirSync('artifacts/yoga',{recursive:true});
   try{
@@ -24,123 +23,102 @@ const path=require('node:path');
       const page=await context.newPage(),errors=[],requests=[];
       page.on('pageerror',error=>errors.push(error.message));
       page.on('request',request=>requests.push(request.url()));
-      await page.goto('file://'+path.resolve('yoga-prototype.html'),{
-        waitUntil:'load',timeout:30000
-      });
+      await page.goto('file://'+path.resolve('yoga-prototype.html'),{waitUntil:'load',timeout:30000});
       await page.waitForFunction(()=>window.__yogaPrototype!==undefined);
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(180);
       const initial=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-      assert(initial.webgl,'3D WebGL should initialize on test device');
-      assert.equal(initial.mesh?.material,'wood','New model must use wooden material');
-      assert.equal(initial.mesh?.joints,14,'Mannequin must have fourteen visible articulated hinges');
-      assert(initial.mesh?.segments>=18,'Mannequin must have distinct body segments');
-      assert(initial.mesh?.triangles>1500,'Rounded wooden segments should use real 3D surfaces');
-      assert.equal(initial.totalDuration,600,'Full routine must last exactly ten minutes');
-      assert.deepEqual(initial.durations,[60,60,90,90,60,90,60,90]);
-      assert.equal(initial.stages,8);
+      assert(initial.webgl,'WebGL must initialize');
+      assert.equal(initial.mesh?.material,'wood');
+      assert.equal(initial.mesh?.joints,14);
+      assert(initial.mesh?.segments>=18);
+      assert(initial.mesh?.triangles>1500);
+      assert.equal(initial.totalDuration,360,'Routine must be exactly 6 minutes');
+      assert.deepEqual(initial.durations,[25,35,40,45,45,35,35,35,35,30]);
+      assert.equal(initial.stages,10);
       assert.equal(initial.stage,'arrival');
       assert.equal(initial.index,0);
       assert.equal(initial.running,false);
-      assert.equal(await page.locator('#movementName').textContent(),'Настрой и дыхание');
-      assert.equal(await page.locator('#totalLabel').textContent(),'10:00 всего');
-      assert.equal(await page.locator('#stageCount').textContent(),'Этап 1 из 8');
-      assert.equal(await page.locator('#nextMovement').textContent(),
-        'Далее: Мягкие движения плечами');
+      assert.equal(await page.locator('#movementName').textContent(),'Поза горы');
+      assert.equal(await page.locator('#stageCount').textContent(),'Этап 1 из 10');
+      assert.equal(await page.locator('#totalLabel').textContent(),'6:00 всего');
+      assert.equal(await page.locator('#nextMovement').textContent(),'Далее: Подъём рук через стороны');
       assert(await page.locator('#figureCanvas').isVisible());
       const canvas=await page.locator('#figureCanvas').evaluate(el=>{
         const gl=el.getContext('webgl');
         return {w:el.width,h:el.height,error:gl.getError(),drawingW:gl.drawingBufferWidth};
       });
-      assert(canvas.w>100&&canvas.h>100&&canvas.drawingW>0,
-        '3D canvas should have positive dimensions');
-      assert.equal(canvas.error,0,'WebGL errors in 3D renderer');
-      const overflow=await page.evaluate(()=>document.documentElement.scrollWidth);
-      assert(overflow<=viewport.width+1,'Horizontal overflow at '+viewport.width);
-      await page.screenshot({
-        path:'artifacts/yoga/yoga-front-'+viewport.width+'.png',fullPage:true
-      });
+      assert(canvas.w>100&&canvas.h>100&&canvas.drawingW>0,'Canvas has positive dimensions');
+      assert.equal(canvas.error,0);
+      assert((await page.evaluate(()=>document.documentElement.scrollWidth))<=viewport.width+1,
+        'No horizontal overflow at '+viewport.width);
+      await page.screenshot({path:'artifacts/yoga/yoga-front-'+viewport.width+'.png',fullPage:true});
       await page.locator('#playButton').click();
-      await page.waitForTimeout(240);
+      await page.waitForTimeout(220);
       assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).running);
 
-      await page.locator('#nextButton').click();
-      assert.equal(await page.locator('#movementName').textContent(),'Мягкие движения плечами');
-      await page.evaluate(()=>window.__yogaPrototype.setElapsed(6));
-      await page.waitForTimeout(200);
-      const shoulders=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-      assert.equal(shoulders.mesh.motion,'shoulders');
-      assert(shoulders.mesh.shoulderLift>.055,'Shoulder elevation must animate');
+      const nextPose=async(id,seconds,expectedName)=>{
+        await page.locator('#nextButton').click();
+        await page.evaluate(t=>window.__yogaPrototype.setElapsed(t),seconds);
+        await page.waitForFunction(m=>window.__yogaPrototype.snapshot().mesh?.motion===m,id);
+        if(expectedName)assert.equal(await page.locator('#movementName').textContent(),expectedName);
+        return page.evaluate(()=>window.__yogaPrototype.snapshot());
+      };
+      const sun=await nextPose('sun',35/6,'Подъём рук через стороны');
+      assert(sun.mesh.shoulderAngle>2.5,'Arm raise should reach above shoulder');
       await page.locator('#cameraButton').click();
-      await page.waitForTimeout(400);
-      assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).azimuth>.3,
-        '3D camera should rotate');
-      await page.screenshot({path:'artifacts/yoga/yoga-side-'+viewport.width+'.png',fullPage:true});
+      await page.waitForTimeout(360);
+      assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).azimuth>.3,'Camera must rotate');
+      await page.screenshot({path:'artifacts/yoga/yoga-arms-'+viewport.width+'.png',fullPage:true});
+
       await page.locator('#playButton').click();
       const paused=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert.equal(paused.running,false);
       await page.waitForTimeout(250);
       assert.equal((await page.evaluate(()=>window.__yogaPrototype.snapshot())).elapsed,
-        paused.elapsed,'Pause should freeze practice timer');
+        paused.elapsed,'Pause freezes timer');
 
-      await page.locator('#nextButton').click();
-      assert.equal(await page.locator('#movementName').textContent(),'Подъём и опускание рук');
+      const chair=await nextPose('chair',40/6,'Неглубокая поза стула');
+      assert(chair.mesh.kneeBend>.8,'Shallow chair must bend knees');
+      await page.screenshot({path:'artifacts/yoga/yoga-chair-'+viewport.width+'.png',fullPage:true});
+
+      const warriorL=await nextPose('warriorL',22.5,'Широкая стойка — левая сторона');
+      assert(warriorL.mesh.stance>.20&&warriorL.mesh.warriorL>.70,
+        'Left wide stance must spread feet and bend the left knee');
+      const warriorR=await nextPose('warriorR',22.5,'Широкая стойка — правая сторона');
+      assert(warriorR.mesh.warriorR>.70&&warriorR.mesh.warriorL===0,
+        'Right wide stance must bend the opposite knee');
       await page.locator('#cameraButton').click();
-      await page.evaluate(()=>window.__yogaPrototype.setElapsed(7.5));
-      await page.waitForTimeout(380);
-      const raised=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-      assert.equal(raised.mesh.motion,'arms');
-      assert(raised.mesh.shoulderAngle>2.4,'Shoulder hinges should raise arms overhead');
-      await page.screenshot({path:'artifacts/yoga/yoga-arms-up-'+viewport.width+'.png',fullPage:true});
+      await page.waitForTimeout(360);
+      await page.screenshot({path:'artifacts/yoga/yoga-stance-'+viewport.width+'.png',fullPage:true});
 
-      await page.locator('#nextButton').click();
-      assert.equal(await page.locator('#movementName').textContent(),'Вытяжение рук в стороны');
-      await page.evaluate(()=>window.__yogaPrototype.setElapsed(7.5));
-      await page.waitForTimeout(180);
-      const reach=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-      assert.equal(reach.mesh.motion,'reach');
-      assert(Math.abs(reach.mesh.tilt)>.03,'Small side motion should animate');
-      assert(reach.mesh.shoulderAngle>1.3,'Independent arm should reach sideways');
-      await page.screenshot({path:'artifacts/yoga/yoga-side-reach-'+viewport.width+'.png',fullPage:true});
+      const sideL=await nextPose('sideL',17.5,'Вытяжение вверх — левая рука');
+      assert(sideL.mesh.tilt>.07,'Left stretch should have slight movement');
+      const sideR=await nextPose('sideR',17.5,'Вытяжение вверх — правая рука');
+      assert(sideR.mesh.tilt<-.07,'Right stretch should be mirrored');
+      await page.screenshot({path:'artifacts/yoga/yoga-side-'+viewport.width+'.png',fullPage:true});
 
-      await page.locator('#nextButton').click();
-      assert.equal(await page.locator('#movementName').textContent(),'Кисти и стопы');
-      await page.evaluate(()=>window.__yogaPrototype.setElapsed(3.75));
-      await page.waitForTimeout(180);
-      const extremities=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-      assert.equal(extremities.mesh.motion,'extremities');
-      assert(extremities.mesh.heelLift>.03,'Heels should lift');
-      assert(Math.abs(extremities.mesh.wristFlex)>.08,'Wrists should rotate');
-
-      await page.locator('#nextButton').click();
-      assert.equal(await page.locator('#movementName').textContent(),'Плавный перенос веса');
-      await page.evaluate(()=>window.__yogaPrototype.setElapsed(5.625));
-      await page.waitForTimeout(180);
-      const balance=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-      assert.equal(balance.mesh.motion,'balance');
-      assert(Math.abs(balance.mesh.shift)>.04,'Gentle body weight shift should animate');
+      const balance=await nextPose('balance',8.75,'Подъём колена с опорой');
+      assert(balance.mesh.kneeLift>.65,'Supported knee lift must be visible');
       await page.screenshot({path:'artifacts/yoga/yoga-balance-'+viewport.width+'.png',fullPage:true});
-
-      await page.locator('#nextButton').click();
-      assert.equal(await page.locator('#movementName').textContent(),'Возвращение к дыханию');
-      await page.waitForFunction(()=>
-        window.__yogaPrototype.snapshot().mesh?.motion==='breath');
-      await page.locator('#nextButton').click();
-      assert.equal(await page.locator('#movementName').textContent(),'Завершение и расслабление');
+      const open=await nextPose('open',35/6,'Раскрытие грудной клетки');
+      assert(open.mesh.shoulderAngle>1.5,'Both arms open outward');
+      const release=await nextPose('release',15,'Завершение');
+      assert.equal(release.index,9);
       assert.equal(await page.locator('#nextMovement').textContent(),'Последний этап практики');
       await page.locator('#nextButton').click();
       assert(await page.locator('#completeModal').isVisible());
-      assert.equal((await page.evaluate(()=>window.__yogaPrototype.snapshot())).done,true);
+      assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).done);
       await page.locator('#repeatButton').click();
       assert(!(await page.locator('#completeModal').isVisible()));
-      assert.equal(await page.locator('#movementName').textContent(),'Настрой и дыхание');
-      assert.equal((await page.evaluate(()=>window.__yogaPrototype.snapshot())).done,false);
-      const finalError=await page.locator('#figureCanvas').evaluate(el=>el.getContext('webgl').getError());
-      assert.equal(finalError,0,'No WebGL errors across all eight movements');
-      assert.deepEqual(errors,[],'Unexpected client errors');
-      assert(requests.every(url=>url.startsWith('file://')),
-        'Prototype must load without any external network requests');
-      console.log('PASS yoga '+viewport.width+'x'+viewport.height+
-        ' wooden WebGL mannequin, controls, camera, session and offline assets');
+      const restarted=await page.evaluate(()=>window.__yogaPrototype.snapshot());
+      assert.equal(restarted.index,0);
+      assert.equal(restarted.elapsed,0);
+      assert.equal(restarted.done,false);
+      assert.equal(await page.locator('#movementName').textContent(),'Поза горы');
+      assert.equal(await page.locator('#figureCanvas').evaluate(el=>el.getContext('webgl').getError()),0);
+      assert.deepEqual(errors,[],'Unexpected page JavaScript errors');
+      assert(requests.every(url=>url.startsWith('file://')),'No external network dependencies');
+      console.log('PASS '+viewport.width+'x'+viewport.height+' six-minute yoga, 10 poses, joints, controls, offline assets');
       await context.close();
     }
   }finally{await browser.close();}
