@@ -7,7 +7,7 @@
 const J=['hip','shoulder','head','leftKnee','rightKnee','leftAnkle','rightAnkle','leftElbow','rightElbow','leftWrist','rightWrist'];
 const smooth=t=>t*t*(3-2*t);
 const standing={
- hip:[0,1.14,0],shoulder:[0,2.1,0],head:[0,2.70,.02],
+ hip:[0,1.14,0],shoulder:[0,2.1,0],head:[0,2.49,.02],
  leftKnee:[-.18,.62,0],rightKnee:[.18,.62,0],
  leftAnkle:[-.19,.15,0],rightAnkle:[.19,.15,0],
  leftElbow:[-.56,1.68,0],rightElbow:[.56,1.68,0],
@@ -16,8 +16,8 @@ const standing={
 const own=o=>Object.fromEntries(J.map(j=>[j,(o[j]||standing[j]).slice()]));
 const p={mountain:own({})};
 p.salute=own({
- leftElbow:[-.41,2.65,0],rightElbow:[.41,2.65,0],
- leftWrist:[-.27,3.18,0],rightWrist:[.27,3.18,0]
+ leftElbow:[-.34,2.54,0],rightElbow:[.34,2.54,0],
+ leftWrist:[-.26,2.93,0],rightWrist:[.26,2.93,0]
 });
 p.fold=own({
  hip:[0,1.18,-.04],shoulder:[0,.65,.56],head:[0,.30,.79],
@@ -31,70 +31,70 @@ p.half=own({
  leftWrist:[-.24,.71,.43],rightWrist:[.24,.71,.43]
 });
 p.plank=own({
- hip:[0,.71,-.35],shoulder:[0,.79,.87],head:[0,.82,1.36],
- leftKnee:[-.17,.39,-.94],rightKnee:[.17,.39,-.94],
- leftAnkle:[-.19,.15,-1.60],rightAnkle:[.19,.15,-1.60],
- leftElbow:[-.30,.52,.91],rightElbow:[.30,.52,.91],
- leftWrist:[-.35,.13,1.09],rightWrist:[.35,.13,1.09]
+ hip:[0,.63,-.36],shoulder:[0,.71,.50],head:[0,.70,.89],
+ leftKnee:[-.18,.37,-.72],rightKnee:[.18,.37,-.72],
+ leftAnkle:[-.19,.15,-1.17],rightAnkle:[.19,.15,-1.17],
+ leftElbow:[-.29,.42,.66],rightElbow:[.29,.42,.66],
+ leftWrist:[-.32,.14,.77],rightWrist:[.32,.14,.77]
 });
 p.cobra=own({
- hip:[0,.28,-.59],shoulder:[0,1.05,.28],head:[0,1.49,.51],
- leftKnee:[-.18,.17,-1.20],rightKnee:[.18,.17,-1.20],
- leftAnkle:[-.19,.14,-1.77],rightAnkle:[.19,.14,-1.77],
- leftElbow:[-.29,.62,.37],rightElbow:[.29,.62,.37],
- leftWrist:[-.32,.14,.55],rightWrist:[.32,.14,.55]
+ hip:[0,.23,-.49],shoulder:[0,.88,.14],head:[0,1.19,.36],
+ leftKnee:[-.18,.18,-.92],rightKnee:[.18,.18,-.92],
+ leftAnkle:[-.19,.14,-1.31],rightAnkle:[.19,.14,-1.31],
+ leftElbow:[-.29,.51,.30],rightElbow:[.29,.51,.30],
+ leftWrist:[-.31,.14,.39],rightWrist:[.31,.14,.39]
 });
 p.dog=own({
- hip:[0,1.99,-.29],shoulder:[0,1.26,.69],head:[0,1.02,1.07],
- leftKnee:[-.18,.88,-.89],rightKnee:[.18,.88,-.89],
- leftAnkle:[-.19,.14,-1.68],rightAnkle:[.19,.14,-1.68],
- leftElbow:[-.32,.69,1.06],rightElbow:[.32,.69,1.06],
- leftWrist:[-.37,.13,1.41],rightWrist:[.37,.13,1.41]
+ hip:[0,1.12,-.42],shoulder:[0,.93,.46],head:[0,.71,.78],
+ leftKnee:[-.18,.68,-.60],rightKnee:[.18,.68,-.60],
+ leftAnkle:[-.19,.14,-.85],rightAnkle:[.19,.14,-.85],
+ leftElbow:[-.29,.51,.66],rightElbow:[.29,.51,.66],
+ leftWrist:[-.32,.14,.91],rightWrist:[.32,.14,.91]
 });
 function lunge(left){
  const front=left?'left':'right',back=left?'right':'left';
  const q=own({
-   hip:[0,1.00,-.01],shoulder:[0,1.86,.04],head:[0,2.42,.05],
+   hip:[0,.95,-.04],shoulder:[0,1.82,.02],head:[0,2.22,.04],
    leftElbow:[-.37,1.41,.40],rightElbow:[.37,1.41,.40],
    leftWrist:[-.32,1.12,.62],rightWrist:[.32,1.12,.62]
  });
- q[front+'Knee']=[left?-.26:.26,.69,.69];
- q[front+'Ankle']=[left?-.27:.27,.14,1.01];
- q[back+'Knee']=[left?.23:-.23,.18,-.71];
- q[back+'Ankle']=[left?.24:-.24,.13,-1.45];
+ q[front+'Knee']=[left?-.25:.25,.60,.41];
+ q[front+'Ankle']=[left?-.26:.26,.14,.53];
+ q[back+'Knee']=[left?.22:-.22,.17,-.40];
+ q[back+'Ankle']=[left?.23:-.23,.13,-.63];
  return q;
 }
 p.lungeL=lunge(true);p.lungeR=lunge(false);
 function warrior1(left){
  const q=lunge(left);
- q.hip=[0,1.18,-.02];q.shoulder=[0,2.08,0];q.head=[0,2.67,0];
+ q.hip=[0,1.03,-.03];q.shoulder=[0,1.93,0];q.head=[0,2.33,0];
  const rear=left?'right':'left',front=left?'left':'right';
- q[rear+'Knee']=[left?.23:-.23,.73,-.88];
- q[front+'Knee']=[left?-.27:.27,.70,.68];
- q.leftElbow=[-.36,2.67,0];q.rightElbow=[.36,2.67,0];
- q.leftWrist=[-.24,3.18,0];q.rightWrist=[.24,3.18,0];
+ q[rear+'Knee']=[left?.23:-.23,.62,-.40];
+ q[front+'Knee']=[left?-.27:.27,.60,.41];
+ q.leftElbow=[-.33,2.39,0];q.rightElbow=[.33,2.39,0];
+ q.leftWrist=[-.25,2.83,0];q.rightWrist=[.25,2.83,0];
  return q;
 }
 p.warrior1L=warrior1(true);p.warrior1R=warrior1(false);
 function warrior2(left){
  const q=warrior1(left);
- q.leftElbow=[-.35,2.13,left?.61:-.61];
- q.rightElbow=[.35,2.13,left?-.61:.61];
- q.leftWrist=[-.38,2.12,left?1.17:-1.17];
- q.rightWrist=[.38,2.12,left?-1.17:1.17];
+ q.leftElbow=[-.32,1.94,left?.47:-.47];
+ q.rightElbow=[.32,1.94,left?-.47:.47];
+ q.leftWrist=[-.35,1.93,left?.93:-.93];
+ q.rightWrist=[.35,1.93,left?-.93:.93];
  return q;
 }
 p.warrior2L=warrior2(true);p.warrior2R=warrior2(false);
 function triangle(left){
  const q=warrior2(left),sign=left?-1:1;
- q.hip=[0,1.20,-.08];q.shoulder=[sign*.13,1.48,.68];q.head=[sign*.21,1.75,1.02];
- q.leftKnee=[-.26,.61,.74];q.rightKnee=[.26,.61,-.78];
+ q.hip=[0,1.02,-.07];q.shoulder=[sign*.13,1.39,.74];q.head=[sign*.18,1.59,1.07];
+ q.leftKnee=[-.25,.57,.40];q.rightKnee=[.25,.57,-.39];
  if(left){
-  q.leftElbow=[-.34,1.01,.85];q.leftWrist=[-.33,.54,.99];
-  q.rightElbow=[.34,2.06,.65];q.rightWrist=[.40,2.62,.62];
+  q.leftElbow=[-.31,1.04,.78];q.leftWrist=[-.30,.64,.87];
+  q.rightElbow=[.32,1.86,.70];q.rightWrist=[.33,2.26,.72];
  }else{
-  q.rightElbow=[.34,1.01,.85];q.rightWrist=[.33,.54,.99];
-  q.leftElbow=[-.34,2.06,.65];q.leftWrist=[-.40,2.62,.62];
+  q.rightElbow=[.31,1.04,.78];q.rightWrist=[.30,.64,.87];
+  q.leftElbow=[-.32,1.86,.70];q.leftWrist=[-.33,2.26,.72];
  }
  return q;
 }
