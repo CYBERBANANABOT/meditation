@@ -64,7 +64,7 @@ const path=require('node:path');
       const cameraDebug=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       console.log('CAMERA DEBUG',JSON.stringify({
         azimuth:cameraDebug.azimuth,frames:cameraDebug.mesh?.frames,
-        errors:errors.length
+        errors
       }));
       assert(cameraDebug.mesh?.frames>2,'3D render loop stopped unexpectedly');
       assert(cameraDebug.azimuth>1.0,'Side camera must rotate');
