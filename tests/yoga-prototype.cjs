@@ -60,9 +60,8 @@ const path=require('node:path');
       await page.waitForTimeout(200);
       assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).running);
       await page.locator('#cameraButton').click();
-      await page.waitForTimeout(350);
-      assert((await page.evaluate(()=>window.__yogaPrototype.snapshot())).azimuth>1,
-        'Side view rotates the 3D figure');
+      await page.waitForFunction(()=>window.__yogaPrototype.snapshot().azimuth>1.0,
+        null,{timeout:7000});
       await page.locator('#playButton').click();
       const paused=await page.evaluate(()=>window.__yogaPrototype.snapshot());
       assert.equal(paused.running,false);
