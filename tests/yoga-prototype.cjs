@@ -73,11 +73,11 @@ const path=require('node:path');
       assert.equal(await page.locator('#movementName').textContent(),'Плавный подъём рук');
       await page.locator('#cameraButton').click();
       await page.evaluate(()=>{
-        window.__yogaPrototype.setElapsed(12.5);
+        window.__yogaPrototype.setElapsed(8.33);
       });
       await page.waitForTimeout(550);
       const raised=await page.evaluate(()=>window.__yogaPrototype.snapshot());
-      assert(raised.mesh?.shoulderAngle>.6,
+      assert(raised.mesh?.shoulderAngle>2.0,
         'Arm lift must rotate a skeletal shoulder joint');
       await page.screenshot({
         path:'artifacts/yoga/yoga-arms-up-'+viewport.width+'.png',fullPage:true
