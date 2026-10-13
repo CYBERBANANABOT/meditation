@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0a0912">
   <meta name="description" content="Экспериментальный 3D-инструктор мягкой йоги без платных сервисов.">
-  <title>Утренняя йога · 6 минут · Meditation</title>
+  <title>Хатха-виньяса · 18 минут · Meditation</title>
   <link rel="stylesheet" href="./assets/yoga-prototype.css?v=3">
 </head>
 <body>
@@ -20,12 +20,12 @@
     <main id="yogaApp" aria-label="Прототип 3D-инструктора йоги">
       <div class="headline">
         <p class="eyebrow">БЕРЕЖНОЕ ДВИЖЕНИЕ</p>
-        <h1>Утренняя йога</h1>
-        <p class="subtitle">6 минут сменяющихся поз: руки, ноги, равновесие и мягкое вытяжение. Двигайся в удобном для себя темпе.</p>
+        <h1>Хатха-виньяса</h1>
+        <p class="subtitle">18 минут 20 секунд настоящей последовательности асан: приветствие солнцу, воины, позы на коврике и шавасана.</p>
       </div>
       <section class="stage-card" aria-label="Трёхмерный инструктор">
         <div class="stage-header">
-          <span class="stage-pill" id="stageCount">Этап 1 из 10</span>
+          <span class="stage-pill" id="stageCount">Асана 1 из 26</span>
           <button class="angle-toggle" type="button" id="cameraButton" aria-label="Показать вид сбоку">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z M12 12l8-4 M12 12 4 8 M12 12v8.5"/></svg>
             <span>Вид сбоку</span>
@@ -43,15 +43,15 @@
         </div>
       </section>
       <section class="instruction-card">
-        <div class="instruction-heading">
-          <div><p class="step-eyebrow">ТЕКУЩЕЕ ДВИЖЕНИЕ</p><h2 id="movementName" aria-live="polite">Поза горы</h2></div>
-          <span class="step-time" id="timeLeft" aria-label="Время до конца упражнения">0:25</span>
+        <p class="step-eyebrow" id="practiceSection">СТАРТ</p><div class="instruction-heading">
+          <div><p class="step-eyebrow">ТЕКУЩЕЕ ДВИЖЕНИЕ</p><h2 id="movementName" aria-live="polite">Тадасана · Поза горы</h2></div>
+          <span class="step-time" id="timeLeft" aria-label="Время до конца упражнения">0:40</span>
         </div>
-        <p class="instruction" id="movementInstruction">Встань устойчиво. Мягко расправь плечи, почувствуй опору под стопами.</p>
+        <p class="instruction" id="movementInstruction">Встань устойчиво, стопы на ширине таза. Выпрямись без напряжения, почувствуй опору.</p>
         <p class="safety-note" id="movementSafety">Если стоять неудобно, выполняй движение сидя.</p>
-        <p class="next-movement" id="nextMovement">Далее: Подъём рук через стороны</p>
+        <p class="next-movement" id="nextMovement">Далее: Урдхва Хастасана · Руки вверх</p>
         <div class="progress-track" role="progressbar" id="sessionProgress" aria-label="Общий прогресс занятия" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressFill"></div></div>
-        <div class="progress-footer"><span id="elapsedLabel">0:00 прошло</span><span id="totalLabel">6:00 всего</span></div>
+        <div class="progress-footer"><span id="elapsedLabel">0:00 прошло</span><span id="totalLabel">18:20 всего</span></div>
       </section>
       <nav class="player-controls" aria-label="Управление занятием">
         <button id="previousButton" class="control secondary" type="button" aria-label="Предыдущее движение" title="Предыдущее движение">
@@ -69,20 +69,22 @@
         <button class="voice-toggle" id="voiceButton" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Zm4 4a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></svg><span id="voiceLabel">Озвучить подсказки</span></button>
         <button class="restart" id="restartButton" type="button">Начать сначала</button>
       </div>
-      <p class="disclaimer">Это демонстрационная программа мягкой подвижности, а не медицинская рекомендация. Деревянная кукла демонстрирует упрощённые положения, а не эталонную технику. Не двигайся через боль. При головокружении или ухудшении самочувствия остановись. Для упражнений на равновесие используй устойчивую опору; при проблемах со спиной подбирай нагрузку индивидуально со специалистом.</p>
+      <p class="disclaimer">Практика построена по классическим последовательностям хатха- и виньяса-йоги. Деревянная модель схематична, её положение не заменяет проверку техники живым инструктором. Не выполняй асаны через боль; при проблемах с позвоночником, коленями или запястьями согласуй подходящие варианты со специалистом.</p>
     </main>
     <div id="completeModal" class="complete-overlay" role="dialog" aria-modal="true" aria-labelledby="completeTitle" hidden>
       <div class="complete-content">
         <div class="complete-symbol" aria-hidden="true">✦</div>
-        <p class="eyebrow">6 МИНУТ ДЛЯ СЕБЯ</p>
+        <p class="eyebrow">18 МИНУТ ПРАКТИКИ</p>
         <h2 id="completeTitle">Практика завершена</h2>
-        <p>Ты завершил короткую практику с разными движениями и позами. Заметь ощущения в теле, прежде чем вернуться к делам.</p>
+        <p>Практика завершена. После шавасаны возвращайся к движению постепенно: сначала пошевели кистями и стопами, затем поднимись без спешки.</p>
         <button id="repeatButton" class="complete-action" type="button">Повторить практику</button>
         <a class="complete-link" href="./index.html">Вернуться к медитации</a>
       </div>
     </div>
   </div>
-  <script defer src="./assets/yoga-mannequin.js?v=9"></script>
-  <script defer src="./assets/yoga-prototype.js?v=9"></script>
+  <script defer src="./assets/yoga-asanas.js?v=10"></script>
+  <script defer src="./assets/yoga-program.js?v=10"></script>
+  <script defer src="./assets/yoga-mannequin.js?v=10"></script>
+  <script defer src="./assets/yoga-prototype.js?v=10"></script>
 </body>
 </html>
