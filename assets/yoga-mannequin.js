@@ -253,7 +253,10 @@
         const shoulder=sign<0?Lshoulder:Rshoulder;
         const elbow=j[key+'Elbow'],wrist=j[key+'Wrist'];
         const handDir=norm(sub(wrist,elbow));
-        const palm=add(wrist,scaled(handDir,.135));
+        // A grounded palm lies flat on the mat instead of following the
+        // forearm down through it like a pointed wooden stump.
+        const palm=wrist[1]<=.23?add(wrist,[0,0,.145]):
+          add(wrist,scaled(handDir,.135));
         pivot(shoulder,.132);
         segment(shoulder,elbow,.107,.10,wood.limb,.06);
         joint(elbow,.096);

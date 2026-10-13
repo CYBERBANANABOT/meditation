@@ -31,11 +31,11 @@ p.half=own({
  leftWrist:[-.24,.71,.43],rightWrist:[.24,.71,.43]
 });
 p.plank=own({
- hip:[0,.63,-.36],shoulder:[0,.71,.50],head:[0,.70,.89],
- leftKnee:[-.18,.37,-.72],rightKnee:[.18,.37,-.72],
- leftAnkle:[-.19,.15,-1.17],rightAnkle:[.19,.15,-1.17],
- leftElbow:[-.29,.42,.66],rightElbow:[.29,.42,.66],
- leftWrist:[-.32,.14,.77],rightWrist:[.32,.14,.77]
+ hip:[0,.88,-.23],shoulder:[0,1.07,.66],head:[0,1.14,1.05],
+ leftKnee:[-.18,.49,-.53],rightKnee:[.18,.49,-.53],
+ leftAnkle:[-.19,.14,-.94],rightAnkle:[.19,.14,-.94],
+ leftElbow:[-.30,.62,.69],rightElbow:[.30,.62,.69],
+ leftWrist:[-.35,.14,.81],rightWrist:[.35,.14,.81]
 });
 p.cobra=own({
  hip:[0,.23,-.49],shoulder:[0,.88,.14],head:[0,1.19,.36],
@@ -45,11 +45,11 @@ p.cobra=own({
  leftWrist:[-.31,.14,.39],rightWrist:[.31,.14,.39]
 });
 p.dog=own({
- hip:[0,1.12,-.42],shoulder:[0,.64,.35],head:[0,.40,.65],
- leftKnee:[-.18,.66,-.60],rightKnee:[.18,.66,-.60],
+ hip:[0,1.12,-.55],shoulder:[0,.91,.33],head:[0,.70,.66],
+ leftKnee:[-.18,.61,-.67],rightKnee:[.18,.61,-.67],
  leftAnkle:[-.19,.14,-.83],rightAnkle:[.19,.14,-.83],
- leftElbow:[-.29,.38,.57],rightElbow:[.29,.38,.57],
- leftWrist:[-.32,.14,.81],rightWrist:[.32,.14,.81]
+ leftElbow:[-.30,.53,.57],rightElbow:[.30,.53,.57],
+ leftWrist:[-.35,.14,.85],rightWrist:[.35,.14,.85]
 });
 function lunge(left){
  const front=left?'left':'right',back=left?'right':'left';
@@ -118,8 +118,8 @@ p.cow=own({...p.table,shoulder:[0,.70,.65],head:[0,1.19,1.15],hip:[0,.79,-.59]})
 p.catcow=own(p.table); // Animated sequence interpolates cat and cow at runtime.
 p.butterfly=own({
  hip:[0,.26,-.10],shoulder:[0,1.18,-.10],head:[0,1.78,-.08],
- leftKnee:[-.60,.18,.48],rightKnee:[.60,.18,.48],
- leftAnkle:[-.16,.12,.83],rightAnkle:[.16,.12,.83],
+ leftKnee:[-.54,.18,.27],rightKnee:[.54,.18,.27],
+ leftAnkle:[-.16,.12,.60],rightAnkle:[.16,.12,.60],
  leftElbow:[-.38,.61,.40],rightElbow:[.38,.61,.40],
  leftWrist:[-.27,.22,.70],rightWrist:[.27,.22,.70]
 });

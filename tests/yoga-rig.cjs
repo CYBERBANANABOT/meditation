@@ -135,3 +135,62 @@ test('Skipping a half-finished pose interpolates from the displayed mannequin',(
   for(const joint of asanas.joints)
     assert(dist(before[joint],resumed[joint])<.001,joint+' jumps on manual skip');
 });
+
+test('Elbow hinge direction, separation, reach and smooth motion for all 26 asanas',()=>{
+  const signs=[['left',-1],['right',1]];
+  let maximumDelta=0;
+  for(let i=0;i<program.movements.length;i++){
+    const movement=program.movements[i],from=program.movements[i-1]?.pose||'mountain';
+    let previous=rig.solve(asanas.sample(movement.pose,0,movement.duration,from));
+    for(let frame=1;frame<=Math.min(movement.duration,12)*30;frame++){
+      const joints=rig.solve(asanas.sample(movement.pose,frame/30,movement.duration,from));
+      assert(rig.metrics(joints).maxError<.001,movement.pose+' bone length changed');
+      for(const name of asanas.joints){
+        const delta=dist(previous[name],joints[name]);
+        maximumDelta=Math.max(maximumDelta,delta);
+        assert(delta<.07,movement.pose+' '+name+' jerked by '+delta);
+      }
+      for(const [side,sign] of signs){
+        const el=joints[side+'Elbow'],wr=joints[side+'Wrist'],center=joints.shoulder;
+        assert(sign*(el[0]-center[0])>.31,
+          movement.pose+' '+side+' elbow crossed body');
+        assert(sign*(wr[0]-center[0])>.32,
+          movement.pose+' '+side+' wrist crossed body');
+        const shoulder=[center[0]+sign*.29,center[1],center[2]];
+        const a=shoulder.map((v,k)=>v-el[k]),b=wr.map((v,k)=>v-el[k]);
+        const cosine=a.reduce((sum,v,k)=>sum+v*b[k],0)/
+          (rig.lengths.upperArm*rig.lengths.forearm);
+        const angle=Math.acos(Math.max(-1,Math.min(1,cosine)))*180/Math.PI;
+        assert(angle>=55&&angle<=171,movement.pose+' elbow angle '+angle);
+        assert(wr[1]>=.10,movement.pose+' wrist is below mat');
+        // Project the elbow on the two-bone perpendicular plane; it must
+        // remain on the outward/backward hinge side for the whole sequence.
+        const axis=wr.map((v,k)=>v-shoulder[k]);
+        const d=Math.hypot(...axis);
+        const forward=axis.map(v=>v/d),pole=[sign*.48,0,-.72];
+        const scalar=pole.reduce((sum,v,k)=>sum+v*forward[k],0);
+        const preferred=pole.map((v,k)=>v-scalar*forward[k]);
+        const elbowV=el.map((v,k)=>v-shoulder[k]);
+        const signed=preferred.reduce((sum,v,k)=>sum+v*elbowV[k],0);
+        assert(signed>=-.00001,movement.pose+' '+side+' elbow inverted');
+      }
+      previous=joints;
+    }
+  }
+  assert(maximumDelta>.01,'Transition animation did not move');
+});
+test('Plank and downward dog use nearly straight supporting arms and separate palms',()=>{
+  for(const name of ['plank','dog']){
+    const joints=rig.solve(asanas.poses[name]);
+    for(const side of ['left','right']){
+      const sign=side==='left'?-1:1;
+      const sh=[joints.shoulder[0]+sign*.29,joints.shoulder[1],joints.shoulder[2]];
+      const e=joints[side+'Elbow'],wr=joints[side+'Wrist'];
+      const a=sh.map((v,k)=>v-e[k]),b=wr.map((v,k)=>v-e[k]);
+      const angle=Math.acos(a.reduce((sum,v,k)=>sum+v*b[k],0)/(.5*.46))*180/Math.PI;
+      assert(angle>145,name+' '+side+' arm collapsed: '+angle);
+      assert(wr[1]>=.105&&wr[1]<=.23,name+' palm fails mat contact');
+    }
+    assert(dist(joints.leftWrist,joints.rightWrist)>.65,name+' hands overlap');
+  }
+});

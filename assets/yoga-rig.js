@@ -63,6 +63,41 @@ function legOrArm(start,endTarget,kneeTarget,L1,L2,ground){
   const middle=plus(plus(start,times(forward,a)),times(unit(bend),rise));
   return {middle,end};
 }
+// Both elbows share a deterministic, outward/backward bend pole.
+// A wrist can move freely in space, but may not pass through the chest,
+// and a hinge may not bend toward the anatomically wrong side.
+function armIK(shoulder,wristTarget,sign){
+  const L1=lengths.upperArm,L2=lengths.forearm;
+  const center=shoulder[0]-sign*lengths.shoulderSpan/2;
+  const end=[...wristTarget];
+  // 0.42 from centre keeps hand pads clear of chest and of each other.
+  end[0]=center+sign*Math.max(.42,sign*(end[0]-center));
+  if(end[1]<.105)end[1]=.105;
+  let axis=v(end,shoulder),dy=axis[1],max=L1+L2-.005;
+  if(end[1]<=.26&&Math.abs(dy)<max){
+    // Preserve supporting palm height whenever the shoulder can reach.
+    const reach=Math.sqrt(max*max-dy*dy),horizontal=Math.hypot(axis[0],axis[2]);
+    if(horizontal>reach&&horizontal>1e-8){
+      end[0]=shoulder[0]+axis[0]*reach/horizontal;
+      end[2]=shoulder[2]+axis[2]*reach/horizontal;
+    }
+  }
+  axis=v(end,shoulder);
+  let dist=length(axis),min=.46;
+  // Prevent both overextension and collapsing elbow fully into itself.
+  if(dist>max){const p=plus(shoulder,times(unit(axis),max));end.splice(0,3,...p);dist=max;}
+  if(dist<min){const p=plus(shoulder,times(unit(axis),min));end.splice(0,3,...p);dist=min;}
+  const forward=unit(v(end,shoulder));
+  const along=(L1*L1-L2*L2+dist*dist)/(2*dist);
+  const height=Math.sqrt(Math.max(0,L1*L1-along*along));
+  const pole=[sign*.48,0,-.72];
+  let bend=v(pole,times(forward,dot(pole,forward)));
+  if(length(bend)<.01){
+    const side=[sign,0,0];bend=v(side,times(forward,dot(side,forward)));
+  }
+  const elbow=plus(plus(shoulder,times(forward,along)),times(unit(bend),height));
+  return {middle:elbow,end};
+}
 function solve(input){
   for(const k of keys)if(!assertFinite(input[k]))throw Error('Invalid pose landmark '+k);
   // Already-articulated transition frames must never be solved a second
@@ -84,8 +119,7 @@ function solve(input){
     const prefix=left?'left':'right',sgn=left?-1:1;
     const shoulderJoint=plus(out.shoulder,[sgn*lengths.shoulderSpan/2,0,0]);
     const elbowName=prefix+'Elbow',wristName=prefix+'Wrist';
-    const arm=legOrArm(shoulderJoint,input[wristName],input[elbowName],
-      lengths.upperArm,lengths.forearm,groundKeys.has(wristName));
+    const arm=armIK(shoulderJoint,input[wristName],sgn);
     out[elbowName]=arm.middle;out[wristName]=arm.end;
     const hipJoint=plus(out.hip,[sgn*lengths.hipSpan/2,0,0]);
     const kneeName=prefix+'Knee',ankleName=prefix+'Ankle';
@@ -118,10 +152,14 @@ function blend(a,b,t){
     const oldShoulder=plus(start.shoulder,shoulderOffset);
     const newShoulder=plus(end.shoulder,shoulderOffset);
     const currentShoulder=plus(out.shoulder,shoulderOffset);
-    out[side+'Elbow']=bone(oldShoulder,start[side+'Elbow'],
+    // Follow the continuous FK wrist path, but rebuild elbow with
+    // the same anatomical pole and no-crossing rule as static poses.
+    const fkElbow=bone(oldShoulder,start[side+'Elbow'],
       newShoulder,end[side+'Elbow'],lengths.upperArm,currentShoulder);
-    out[side+'Wrist']=bone(start[side+'Elbow'],start[side+'Wrist'],
-      end[side+'Elbow'],end[side+'Wrist'],lengths.forearm,out[side+'Elbow']);
+    const fkWrist=bone(start[side+'Elbow'],start[side+'Wrist'],
+      end[side+'Elbow'],end[side+'Wrist'],lengths.forearm,fkElbow);
+    const arm=armIK(currentShoulder,fkWrist,sign);
+    out[side+'Elbow']=arm.middle;out[side+'Wrist']=arm.end;
     const oldHip=plus(start.hip,hipOffset),newHip=plus(end.hip,hipOffset);
     const currentHip=plus(out.hip,hipOffset);
     out[side+'Knee']=bone(oldHip,start[side+'Knee'],

@@ -109,6 +109,13 @@ const path=require('node:path');
             fullPage:true
           });
         }
+        if(viewport.width===390&&[4,5,6,17].includes(index)){
+          // Archive half-way motion, not only the final resting silhouette.
+          await page.evaluate(()=>window.__yogaPrototype.setElapsed(2.5));
+          await page.waitForTimeout(180);
+          await page.screenshot({path:'artifacts/yoga/transition-'+index+'.png'});
+          await page.evaluate(()=>window.__yogaPrototype.setElapsed(9));
+        }
         if(index===6){
           assert(snapshot.mesh.hipY>1.0&&snapshot.mesh.hipY>snapshot.mesh.headY,'Dog must lift hips above head');
           await page.screenshot({path:'artifacts/yoga/yoga-dog-'+viewport.width+'.png',fullPage:true});
