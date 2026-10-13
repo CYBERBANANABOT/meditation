@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           if test -f assets/ui.js; then
-            for file in assets/core.js assets/visualizer.js assets/session.js assets/ui.js assets/journal-backup.js assets/yoga-asanas.js assets/yoga-program.js assets/yoga-mannequin.js assets/yoga-prototype.js; do
+            for file in assets/core.js assets/visualizer.js assets/session.js assets/ui.js assets/journal-backup.js assets/yoga-asanas.js assets/yoga-rig.js assets/yoga-program.js assets/yoga-mannequin.js assets/yoga-prototype.js; do
               test -s "$file"
               node --check "$file"
             done
@@ -38,6 +38,8 @@ jobs:
           fi
       - name: Exercise timer, audio and journal regression tests
         run: node --test tests/smoke.cjs
+      - name: Validate mannequin joint geometry for all 26 asanas
+        run: node --test tests/yoga-rig.cjs
       - name: Test both tabs in real mobile-sized Chromium
         shell: bash
         run: |
