@@ -45,7 +45,7 @@ p.cobra=own({
  leftWrist:[-.31,.14,.39],rightWrist:[.31,.14,.39]
 });
 p.dog=own({
- hip:[0,1.12,-.55],shoulder:[0,.91,.33],head:[0,.70,.66],
+ hip:[0,1.21,-.55],shoulder:[0,.91,.33],head:[0,.70,.66],
  leftKnee:[-.18,.61,-.67],rightKnee:[.18,.61,-.67],
  leftAnkle:[-.19,.14,-.83],rightAnkle:[.19,.14,-.83],
  leftElbow:[-.30,.53,.57],rightElbow:[.30,.53,.57],
