@@ -147,8 +147,13 @@
       gl.drawElements(gl.TRIANGLES,surface.indices.length,gl.UNSIGNED_SHORT,0);
     }
     function frameAlong(axis){
-      const y=norm(axis),reference=Math.abs(y[2])>.9?unitY:unitZ;
-      const x=norm(cross(reference,y)),z=norm(cross(y,x));
+      const y=norm(axis);
+      // Do not abruptly swap orientation axes when the torso crosses a
+      // camera-facing angle; keep the chest wide across shoulder sockets.
+      let x=sub(unitX,scaled(y,dot(unitX,y)));
+      if(Math.hypot(...x)<.01)x=sub(unitZ,scaled(y,dot(unitZ,y)));
+      x=norm(x);
+      const z=norm(cross(x,y));
       return {x,y,z};
     }
     function segment(start,end,width,depth,color,taper=0){
@@ -183,7 +188,8 @@
     function pose(){
       const m=moves[state.index],prev=moves[state.index-1];
       const target=window.YogaAsanas.sample(
-        m.pose,state.elapsed,m.duration,prev?.pose||'mountain');
+        m.pose,state.elapsed,m.duration,prev?.pose||'mountain',
+        state.transitionFrom);
       const joints=window.YogaRig.solve(target);
       return {joints,name:m.pose,section:m.section};
     }

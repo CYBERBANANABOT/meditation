@@ -5,7 +5,7 @@
   if(!moves||!window.YogaAsanas)throw Error('Yoga practice assets not loaded');
   const totalDuration = moves.reduce((sum,m)=>sum+m.duration,0);
   const $=id=>document.getElementById(id);
-  const state={index:0,elapsed:0,running:false,done:false,lastFrame:0,azimuth:.6,targetAzimuth:.6,voice:true,ready:false,reminded:false};
+  const state={index:0,elapsed:0,running:false,done:false,lastFrame:0,azimuth:.6,targetAzimuth:.6,voice:true,ready:false,reminded:false,transitionFrom:null};
   const scene=$('figureScene'),canvas=$('figureCanvas');
   const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
   const format=time=>{
@@ -75,12 +75,19 @@
   }
   function selectStage(index){
     const running=state.running;
+    // A manual skip can happen mid-motion. Preserve the EXACT displayed
+    // skeleton as the start of the next transition, instead of teleporting
+    // to the previous asana's canonical ending.
+    const move=moves[state.index],previous=moves[state.index-1];
+    const displayed=window.YogaAsanas.sample(move.pose,state.elapsed,move.duration,
+      previous?.pose||'mountain',state.transitionFrom);
     stopVoice();state.index=clamp(index,0,moves.length-1);state.elapsed=0;state.reminded=false;
+    state.transitionFrom=displayed;
     state.done=false;state.running=running;state.lastFrame=0;
     choosePoseCamera();setUI();if(running)speak();
   }
   function reset(){
-    state.index=0;state.elapsed=0;state.running=false;state.done=false;state.lastFrame=0;state.reminded=false;
+    state.index=0;state.elapsed=0;state.running=false;state.done=false;state.lastFrame=0;state.reminded=false;state.transitionFrom=null;
     stopVoice();$('completeModal').hidden=true;document.body.style.overflow='';choosePoseCamera();setUI();
     window.scrollTo({top:0,behavior:reduced?'instant':'smooth'});
   }
@@ -98,6 +105,7 @@
       if(state.index===moves.length-1){complete();return;}
       state.elapsed-=moves[state.index].duration;
       state.index++;
+      state.transitionFrom=null;
       state.reminded=false;
       choosePoseCamera();setUI();speak();
     }else if(!state.reminded&&state.elapsed>=moves[state.index].duration*.55){

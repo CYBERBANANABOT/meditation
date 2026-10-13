@@ -97,3 +97,41 @@ test('Prone cobra, supine bridge and final relaxation show distinct body planes'
  assert(rest.hip[1]<.3&&rest.shoulder[1]<.35&&rest.head[1]<.4,
    'Savasana torso and head should stay close to mat');
 });
+
+test('Every transition preserves bone lengths and never snaps a joint between frames',()=>{
+  const distance=(a,b)=>Math.hypot(...a.map((n,i)=>n-b[i]));
+  const joints=asanas.joints;
+  let maximumJump=0;
+  for(let i=0;i<program.movements.length;i++){
+    const move=program.movements[i],from=program.movements[i-1]?.pose||'mountain';
+    let previous=rig.solve(asanas.sample(move.pose,0,move.duration,from));
+    // 30Hz samples include intermediate transitions, not just final asanas.
+    for(let frame=1;frame<=Math.min(move.duration,12)*30;frame++){
+      const now=rig.solve(asanas.sample(move.pose,frame/30,move.duration,from));
+      assert(rig.metrics(now).maxError<.001,move.pose+': invalid bone at frame '+frame);
+      for(const joint of joints){
+        const delta=distance(now[joint],previous[joint]);
+        maximumJump=Math.max(maximumJump,delta);
+        assert(delta<.065,
+          move.pose+' frame '+frame+' abruptly flipped '+joint+' by '+delta);
+      }
+      previous=now;
+    }
+    if(i){
+      const old=program.movements[i-1],older=program.movements[i-2]?.pose||'mountain';
+      const end=rig.solve(asanas.sample(old.pose,old.duration,old.duration,older));
+      const start=rig.solve(asanas.sample(move.pose,0,move.duration,old.pose));
+      for(const joint of joints)assert(distance(end[joint],start[joint])<.001,
+        old.pose+' -> '+move.pose+': snapped at stage boundary ('+joint+')');
+    }
+  }
+  assert(maximumJump>.005,'Animation must actually move');
+});
+test('Skipping a half-finished pose interpolates from the displayed mannequin',()=>{
+  const old=program.movements[4],next=program.movements[5];
+  const displayed=asanas.sample(old.pose,1.7,old.duration,program.movements[3].pose);
+  const resumed=rig.solve(asanas.sample(next.pose,0,next.duration,old.pose,displayed));
+  const before=rig.solve(displayed);
+  for(const joint of asanas.joints)
+    assert(dist(before[joint],resumed[joint])<.001,joint+' jumps on manual skip');
+});
