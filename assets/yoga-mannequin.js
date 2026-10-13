@@ -153,8 +153,9 @@
     // rather than procedural arm swings while the body remains standing.
     function pose(){
       const m=moves[state.index],prev=moves[state.index-1];
-      const joints=window.YogaAsanas.sample(
+      const target=window.YogaAsanas.sample(
         m.pose,state.elapsed,m.duration,prev?.pose||'mountain');
+      const joints=window.YogaRig.solve(target);
       return {joints,name:m.pose,section:m.section};
     }
     function renderFigure(now){
@@ -182,21 +183,27 @@
       // prone, inverted and supine poses.
       const h=j.hip,sCenter=j.shoulder,head=j.head;
       const torsoAxis=norm(sub(sCenter,h));
-      const shoulderLine=norm(cross(torsoAxis,[0,0,1]));
-      const side=Math.hypot(...shoulderLine)>.5?shoulderLine:unitX;
-      const Lshoulder=add(sCenter,scaled(side,-.31));
-      const Rshoulder=add(sCenter,scaled(side,.31));
-      const chest=add(h,scaled(sub(sCenter,h),.72));
-      const chestUp=norm(sub(head,sCenter));
-      ellipsoid(h,[.27,.24,.19],wood.pelvis);
-      segment(h,sCenter,.25,.17,wood.torso,.02);
-      ellipsoid(chest,[.31,.20,.18],wood.torso);
-      joint(sCenter,.116);
-      segment(sCenter,head,.105,.091,wood.hinge);
-      ellipsoid(head,[.192,.248,.176],wood.head);
+      const side=unitX;
+      // One contiguous chest block covers both shoulder pivot sockets.
+      // Its 0.43-unit half-width overlaps each pivot at +/- 0.29.
+      const Lshoulder=add(sCenter,[-window.YogaRig.lengths.shoulderSpan/2,0,0]);
+      const Rshoulder=add(sCenter,[window.YogaRig.lengths.shoulderSpan/2,0,0]);
+      const chest=add(sCenter,scaled(torsoAxis,-.16));
+      ellipsoid(h,[.25,.20,.19],wood.pelvis);
+      segment(h,sCenter,.24,.175,wood.torso,.02);
+      segment(add(sCenter,scaled(torsoAxis,-.34)),sCenter,.38,.205,wood.torso);
+      ellipsoid(chest,[.42,.23,.22],wood.torso);
+      // The head is 0.39 from the shoulder centre: chest and skull
+      // overlap the short neck connector; there is no giraffe-like stalk.
+      const headAxis=norm(sub(head,sCenter));
+      const neckStart=add(sCenter,scaled(headAxis,.16));
+      const neckEnd=add(head,scaled(headAxis,-.15));
+      if(Math.hypot(...sub(neckEnd,neckStart))>.01)
+        segment(neckStart,neckEnd,.092,.092,wood.hinge);
+      ellipsoid(head,[.194,.226,.176],wood.head);
       for(const sign of [-1,1]){
         const key=sign<0?'left':'right';
-        const hip=add(h,[sign*.16,0,0]);
+        const hip=add(h,[sign*window.YogaRig.lengths.hipSpan/2,0,0]);
         const knee=j[key+'Knee'],ankle=j[key+'Ankle'];
         pivot(hip,.135);
         segment(hip,knee,.151,.137,wood.limb,-.06);
@@ -233,6 +240,7 @@
         leftWristY:lastPose?.joints.leftWrist[1]||0,
         rightWristY:lastPose?.joints.rightWrist[1]||0,
         leftAnkleZ:lastPose?.joints.leftAnkle[2]||0,
+        rig:lastPose?.joints?window.YogaRig.metrics(lastPose.joints):null,
         frames,averageFrameMs:meanFrameMs
       })
     };
