@@ -151,51 +151,55 @@
     }
     function pose(){
       const {index,elapsed,running}=state;
-      const movement=moves[index],time=movement.duration||1;
-      const t=clamp(elapsed/time,0,1);
+      const m=moves[index],t=clamp(elapsed/(m.duration||1),0,1);
       const pulse=count=>Math.sin(Math.PI*count*t)**2;
-      const sway=count=>Math.sin(2*Math.PI*count*t);
-      const gesture={
-        motion:movement.id,angleL:.23,angleR:.23,bendL:.08,bendR:.08,
-        shoulderLift:0,shoulderForward:0,tilt:0,shift:0,
-        wristFlex:0,heelL:0,heelR:0,headNod:0,lift:0
+      const hold=smooth(clamp(t/.15,0,1))*(1-smooth(clamp((t-.82)/.18,0,1)));
+      const g={
+        motion:m.id,angleL:.23,angleR:.23,bendL:.08,bendR:.08,
+        armForward:0,tilt:0,pitch:0,shift:0,crouch:0,stance:0,
+        bendKnees:0,warriorL:0,warriorR:0,kneeLiftL:0,kneeLiftR:0,
+        shoulderLift:0,shoulderForward:0,wristFlex:0,heelL:0,heelR:0,
+        headNod:0,lift:0
       };
-      if(movement.id==='shoulders'){
-        gesture.shoulderLift=.064*pulse(5);
-        gesture.shoulderForward=.035*sway(5);
-        gesture.angleL+=.14*pulse(5);
-        gesture.angleR+=.14*pulse(5);
-      }else if(movement.id==='arms'){
-        gesture.lift=pulse(6);
-        gesture.angleL+=2.46*gesture.lift;
-        gesture.angleR+=2.46*gesture.lift;
-        gesture.bendL+=.12*gesture.lift;
-        gesture.bendR+=.12*gesture.lift;
-      }else if(movement.id==='reach'){
-        const side=sway(3);
-        gesture.angleL+=1.33*Math.max(0,-side)**2;
-        gesture.angleR+=1.33*Math.max(0,side)**2;
-        gesture.tilt=.037*side;
-        gesture.lift=.34*Math.abs(side);
-      }else if(movement.id==='extremities'){
-        const wave=sway(4);
-        gesture.wristFlex=.19*sway(6);
-        gesture.heelL=.046*Math.max(0,wave);
-        gesture.heelR=.046*Math.max(0,-wave);
-        gesture.angleL+=.08*pulse(6);
-        gesture.angleR+=.08*pulse(6);
-      }else if(movement.id==='balance'){
-        gesture.shift=.052*sway(4);
-        gesture.angleL+=.10*pulse(4);
-        gesture.angleR+=.10*pulse(4);
-      }else if(movement.id==='release'){
-        gesture.headNod=.024*pulse(2);
+      if(m.id==='sun'){
+        g.lift=pulse(3);
+        g.angleL+=2.50*g.lift;g.angleR+=2.50*g.lift;
+        g.bendL+=.12*g.lift;g.bendR+=.12*g.lift;
+      }else if(m.id==='chair'){
+        const b=pulse(3);
+        g.bendKnees=b;g.crouch=.15*b;g.pitch=.11*b;
+        g.angleL+=1.12*b;g.angleR+=1.12*b;
+        g.armForward=1.03*b;g.lift=.3*b;
+      }else if(m.id==='warriorL'||m.id==='warriorR'){
+        g.stance=.23*hold;g.crouch=.075*hold;
+        g.angleL+=1.31*hold;g.angleR+=1.31*hold;
+        g.warriorL=m.id==='warriorL'?.85*hold:0;
+        g.warriorR=m.id==='warriorR'?.85*hold:0;
+        g.lift=.12*hold;
+      }else if(m.id==='sideL'){
+        g.lift=.72*hold;g.angleL+=2.18*hold;
+        g.tilt=.085*hold;
+      }else if(m.id==='sideR'){
+        g.lift=.72*hold;g.angleR+=2.18*hold;
+        g.tilt=-.085*hold;
+      }else if(m.id==='balance'){
+        const rhythm=Math.sin(2*Math.PI*t);
+        g.kneeLiftL=.75*Math.max(0,rhythm)**2;
+        g.kneeLiftR=.75*Math.max(0,-rhythm)**2;
+        g.angleL+=.23*(g.kneeLiftL+g.kneeLiftR);
+        g.angleR+=.23*(g.kneeLiftL+g.kneeLiftR);
+        g.lift=.08*(g.kneeLiftL+g.kneeLiftR);
+      }else if(m.id==='open'){
+        g.lift=.43*pulse(3);
+        g.angleL+=1.31*pulse(3);g.angleR+=1.31*pulse(3);
+        g.shoulderForward=-.035*pulse(3);
+      }else if(m.id==='release'){
+        g.headNod=.018*Math.sin(Math.PI*2*t)**2;
       }
-      gesture.breath=(running?1:.28)*.008*Math.sin(elapsed*1.35);
-      gesture.shoulderY=2.14+gesture.breath;
-      gesture.top=2.16+gesture.breath;
-      gesture.angle=Math.max(gesture.angleL,gesture.angleR);
-      return gesture;
+      g.breath=(running?1:.25)*.008*Math.sin(elapsed*1.35);
+      g.shoulderY=2.14+g.breath;
+      g.angle=Math.max(g.angleL,g.angleR);
+      return g;
     }
     function renderFigure(now){
       const bounds=canvas.getBoundingClientRect();
@@ -216,15 +220,25 @@
       gl.uniformMatrix4fv(loc.uView,false,new Float32Array(multiply(projection(.69,width/height,.1,30),lookAt(eye,target))));
       gl.uniform3fv(loc.uEye,eye);
 
-      // Rigid wooden segments move around visible hinges; no stretching skin.
-      const g=lastPose,co=Math.cos(g.tilt),si=Math.sin(g.tilt);
+      // Solid mannequin pieces connected by joints. The model demonstrates the
+      // exercise as a simplified visual guide, not anatomically precise technique.
+      const g=lastPose,co=Math.cos(g.tilt),si=Math.sin(g.tilt),
+        cp=Math.cos(g.pitch),sp=Math.sin(g.pitch);
       const point=p=>{
         const dy=p[1]-1.31;
-        return [p[0]*co-dy*si+g.shift,1.31+p[0]*si+dy*co,p[2]];
+        const xx=p[0]*co-dy*si;
+        const yy=p[0]*si+dy*co;
+        return [xx+g.shift,1.31+yy*cp-g.crouch,
+          p[2]+yy*sp-.08*g.bendKnees];
       };
-      const direction=p=>[p[0]*co-p[1]*si,p[0]*si+p[1]*co,p[2]];
-      const bodyAxes={x:[co,si,0],y:[-si,co,0],z:unitZ,taper:.08};
-      ellipsoid([g.shift*.8,1.13,0],[.263,.225,.183],wood.pelvis);
+      const direction=p=>{
+        const xx=p[0]*co-p[1]*si,yy=p[0]*si+p[1]*co;
+        return [xx,yy*cp,p[2]+yy*sp];
+      };
+      const bodyAxes={
+        x:direction(unitX),y:direction(unitY),z:[0,-sp,cp],taper:.08
+      };
+      ellipsoid(point([0,1.13,0]),[.263,.225,.183],wood.pelvis);
       ellipsoid(point([0,1.66+g.breath*.45,0]),[.245,.37,.160],wood.torso,bodyAxes);
       ellipsoid(point([0,2.04+g.breath*.7,0]),[.322,.245,.183],wood.torso,bodyAxes);
       joint(point([0,1.38,0]),.126);
@@ -232,31 +246,48 @@
       ellipsoid(point([0,2.67+g.breath-g.headNod,.01]),
         [.191,.250,.180],wood.head,{...bodyAxes,taper:-.035});
       for(const sign of [-1,1]){
-        const hip=[sign*.17+g.shift*.8,1.055,0];
-        const knee=[sign*.196+g.shift*.32,.61,.015];
-        const heel=sign<0?g.heelL:g.heelR;
-        const ankle=[sign*.198,.174+heel*.55,.035];
+        const legLift=sign<0?g.kneeLiftL:g.kneeLiftR;
+        const warrior=sign<0?g.warriorL:g.warriorR;
+        const hip=point([sign*.17,1.055,0]);
+        const knee=[
+          sign*(.196+g.stance*.49)+g.shift*.40,
+          .61-.055*g.bendKnees-.047*warrior+.24*legLift,
+          .015+.22*g.bendKnees+.12*warrior+.27*legLift
+        ];
+        const ankle=[
+          sign*(.198+g.stance)+g.shift*.15,
+          .174+.22*legLift,
+          .035+.08*warrior+.18*legLift
+        ];
         pivot(hip,.136);
         segment(hip,knee,.148,.140,wood.limb,-.06);
         joint(knee,.112);
         segment(knee,ankle,.112,.105,wood.limb,.11);
         pivot(ankle,.085);
-        const pitch=-2.6*heel;
-        const footAxes={x:unitX,y:[0,Math.cos(pitch),Math.sin(pitch)],
-          z:[0,-Math.sin(pitch),Math.cos(pitch)],taper:.025};
-        ellipsoid([sign*.199,.105+heel*.30,.166],[.141,.087,.254],wood.hands,footAxes);
-        const shoulder=point([sign*.36,g.shoulderY+g.shoulderLift,g.shoulderForward]);
+        const footY=.105+.20*legLift;
+        ellipsoid([
+          sign*(.199+g.stance)+g.shift*.15,footY,.166+.15*legLift
+        ],[.141,.087,.254],wood.hands,{taper:.025});
+        const shoulder=point([
+          sign*.36,g.shoulderY+g.shoulderLift,g.shoulderForward
+        ]);
         const angle=sign<0?g.angleL:g.angleR;
         const elbowBend=sign<0?g.bendL:g.bendR;
-        const upperDirection=norm(direction([sign*Math.sin(angle),-Math.cos(angle),.015]));
-        const elbow=add(shoulder,scaled(upperDirection,.505));
+        const forward=g.armForward;
+        const upper=norm(direction([
+          sign*Math.sin(angle)*Math.cos(forward),
+          -Math.cos(angle),
+          Math.sin(angle)*Math.sin(forward)+.015
+        ]));
+        const elbow=add(shoulder,scaled(upper,.505));
         const foreAngle=angle+elbowBend;
-        const foreDirection=norm(direction([sign*Math.sin(foreAngle),-Math.cos(foreAngle),.03]));
-        const wrist=add(elbow,scaled(foreDirection,.456));
-        const flex=sign*g.wristFlex;
-        const palmDirection=norm(direction([sign*Math.sin(foreAngle+flex),
-          -Math.cos(foreAngle+flex),.03+.06*flex]));
-        const palm=add(wrist,scaled(palmDirection,.137));
+        const fore=norm(direction([
+          sign*Math.sin(foreAngle)*Math.cos(forward),
+          -Math.cos(foreAngle),
+          Math.sin(foreAngle)*Math.sin(forward)+.03
+        ]));
+        const wrist=add(elbow,scaled(fore,.456));
+        const palm=add(wrist,scaled(fore,.137));
         pivot(shoulder,.137);
         segment(shoulder,elbow,.111,.102,wood.limb,.10);
         joint(elbow,.098);
@@ -275,6 +306,9 @@
         lift:lastPose?.lift||0,tilt:lastPose?.tilt||0,shift:lastPose?.shift||0,
         shoulderLift:lastPose?.shoulderLift||0,wristFlex:lastPose?.wristFlex||0,
         heelLift:Math.max(lastPose?.heelL||0,lastPose?.heelR||0),
+        kneeBend:lastPose?.bendKnees||0,stance:lastPose?.stance||0,
+        warriorL:lastPose?.warriorL||0,warriorR:lastPose?.warriorR||0,
+        kneeLift:Math.max(lastPose?.kneeLiftL||0,lastPose?.kneeLiftR||0),
         frames,averageFrameMs:meanFrameMs
       })
     };
